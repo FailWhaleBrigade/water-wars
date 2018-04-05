@@ -26,3 +26,7 @@ cabal.project.local
 
 # End of https://www.gitignore.io/api/haskell
 
+# generated cabal file
+
+*.cabal
+
