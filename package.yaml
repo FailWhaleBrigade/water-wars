@@ -23,6 +23,9 @@ ghc-options: -Wall
 library:
   dependencies:
   - base
+  - classy-prelude
+  - gloss
+  - websockets
   source-dirs: library
   default-extensions:
   - NamedFieldPuns
