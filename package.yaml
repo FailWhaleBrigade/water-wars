@@ -41,6 +41,9 @@ executables:
     dependencies:
     - base
     - water-wars
+    - classy-prelude
+    - warp
+    - wai-websockets
     ghc-options:
     - -rtsopts
     - -threaded
@@ -94,8 +97,11 @@ tests:
     dependencies:
     - base
     - water-wars
+    - classy-prelude
     - tasty
     - tasty-hspec
+    - tasty-hunit
+    - HUnit
     ghc-options:
     - -rtsopts
     - -threaded
