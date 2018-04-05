@@ -65,4 +65,4 @@ packages:
 # Allow a newer minor version of GHC than the snapshot specifies
 # compiler-check: newer-minor
 nix:
-  packages: [ glpk, pkgconfig, cairo, pango, zlib, gmp, pcre ]
+  packages: [ glpk, mesa, pkgconfig, cairo, pango, zlib, gmp, pcre ]
