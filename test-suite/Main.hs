@@ -6,6 +6,8 @@ import qualified Test.Tasty
 -- writing tests. Its website has more info: <https://hspec.github.io>.
 import Test.Tasty.Hspec
 
+import Prelude
+
 main :: IO ()
 main = do
     test <- testSpec "water-wars" spec

@@ -24,6 +24,12 @@ library:
   dependencies:
   - base
   source-dirs: library
+  default-extensions:
+  - NamedFieldPuns
+  - OverloadedStrings
+  - NoImplicitPrelude
+  - ScopedTypeVariables
+  - RecordWildCards
 
 executables:
   water-wars:
@@ -36,6 +42,12 @@ executables:
     - -rtsopts
     - -threaded
     - -with-rtsopts=-N
+    default-extensions:
+    - NamedFieldPuns
+    - OverloadedStrings
+    - NoImplicitPrelude
+    - ScopedTypeVariables
+    - RecordWildCards
 
 benchmarks:
   water-wars-benchmarks:
@@ -49,6 +61,12 @@ benchmarks:
     - -rtsopts
     - -threaded
     - -with-rtsopts=-N
+    default-extensions:
+    - NamedFieldPuns
+    - OverloadedStrings
+    - NoImplicitPrelude
+    - ScopedTypeVariables
+    - RecordWildCards
 
 tests:
   water-wars-test-suite:
@@ -63,3 +81,9 @@ tests:
     - -rtsopts
     - -threaded
     - -with-rtsopts=-N
+    default-extensions:
+    - NamedFieldPuns
+    - OverloadedStrings
+    - NoImplicitPrelude
+    - ScopedTypeVariables
+    - RecordWildCards

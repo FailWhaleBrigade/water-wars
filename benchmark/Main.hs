@@ -2,5 +2,7 @@
 -- website for help: <http://www.serpentine.com/criterion/>.
 import Criterion.Main
 
+import Prelude
+
 main :: IO ()
 main = defaultMain [bench "const" (whnf const ())]

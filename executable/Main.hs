@@ -3,5 +3,7 @@
 -- wrote in their libraries.
 import qualified Example
 
+import Prelude
+
 main :: IO ()
 main = Example.main

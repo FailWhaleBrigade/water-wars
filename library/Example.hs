@@ -1,6 +1,6 @@
--- | An example module.
 module Example (main) where
 
--- | An example function.
+import Prelude
+
 main :: IO ()
 main = return ()
