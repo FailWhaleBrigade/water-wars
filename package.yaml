@@ -32,8 +32,24 @@ library:
   - RecordWildCards
 
 executables:
-  water-wars:
-    source-dirs: executable
+  server:
+    source-dirs: server
+    main: Main.hs
+    dependencies:
+    - base
+    - water-wars
+    ghc-options:
+    - -rtsopts
+    - -threaded
+    - -with-rtsopts=-N
+    default-extensions:
+    - NamedFieldPuns
+    - OverloadedStrings
+    - NoImplicitPrelude
+    - ScopedTypeVariables
+    - RecordWildCards
+  client:
+    source-dirs: client
     main: Main.hs
     dependencies:
     - base
