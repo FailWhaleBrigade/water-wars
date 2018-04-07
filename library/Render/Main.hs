@@ -35,8 +35,8 @@ fieldHeight :: Float
 fieldHeight = 150
 
 -- convert a game state into a picture
-render :: MyGame -> Picture
-render game = pictures [player, wall]
+render :: MyGame -> IO Picture
+render game = return $ pictures [player, wall]
   where
     player =
         uncurry translate (playerLoc game) $ color playerColor $ circleSolid 20
@@ -52,6 +52,9 @@ handleKeys (EventKey (Char c) _ _ _) game
     | c == 'd' = game { playerVel = (v, 0) }
     where v = 10
 handleKeys _ game = game { playerVel = (0, 0) }
+
+handleKeysIO :: Event -> MyGame -> IO MyGame
+handleKeysIO e state = return $ handleKeys e state
 
 movePlayer :: Float -> MyGame -> MyGame
 movePlayer seconds game = game { playerLoc = (x', y') }
@@ -87,8 +90,16 @@ wallCollisionX (x, _) radius = leftCol || rightCol
 update :: Float -> MyGame -> MyGame
 update seconds = movePlayer seconds . onWallCollision
 
+updateIO :: Float -> MyGame -> IO MyGame
+updateIO diff state = return $ update diff state
+
 main :: IO ()
-main = play window background fps initialState render handleKeys update
-
-
-
+main = 
+    playIO 
+        window 
+        background 
+        fps 
+        initialState 
+        render
+        handleKeysIO
+        updateIO
