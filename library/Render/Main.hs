@@ -1,16 +1,17 @@
 module Render.Main(main) where
 
-import Prelude
+import ClassyPrelude
 import Graphics.Gloss
 import Graphics.Gloss.Interface.IO.Game
 
 type Radius = Float
+
 type Position = (Float, Float)
 
-data MyGame = Game {
-    playerLoc :: (Float, Float)
+data MyGame = Game 
+    { playerLoc :: (Float, Float)
     , playerVel :: (Float, Float)
-} deriving Show
+    } deriving Show
 
 initialState :: MyGame
 initialState =
@@ -19,7 +20,7 @@ initialState =
                                                   }
 
 window :: Display
-window = FullScreen--InWindow "test" (200, 200) (10, 10)
+window = FullScreen --InWindow "test" (200, 200) (10, 10)
 
 fps :: Int
 fps = 60
@@ -65,7 +66,7 @@ onWallCollision game = game { playerVel = (vx', vy') }
   where
     radius   = 20
     (vx, vy) = playerVel game
-    --TODO!!! this wont work i believe
+    -- TODO!!! this wont work i believe
     vy'      = if wallCollisionY (playerLoc game) radius then 0 else vy
     vx'      = if wallCollisionX (playerLoc game) radius then 0 else vx
 
