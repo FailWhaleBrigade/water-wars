@@ -25,8 +25,8 @@ window = FullScreen --InWindow "test" (200, 200) (10, 10)
 fps :: Int
 fps = 60
 
-background :: Color
-background = white
+backgroundColor :: Color
+backgroundColor = white
 
 fieldWidth :: Float
 fieldWidth = 150
@@ -36,7 +36,9 @@ fieldHeight = 150
 
 -- convert a game state into a picture
 render :: MyGame -> IO Picture
-render game = return $ pictures [player, wall]
+render game = do
+    background <- loadBMP "resources/textures/background/background.bmp"
+    return $ pictures [background, player, wall]
   where
     player =
         uncurry translate (playerLoc game) $ color playerColor $ circleSolid 20
@@ -97,7 +99,7 @@ main :: IO ()
 main = 
     playIO 
         window 
-        background 
+        backgroundColor 
         fps 
         initialState 
         render
