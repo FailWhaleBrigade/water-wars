@@ -1,16 +1,17 @@
 module Render.Main(main) where
 
-import Prelude
+import ClassyPrelude
 import Graphics.Gloss
 import Graphics.Gloss.Interface.IO.Game
 
 type Radius = Float
+
 type Position = (Float, Float)
 
-data MyGame = Game {
-    playerLoc :: (Float, Float)
+data MyGame = Game 
+    { playerLoc :: (Float, Float)
     , playerVel :: (Float, Float)
-} deriving Show
+    } deriving Show
 
 initialState :: MyGame
 initialState =
@@ -19,7 +20,7 @@ initialState =
                                                   }
 
 window :: Display
-window = FullScreen--InWindow "test" (200, 200) (10, 10)
+window = FullScreen --InWindow "test" (200, 200) (10, 10)
 
 fps :: Int
 fps = 60
@@ -34,8 +35,8 @@ fieldHeight :: Float
 fieldHeight = 150
 
 -- convert a game state into a picture
-render :: MyGame -> Picture
-render game = pictures [player, wall]
+render :: MyGame -> IO Picture
+render game = return $ pictures [player, wall]
   where
     player =
         uncurry translate (playerLoc game) $ color playerColor $ circleSolid 20
@@ -52,6 +53,9 @@ handleKeys (EventKey (Char c) _ _ _) game
     where v = 10
 handleKeys _ game = game { playerVel = (0, 0) }
 
+handleKeysIO :: Event -> MyGame -> IO MyGame
+handleKeysIO e state = return $ handleKeys e state
+
 movePlayer :: Float -> MyGame -> MyGame
 movePlayer seconds game = game { playerLoc = (x', y') }
   where
@@ -65,7 +69,7 @@ onWallCollision game = game { playerVel = (vx', vy') }
   where
     radius   = 20
     (vx, vy) = playerVel game
-    --TODO!!! this wont work i believe
+    -- TODO!!! this wont work i believe
     vy'      = if wallCollisionY (playerLoc game) radius then 0 else vy
     vx'      = if wallCollisionX (playerLoc game) radius then 0 else vx
 
@@ -86,8 +90,16 @@ wallCollisionX (x, _) radius = leftCol || rightCol
 update :: Float -> MyGame -> MyGame
 update seconds = movePlayer seconds . onWallCollision
 
+updateIO :: Float -> MyGame -> IO MyGame
+updateIO diff state = return $ update diff state
+
 main :: IO ()
-main = play window background fps initialState render handleKeys update
-
-
-
+main = 
+    playIO 
+        window 
+        background 
+        fps 
+        initialState 
+        render
+        handleKeysIO
+        updateIO
