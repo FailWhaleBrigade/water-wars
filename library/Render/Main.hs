@@ -100,7 +100,7 @@ updateIO diff state = return $ update diff state
 
 main :: IO ()
 main = do
-    Right bgTex <- loadPngAsBmp "resources/textures/background.png"
+    Right bgTex <- loadPngAsBmp "resources/textures/background/background.png"
 
     playIO 
         window 
