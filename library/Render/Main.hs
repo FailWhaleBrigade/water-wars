@@ -4,6 +4,8 @@ import ClassyPrelude
 import Graphics.Gloss
 import Graphics.Gloss.Interface.IO.Game
 
+import Codec.Resource (loadPngAsBmp)
+
 type Radius = Float
 
 type Position = (Float, Float)
@@ -11,13 +13,15 @@ type Position = (Float, Float)
 data MyGame = Game 
     { playerLoc :: (Float, Float)
     , playerVel :: (Float, Float)
+    , backgroundTexture :: Picture
     } deriving Show
 
-initialState :: MyGame
-initialState =
-    Game {playerLoc = (0, -50) --the bottom middle of the field
-                              , playerVel = (0, 0) -- not sure if we need velocity
-                                                  }
+initialState :: Picture -> MyGame
+initialState bgTex =
+    Game { playerLoc = (0, -50) --the bottom middle of the field
+         , playerVel = (0, 0) -- not sure if we need velocity
+         , backgroundTexture = bgTex
+         }
 
 window :: Display
 window = FullScreen --InWindow "test" (200, 200) (10, 10)
@@ -36,9 +40,8 @@ fieldHeight = 150
 
 -- convert a game state into a picture
 render :: MyGame -> IO Picture
-render game = do
-    background <- loadBMP "resources/textures/background/background.bmp"
-    return $ pictures [background, player, wall]
+render game =
+   return $ pictures [backgroundTexture game, player, wall]
   where
     player =
         uncurry translate (playerLoc game) $ color playerColor $ circleSolid 20
@@ -96,12 +99,14 @@ updateIO :: Float -> MyGame -> IO MyGame
 updateIO diff state = return $ update diff state
 
 main :: IO ()
-main = 
+main = do
+    Right bgTex <- loadPngAsBmp "resources/textures/background.png"
+
     playIO 
         window 
         backgroundColor 
         fps 
-        initialState 
+        (initialState bgTex) 
         render
         handleKeysIO
         updateIO

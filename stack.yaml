@@ -4,4 +4,10 @@ packages:
 - .
 
 nix:
-  packages: [ glpk, mesa, pkgconfig, cairo, pango, zlib, gmp, pcre ]
+  packages: 
+  - mesa_glu
+  - freeglut
+  - pkgconfig
+  - zlib 
+  - pcre 
+  - gmp

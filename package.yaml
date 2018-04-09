@@ -26,6 +26,8 @@ library:
   - classy-prelude
   - gloss
   - websockets
+  - JuicyPixels
+  - temporary
   source-dirs: library
   default-extensions:
   - NamedFieldPuns
