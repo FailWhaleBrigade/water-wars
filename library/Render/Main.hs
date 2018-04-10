@@ -17,11 +17,12 @@ data MyGame = Game
     } deriving Show
 
 initialState :: Picture -> MyGame
-initialState bgTex =
-    Game { playerLoc = (0, -50) --the bottom middle of the field
-         , playerVel = (0, 0) -- not sure if we need velocity
-         , backgroundTexture = bgTex
-         }
+initialState bmp =
+    Game 
+        { playerLoc = (0, -50) --the bottom middle of the field
+        , playerVel = (0, 0) -- not sure if we need velocity
+        , backgroundTexture = bmp
+        }
 
 window :: Display
 window = FullScreen --InWindow "test" (200, 200) (10, 10)
