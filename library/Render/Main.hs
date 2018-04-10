@@ -22,7 +22,7 @@ main :: IO ()
 main = do
     bgTexEither <- bulkLoad textures
     case bgTexEither of
-        Left err -> print $ "Could not load texture. Cause: " ++ show err
+        Left err -> putStrLn $ "Could not load texture. Cause: " ++ tshow err
         Right [bgTex, blockLeft, blockRight, block, centerBlock] -> 
             playIO 
                 window 
@@ -41,4 +41,3 @@ textures =
     , ("resources/textures/block/block.png", 64, 64)
     , ("resources/textures/block/middle_block.png", 64, 64)
     ]
-    
