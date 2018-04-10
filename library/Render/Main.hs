@@ -6,7 +6,7 @@ import Graphics.Gloss.Interface.IO.Game
 
 import Codec.Resource (loadPngAsBmp, bulkLoad, Width, Height)
 import Render.Update (handleKeysIO, updateIO)
-import Render.State (MyGame, initialState)
+import Render.State (MyGame, initialState, Solid, Solid(..))
 import Render.Display (render)
 
 window :: Display
@@ -28,7 +28,7 @@ main = do
                 window 
                 backgroundColor 
                 fps 
-                (initialState bgTex) 
+                (initialState bgTex (singleton (Solid 50 50 (50, 50) blockRight))) 
                 render
                 handleKeysIO
                 updateIO
