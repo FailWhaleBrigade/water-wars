@@ -1,0 +1,56 @@
+module Render.Update where
+
+import ClassyPrelude 
+import Graphics.Gloss
+import Render.State
+import Graphics.Gloss.Interface.IO.Game
+
+
+handleKeys :: Event -> MyGame -> MyGame
+handleKeys (EventKey (Char c) _ _ _) game
+    | c == 'a' = game { playerVel = (-v, 0) }
+    | c == 'w' = game { playerVel = (0, v) }
+    | c == 's' = game { playerVel = (0, -v) }
+    | c == 'd' = game { playerVel = (v, 0) }
+    where v = 10
+handleKeys _ game = game { playerVel = (0, 0) }
+
+handleKeysIO :: Event -> MyGame -> IO MyGame
+handleKeysIO e state = return $ handleKeys e state
+
+movePlayer :: Float -> MyGame -> MyGame
+movePlayer seconds game = game { playerLoc = (x', y') }
+  where
+    (x , y ) = playerLoc game
+    (vx, vy) = playerVel game
+    x'       = x + vx * seconds
+    y'       = y + vy * seconds
+
+onWallCollision :: MyGame -> MyGame
+onWallCollision game = game { playerVel = (vx', vy') }
+  where
+    radius   = 20
+    (vx, vy) = playerVel game
+    -- TODO!!! this wont work i believe
+    vy'      = if wallCollisionY (playerLoc game) radius then 0 else vy
+    vx'      = if wallCollisionX (playerLoc game) radius then 0 else vx
+
+-- given the position and radius of the ball, 
+-- return whether a collision occured
+wallCollisionY :: Position -> Radius -> Bool
+wallCollisionY (_, y) radius = topCol || botCol
+  where
+    topCol = y - radius <= -fieldHeight / 2
+    botCol = y + radius >= fieldHeight / 2
+
+wallCollisionX :: Position -> Radius -> Bool
+wallCollisionX (x, _) radius = leftCol || rightCol
+  where
+    leftCol  = x - radius <= -fieldWidth / 2
+    rightCol = x + radius >= fieldWidth / 2
+
+update :: Float -> MyGame -> MyGame
+update seconds = movePlayer seconds . onWallCollision
+
+updateIO :: Float -> MyGame -> IO MyGame
+updateIO diff state = return $ update diff state

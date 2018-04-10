@@ -1,4 +1,4 @@
-module Codec.Resource (loadPngAsBmp, Height, Width) where
+module Codec.Resource (loadPngAsBmp, Height, Width, bulkLoad) where
 
 import ClassyPrelude
 import Graphics.Gloss
@@ -18,3 +18,9 @@ readPng path w h = do
     img <- imgEither
     let bs = toByteString . reverseColorChannel $ onImg flipVertically img
     Right (bitmapOfByteString w h (BitmapFormat TopToBottom PxRGBA) bs True)
+
+bulkLoad :: [(FilePath, Width, Height)] -> IO (Either String [Picture])
+bulkLoad infos = do
+    loading <- mapM (\(fp, width, height) -> loadPngAsBmp fp width height) infos :: IO ([Either String Picture])
+    let loaded = sequenceA loading :: Either String [Picture]
+    return loaded
