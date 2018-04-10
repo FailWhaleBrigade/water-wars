@@ -7,7 +7,7 @@ import Codec.Picture.Repa
 type Width = Int
 type Height = Int
 
-loadPngAsBmp :: FilePath -> Height -> Width -> IO (Either String Picture)
+loadPngAsBmp :: FilePath -> Width -> Height -> IO (Either String Picture)
 loadPngAsBmp = readPng
     
 -- taken from https://stackoverflow.com/questions/12222728/png-to-bmp-in-haskell-for-gloss
@@ -16,5 +16,5 @@ readPng path w h = do
   imgEither <- readImageRGBA path
   return $ do 
     img <- imgEither
-    let bs = toByteString $ reverseColorChannel img
+    let bs = toByteString . reverseColorChannel $ onImg flipVertically img
     Right (bitmapOfByteString w h (BitmapFormat TopToBottom PxRGBA) bs True)
