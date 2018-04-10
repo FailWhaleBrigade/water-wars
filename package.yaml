@@ -27,6 +27,7 @@ library:
   - gloss
   - websockets
   - JuicyPixels
+  - JuicyPixels-repa
   source-dirs: library
   default-extensions:
   - NamedFieldPuns

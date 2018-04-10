@@ -101,13 +101,15 @@ updateIO diff state = return $ update diff state
 
 main :: IO ()
 main = do
-    Right bgTex <- loadPngAsBmp "resources/textures/background/background.png"
-
-    playIO 
-        window 
-        backgroundColor 
-        fps 
-        (initialState bgTex) 
-        render
-        handleKeysIO
-        updateIO
+    bgTexEither <- loadPngAsBmp "resources/textures/background/background.png" 1920 1080
+    case bgTexEither of
+        Left err -> print $ "Could not load texture. Cause: " ++ show err
+        Right bgTex -> 
+            playIO 
+                window 
+                backgroundColor 
+                fps 
+                (initialState bgTex) 
+                render
+                handleKeysIO
+                updateIO
