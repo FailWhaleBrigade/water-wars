@@ -1,10 +1,13 @@
 {-# LANGUAGE TypeFamilies #-}
-module Render.Resources.Tiles (Tile, Tile(..), loadTileMap) where
+module Render.Resources.Tiles (Tile, Tile(..), loadTileMap, setTiles) where
 
 import ClassyPrelude
 import qualified Graphics.Gloss as Gloss 
+import Render.State
 
 import Codec.Resource 
+
+type TileMap = Map Tile Gloss.Picture
 
 data Tile 
     = Floor
@@ -20,7 +23,12 @@ data Tile
     | Ceil
     deriving (Show, Enum, Bounded, Eq, Ord, Read)
 
-loadTileMap :: IO (Either String (Map Tile Gloss.Picture))
+setTiles :: TileMap -> Seq Solid
+setTiles tilemap =
+    fromList ((mapMaybe (\x -> Solid 50 50 (x, 200) <$> lookup Ceil tilemap) $ [-200, (-200 + 32) .. 200])
+    ++  maybeToList (Solid 50 50 (232, 200) <$> lookup TopRightCorner tilemap))
+
+loadTileMap :: IO (Either String (TileMap))
 loadTileMap = do
     loadedTextures <- bulkLoad tiles
     return $ do 
