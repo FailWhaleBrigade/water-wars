@@ -6,10 +6,9 @@ import Graphics.Gloss.Interface.IO.Game
 
 import Codec.Resource (loadPngAsBmp)
 import Render.Update (handleKeysIO, updateIO)
-import Render.State (initialState, Solid(..))
-import Render.Resources.Tiles (Tile(..), loadTileMap, setTiles)
+import Render.State (initialState)
+import Render.Resources.Tiles (loadTileMap, setTiles)
 import Render.Display (render)
-import Data.Maybe (fromJust)
 
 window :: Display
 window = InWindow "Water Wars" (800, 600) (10, 10)
@@ -25,8 +24,6 @@ main :: IO ()
 main = do
     bgTexEither <- loadPngAsBmp
         "resources/textures/background/background.png"
-        1920
-        1080
     Right tiles <- loadTileMap
     case bgTexEither of
         Left  err   -> putStrLn $ "Could not load texture. Cause: " ++ tshow err

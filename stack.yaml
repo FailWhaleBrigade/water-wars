@@ -4,9 +4,6 @@ packages:
 - .
 
 
-extra-deps:
-- JuicyPixels-repa-0.7.1.0
-
 nix:
   pure: false
   packages: 
