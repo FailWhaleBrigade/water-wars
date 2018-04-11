@@ -26,6 +26,7 @@ library:
   - classy-prelude
   - gloss
   - websockets
+  - array
   source-dirs: library
   default-extensions:
   - NamedFieldPuns
@@ -35,15 +36,16 @@ library:
   - RecordWildCards
 
 executables:
-  server:
+  water-wars-server:
     source-dirs: server
     main: Main.hs
     dependencies:
     - base
     - water-wars
     - classy-prelude
-    - warp
-    - wai-websockets
+    # - warp
+    # - wai-websockets
+    - network
     ghc-options:
     - -rtsopts
     - -threaded
