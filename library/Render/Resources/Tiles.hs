@@ -36,8 +36,11 @@ setTiles :: TileMap -> Seq Solid
 setTiles tilemap =
     fromList ((mapMaybe (\x -> Solid tileSize tileSize (x, fieldHeight) <$> lookup Ceil tilemap) $ [-fieldWidth, (-fieldWidth + tileSize) .. fieldWidth]) -- ceiling placement
     ++ (mapMaybe (\y -> Solid tileSize tileSize (fieldWidth, y) <$> lookup RightWall tilemap) $ [(fieldHeight - tileSize), (fieldHeight - tileSize * 2) .. -fieldHeight]) -- right wall placement
-    ++ (mapMaybe (\x -> Solid tileSize tileSize (x, -fieldHeight) <$> lookup Ceil tilemap) $ [-fieldWidth, (-fieldWidth + tileSize) .. fieldWidth]) -- floor placement
+    ++ (mapMaybe (\x -> Solid tileSize tileSize (x, -fieldHeight) <$> lookup Floor tilemap) $ [-fieldWidth, (-fieldWidth + tileSize) .. fieldWidth]) -- floor placement
     ++ (mapMaybe (\y -> Solid tileSize tileSize (-fieldWidth, y) <$> lookup LeftWall tilemap) $ [-fieldHeight, (-fieldHeight + tileSize) .. fieldHeight]) -- left wall placement
+    ++ (mapMaybe (\x -> Solid tileSize tileSize (x, -100) <$> lookup Floor tilemap) $ [-64, (-64 + tileSize) .. 64]) -- platform
+    ++ placeSingleTile (-96) (-100) EndLeft tilemap
+    ++ placeSingleTile 96 (-100) EndRight tilemap
     ++ placeSingleTile fieldWidth (-fieldHeight) BottomRightCorner tilemap -- bottom right corner placement
     ++ placeSingleTile fieldWidth fieldHeight TopRightCorner tilemap -- top right corner placement
     ++ placeSingleTile (-fieldWidth) (-fieldHeight) BottomLeftCorner tilemap -- bottom left corner placement
