@@ -21,6 +21,6 @@ readPng path w h = do
 
 bulkLoad :: [(FilePath, Width, Height)] -> IO (Either String [Picture])
 bulkLoad infos = do
-    loading <- mapM (\(fp, width, height) -> loadPngAsBmp fp width height) infos :: IO ([Either String Picture])
+    loading <- mapM (\(fp, width, height) -> loadPngAsBmp fp width height) infos :: IO [Either String Picture]
     let loaded = sequenceA loading :: Either String [Picture]
     return loaded

@@ -17,7 +17,7 @@ render game =
     solidPictures =
         map 
             (\solid -> 
-                (\(x, y) -> translate x y)
+                (uncurry translate)
                     (solidCenter solid) 
                     (solidTexture solid)
             )

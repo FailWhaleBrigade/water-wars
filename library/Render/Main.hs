@@ -6,7 +6,7 @@ import Graphics.Gloss.Interface.IO.Game
 
 import Codec.Resource (loadPngAsBmp, bulkLoad, Width, Height)
 import Render.Update (handleKeysIO, updateIO)
-import Render.State (MyGame, initialState, Solid, Solid(..))
+import Render.State (initialState, Solid(..))
 import Render.Display (render)
 
 window :: Display
