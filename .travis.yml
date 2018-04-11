@@ -33,3 +33,6 @@ script: stack $ARGS --no-terminal --install-ghc test
 cache:
   directories:
   - $HOME/.stack
+
+notifications:
+  slack: slacker-team-group:HcLP7VEc9wYDF8eMzNJ8ZeAY
