@@ -22,16 +22,19 @@ backgroundColor = white
 
 main :: IO ()
 main = do
-    bgTexEither <- loadPngAsBmp
-        "resources/textures/background/background.png"
-    Right tiles <- loadTileMap
+    bgTexEither <- loadPngAsBmp "resources/textures/background/background.png"
+    tilesEither <- loadTileMap
     case bgTexEither of
         Left  err   -> putStrLn $ "Could not load texture. Cause: " ++ tshow err
-        Right bgTex -> playIO window
-                              backgroundColor
-                              fps
-                              (initialState bgTex (setTiles tiles))
-                              render
-                              handleKeysIO
-                              updateIO
+        Right bgTex -> case tilesEither of
+            Left err ->
+                putStrLn $ "Could not load texture. Cause: " ++ tshow err
+            Right tiles -> playIO window
+                                  backgroundColor
+                                  fps
+                                  (initialState bgTex (setTiles tiles))
+                                  render
+                                  handleKeysIO
+                                  updateIO
+
 

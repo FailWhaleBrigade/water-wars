@@ -89,27 +89,28 @@ loadTileMap = do
 
 tiles :: Seq FilePath
 tiles = fromList
-    [ {- Floor,-}
+    [ {- Floor -}
       "resources/textures/block/block32.png"
-    , {- EndLeft,-}
+    , {- EndLeft -}
       "resources/textures/block/blockendleft32.png"
-    , {- EndRight,-}
+    , {- EndRight -}
       "resources/textures/block/blockendright32.png"
-    , {- BottomLeftCorner,-}
+    , {- BottomLeftCorner -}
       "resources/textures/block/bottomleftcornerblock32.png"
-    , {- BottomRightCorner,-}
+    , {- BottomRightCorner -}
       "resources/textures/block/bottomrightcornerblock32.png"
-    , {- TopRightCorner,-}
+    , {- TopRightCorner -}
       "resources/textures/block/toprightcornerblock32.png"
-    , {- TopLeftCorner,-}
+    , {- TopLeftCorner -}
       "resources/textures/block/topleftcornerblock32.png"
-    , {- LeftWall,-}
+    , {- LeftWall -}
       "resources/textures/block/leftwallblock32.png"
-    , {- RightWall,-}
+    , {- RightWall -}
       "resources/textures/block/rightwallblock32.png"
-    , {- Middle,-}
+    , {- Middle -}
       "resources/textures/block/middleblock32.png"
-    , {- Ceil,-}
+    , {- Ceil -}
       "resources/textures/block/topblock32.png"
     ]
+
 
