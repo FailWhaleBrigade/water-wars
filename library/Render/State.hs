@@ -2,6 +2,8 @@ module Render.State where
 
 import ClassyPrelude
 import Graphics.Gloss
+import Render.Solid
+import Render.Resources.Block
 
 type Radius = Float
 
@@ -11,22 +13,16 @@ data MyGame = Game
     { playerLoc :: (Float, Float)
     , playerVel :: (Float, Float)
     , backgroundTexture :: Picture
+    , blockMap :: BlockMap
     , solids :: Seq Solid 
     } deriving Show
 
-data Solid =
-    Solid
-        { solidWidth :: Float
-        , solidHeight :: Float
-        , solidCenter :: (Float, Float)
-        , solidTexture :: Picture
-        } deriving (Show, Eq)
-
-initialState :: Picture -> Seq Solid -> MyGame
-initialState bmp solids =
+initialState :: Picture -> BlockMap -> MyGame
+initialState bmp blockMap =
     Game 
         { playerLoc = (0, -50) --the bottom middle of the field
         , playerVel = (0, 0) -- not sure if we need velocity
         , backgroundTexture = bmp
-        , solids = solids
+        , solids = setBlocks blockMap
+        , blockMap = blockMap
         }

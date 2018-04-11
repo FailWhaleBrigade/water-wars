@@ -13,7 +13,7 @@ defaultGameMap = GameMap
 
 defaultTerrain :: Terrain
 defaultTerrain = Terrain
-  { terrainBlocks = listArray (BlockLocation (-1, -1), BlockLocation (1, 1))
-                              (take 9 $ cycle [NoBlock, SolidBlock, NoBlock])
+  { terrainBlocks = listArray (BlockLocation (-3, -3), BlockLocation (3, 3))
+                              (cycle [SolidBlock, NoBlock])
   , terrainBackground = "Use Default Background"
   }

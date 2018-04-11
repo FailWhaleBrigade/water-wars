@@ -32,7 +32,7 @@ main = do
             Right blocks -> playIO window
                                   backgroundColor
                                   fps
-                                  (initialState bgTex (setBlocks blocks))
+                                  (initialState bgTex blocks)
                                   render
                                   handleKeysIO
                                   updateIO

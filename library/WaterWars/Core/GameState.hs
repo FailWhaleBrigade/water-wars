@@ -26,7 +26,7 @@ data Terrain = Terrain
 data Block
   = SolidBlock
   | NoBlock
-  deriving (Show, Read)
+  deriving (Show, Read, Eq)
 
 -- |Master-state of the whole game
 data GameState = GameState
