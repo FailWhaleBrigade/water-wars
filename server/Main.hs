@@ -1,9 +1,18 @@
--- It is generally a good idea to keep all your business logic in your library
--- and only use it in the executable. Doing so allows others to use what you
--- wrote in their libraries.
-import qualified Example
+module Main where
 
-import Prelude
+import ClassyPrelude
+import Network
+import WaterWars.Core.DefaultGame
 
 main :: IO ()
-main = Example.main
+main = do
+  socket <- listenOn $ PortNumber 1234
+  (connHandle, clientName, clientPort) <- accept socket
+  putStrLn $ tshow clientName ++ " " ++ tshow clientPort
+  hPutText connHandle $ tshow defaultGameMap
+  hClose connHandle
+  sClose socket
+  return ()
+
+hPutText :: Handle -> Text -> IO ()
+hPutText h = hPut h . encodeUtf8
