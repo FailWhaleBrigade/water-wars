@@ -7,13 +7,11 @@ import Render.State
 -- convert a game state into a picture
 render :: MyGame -> IO Picture
 render game =
-   return $ pictures ([backgroundTexture game, player, wall] ++ toList solidPictures)
+   return $ pictures ([backgroundTexture game, player] ++ toList solidPictures)
   where
     player =
         uncurry translate (playerLoc game) $ color playerColor $ circleSolid 20
     playerColor = red
-    wall        = color wallColor $ rectangleWire fieldWidth fieldHeight
-    wallColor   = black
     solidPictures =
         map 
             (\solid -> 

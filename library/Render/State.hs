@@ -7,12 +7,6 @@ type Radius = Float
 
 type Position = (Float, Float)
 
-fieldWidth :: Float
-fieldWidth = 150
-
-fieldHeight :: Float
-fieldHeight = 150
-
 data MyGame = Game 
     { playerLoc :: (Float, Float)
     , playerVel :: (Float, Float)

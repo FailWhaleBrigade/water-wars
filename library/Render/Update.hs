@@ -26,31 +26,8 @@ movePlayer seconds game = game { playerLoc = (x', y') }
     x'       = x + vx * seconds
     y'       = y + vy * seconds
 
-onWallCollision :: MyGame -> MyGame
-onWallCollision game = game { playerVel = (vx', vy') }
-  where
-    radius   = 20
-    (vx, vy) = playerVel game
-    -- TODO!!! this wont work i believe
-    vy'      = if wallCollisionY (playerLoc game) radius then 0 else vy
-    vx'      = if wallCollisionX (playerLoc game) radius then 0 else vx
-
--- given the position and radius of the ball, 
--- return whether a collision occured
-wallCollisionY :: Position -> Radius -> Bool
-wallCollisionY (_, y) radius = topCol || botCol
-  where
-    topCol = y - radius <= -fieldHeight / 2
-    botCol = y + radius >= fieldHeight / 2
-
-wallCollisionX :: Position -> Radius -> Bool
-wallCollisionX (x, _) radius = leftCol || rightCol
-  where
-    leftCol  = x - radius <= -fieldWidth / 2
-    rightCol = x + radius >= fieldWidth / 2
-
 update :: Float -> MyGame -> MyGame
-update seconds = movePlayer seconds . onWallCollision
+update seconds = movePlayer seconds
 
 updateIO :: Float -> MyGame -> IO MyGame
 updateIO diff state = return $ update diff state

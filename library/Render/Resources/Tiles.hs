@@ -23,21 +23,29 @@ data Tile
     | Ceil
     deriving (Show, Enum, Bounded, Eq, Ord, Read)
 
+fieldWidth :: Float
+fieldWidth = 256
+    
+fieldHeight :: Float
+fieldHeight = 256
+    
+tileSize :: Float
+tileSize = 32
+
 setTiles :: TileMap -> Seq Solid
 setTiles tilemap =
     fromList ((mapMaybe (\x -> Solid tileSize tileSize (x, fieldHeight) <$> lookup Ceil tilemap) $ [-fieldWidth, (-fieldWidth + tileSize) .. fieldWidth]) -- ceiling placement
     ++ (mapMaybe (\y -> Solid tileSize tileSize (fieldWidth, y) <$> lookup RightWall tilemap) $ [(fieldHeight - tileSize), (fieldHeight - tileSize * 2) .. -fieldHeight]) -- right wall placement
     ++ (mapMaybe (\x -> Solid tileSize tileSize (x, -fieldHeight) <$> lookup Ceil tilemap) $ [-fieldWidth, (-fieldWidth + tileSize) .. fieldWidth]) -- floor placement
     ++ (mapMaybe (\y -> Solid tileSize tileSize (-fieldWidth, y) <$> lookup LeftWall tilemap) $ [-fieldHeight, (-fieldHeight + tileSize) .. fieldHeight]) -- left wall placement
-    ++ maybeToList (Solid tileSize tileSize (fieldWidth, -fieldHeight) <$> lookup BottomRightCorner tilemap) -- bottom right corner placement
-    ++ maybeToList (Solid tileSize tileSize (fieldWidth, fieldHeight) <$> lookup TopRightCorner tilemap) -- top right corner placement
-    ++ maybeToList (Solid tileSize tileSize (-fieldWidth, -fieldHeight) <$> lookup BottomLeftCorner tilemap) -- bottom left corner placement
-    ++ maybeToList (Solid tileSize tileSize (-fieldWidth, fieldHeight) <$> lookup TopRightCorner tilemap) -- top left corner placement
+    ++ placeSingleTile fieldWidth (-fieldHeight) BottomRightCorner tilemap -- bottom right corner placement
+    ++ placeSingleTile fieldWidth fieldHeight TopRightCorner tilemap -- top right corner placement
+    ++ placeSingleTile (-fieldWidth) (-fieldHeight) BottomLeftCorner tilemap -- bottom left corner placement
+    ++ placeSingleTile (-fieldWidth) fieldHeight TopLeftCorner tilemap -- top left corner placement
     )
-        where 
-            fieldWidth = 256
-            fieldHeight = 256
-            tileSize = 32
+
+placeSingleTile :: Float -> Float -> Tile -> TileMap -> [Solid]
+placeSingleTile x y tile tilemap = maybeToList (Solid tileSize tileSize (x, y) <$> lookup tile tilemap)
 
 loadTileMap :: IO (Either String (TileMap))
 loadTileMap = do
