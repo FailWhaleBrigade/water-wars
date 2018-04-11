@@ -25,8 +25,19 @@ data Tile
 
 setTiles :: TileMap -> Seq Solid
 setTiles tilemap =
-    fromList ((mapMaybe (\x -> Solid 50 50 (x, 200) <$> lookup Ceil tilemap) $ [-200, (-200 + 32) .. 200])
-    ++  maybeToList (Solid 50 50 (232, 200) <$> lookup TopRightCorner tilemap))
+    fromList ((mapMaybe (\x -> Solid tileSize tileSize (x, fieldHeight) <$> lookup Ceil tilemap) $ [-fieldWidth, (-fieldWidth + tileSize) .. fieldWidth]) -- ceiling placement
+    ++ (mapMaybe (\y -> Solid tileSize tileSize (fieldWidth, y) <$> lookup RightWall tilemap) $ [(fieldHeight - tileSize), (fieldHeight - tileSize * 2) .. -fieldHeight]) -- right wall placement
+    ++ (mapMaybe (\x -> Solid tileSize tileSize (x, -fieldHeight) <$> lookup Ceil tilemap) $ [-fieldWidth, (-fieldWidth + tileSize) .. fieldWidth]) -- floor placement
+    ++ (mapMaybe (\y -> Solid tileSize tileSize (-fieldWidth, y) <$> lookup LeftWall tilemap) $ [-fieldHeight, (-fieldHeight + tileSize) .. fieldHeight]) -- left wall placement
+    ++ maybeToList (Solid tileSize tileSize (fieldWidth, -fieldHeight) <$> lookup BottomRightCorner tilemap) -- bottom right corner placement
+    ++ maybeToList (Solid tileSize tileSize (fieldWidth, fieldHeight) <$> lookup TopRightCorner tilemap) -- top right corner placement
+    ++ maybeToList (Solid tileSize tileSize (-fieldWidth, -fieldHeight) <$> lookup BottomLeftCorner tilemap) -- bottom left corner placement
+    ++ maybeToList (Solid tileSize tileSize (-fieldWidth, fieldHeight) <$> lookup TopRightCorner tilemap) -- top left corner placement
+    )
+        where 
+            fieldWidth = 256
+            fieldHeight = 256
+            tileSize = 32
 
 loadTileMap :: IO (Either String (TileMap))
 loadTileMap = do
