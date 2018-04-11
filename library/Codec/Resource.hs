@@ -19,8 +19,8 @@ readPng path w h = do
     let bs = toByteString . reverseColorChannel $ onImg flipVertically img
     Right (bitmapOfByteString w h (BitmapFormat TopToBottom PxRGBA) bs True)
 
-bulkLoad :: [(FilePath, Width, Height)] -> IO (Either String [Picture])
+bulkLoad :: Seq (FilePath, Width, Height) -> IO (Either String (Seq Picture))
 bulkLoad infos = do
-    loading <- mapM (\(fp, width, height) -> loadPngAsBmp fp width height) infos :: IO [Either String Picture]
-    let loaded = sequenceA loading :: Either String [Picture]
+    loading <- mapM (\(fp, width, height) -> loadPngAsBmp fp width height) infos :: IO (Seq (Either String Picture))
+    let loaded = sequenceA loading :: Either String (Seq Picture)
     return loaded
