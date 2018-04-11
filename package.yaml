@@ -26,6 +26,7 @@ library:
   - classy-prelude
   - gloss
   - websockets
+  - JuicyPixels
   - array
   source-dirs: library
   default-extensions:
