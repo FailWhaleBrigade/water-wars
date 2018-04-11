@@ -30,7 +30,7 @@ initialState bmp blockMap' =
         { playerLoc = (0, -50) --the bottom middle of the field
         , playerVel = (0, 0) -- not sure if we need velocity
         , backgroundTexture = bmp
-        , solids = setBlocks blockMap' ++ fromList positions
+        , solids = setBlocks blockMap' ++ fromList blockPositions
         , blockMap = blockMap'
         }
 
@@ -43,8 +43,8 @@ initialState bmp blockMap' =
         mapWidthHalf  = mapWidth / 2
         mapHeightHalf = mapHeight / 2
     
-        positions :: [Solid]
-        positions = mapMaybe
+        blockPositions :: [Solid]
+        blockPositions = mapMaybe
             (\(loc, block) -> if block == GameState.SolidBlock
                 then
                     blockLocationToSolid mapWidthHalf mapHeightHalf blockSize loc
