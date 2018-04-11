@@ -36,8 +36,8 @@ main = do
 textures :: [(FilePath, Width, Height)]
 textures = 
     [ ("resources/textures/background/background.png", 1920, 1080)
-    , ("resources/textures/block/block_end_left.png", 64, 64)
-    , ("resources/textures/block/block_end_right.png", 64, 64)
-    , ("resources/textures/block/block.png", 64, 64)
-    , ("resources/textures/block/middle_block.png", 64, 64)
+    , ("resources/textures/block/blockendleft32.png", 32, 32)
+    , ("resources/textures/block/blockendright32.png", 32, 32)
+    , ("resources/textures/block/block32.png", 32, 32)
+    , ("resources/textures/block/middleblock32.png", 32, 32)
     ]
