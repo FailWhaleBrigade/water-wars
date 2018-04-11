@@ -1,5 +1,5 @@
 {-# LANGUAGE TypeFamilies #-}
-module Render.Resources.Tiles (Tile, Tile(..), loadTileMap, setTiles) where
+module Render.Resources.Tiles (Tile(..), loadTileMap, setTiles) where
 
 import ClassyPrelude
 import qualified Graphics.Gloss as Gloss
@@ -34,53 +34,50 @@ tileSize = 32
 
 setTiles :: TileMap -> Seq Solid
 setTiles tilemap = fromList
-    (  ( mapMaybe
-               (\x ->
-                   Solid tileSize tileSize (x, fieldHeight)
-                       <$> lookup Ceil tilemap
-               )
-       $ [-fieldWidth, (-fieldWidth + tileSize) .. fieldWidth]
-       ) -- ceiling placement
-    ++ (mapMaybe
-               (\y ->
-                   Solid tileSize tileSize (fieldWidth, y)
-                       <$> lookup RightWall tilemap
-               )
-       $ [(fieldHeight - tileSize), (fieldHeight - tileSize * 2) .. -fieldHeight]
-       ) -- right wall placement
-    ++ ( mapMaybe
-               (\x ->
-                   Solid tileSize tileSize (x, -fieldHeight)
-                       <$> lookup Floor tilemap
-               )
-       $ [-fieldWidth, (-fieldWidth + tileSize) .. fieldWidth]
-       ) -- floor placement
-    ++ ( mapMaybe
-               (\y ->
-                   Solid tileSize tileSize (-fieldWidth, y)
-                       <$> lookup LeftWall tilemap
-               )
-       $ [-fieldHeight, (-fieldHeight + tileSize) .. fieldHeight]
-       ) -- left wall placement
-    ++ ( mapMaybe
-               (\x ->
-                   Solid tileSize tileSize (x, -100) <$> lookup Floor tilemap
-               )
-       $ [-64, (-64 + tileSize) .. 64]
-       ) -- platform
+    (  mapMaybe
+          (\x ->
+              Solid tileSize tileSize (x, fieldHeight) <$> lookup Ceil tilemap
+          )
+          [-fieldWidth, (-fieldWidth + tileSize) .. fieldWidth]
+        -- ceiling placement
+    ++ mapMaybe
+           (\y ->
+               Solid tileSize tileSize (fieldWidth, y)
+                   <$> lookup RightWall tilemap
+           )
+           [(fieldHeight - tileSize), (fieldHeight - tileSize * 2) .. -fieldHeight]
+        -- right wall placement
+    ++ mapMaybe
+           (\x ->
+               Solid tileSize tileSize (x, -fieldHeight)
+                   <$> lookup Floor tilemap
+           )
+           [-fieldWidth, (-fieldWidth + tileSize) .. fieldWidth]
+        -- floor placement
+    ++ mapMaybe
+           (\y ->
+               Solid tileSize tileSize (-fieldWidth, y)
+                   <$> lookup LeftWall tilemap
+           )
+           [-fieldHeight, (-fieldHeight + tileSize) .. fieldHeight]
+        -- left wall placement
+    ++ mapMaybe
+           (\x -> Solid tileSize tileSize (x, -100) <$> lookup Floor tilemap)
+           [-64, (-64 + tileSize) .. 64]
+        -- platform
     ++ placeSingleTile (-96)         (-100)         EndLeft           tilemap
     ++ placeSingleTile 96            (-100)         EndRight          tilemap
     ++ placeSingleTile fieldWidth    (-fieldHeight) BottomRightCorner tilemap -- bottom right corner placement
     ++ placeSingleTile fieldWidth    fieldHeight    TopRightCorner    tilemap -- top right corner placement
     ++ placeSingleTile (-fieldWidth) (-fieldHeight) BottomLeftCorner  tilemap -- bottom left corner placement
-    ++ placeSingleTile (-fieldWidth) fieldHeight    TopLeftCorner     tilemap
-    ) -- top left corner placement
+    ++ placeSingleTile (-fieldWidth) fieldHeight    TopLeftCorner     tilemap -- top left corner placement
+    ) 
 
 placeSingleTile :: Float -> Float -> Tile -> TileMap -> [Solid]
 placeSingleTile x y tile tilemap =
     maybeToList (Solid tileSize tileSize (x, y) <$> lookup tile tilemap)
 
-loadTileMap :: IO (Either String (TileMap))
+loadTileMap :: IO (Either String TileMap)
 loadTileMap = do
     loadedTextures <- bulkLoad tiles
     return $ do
@@ -112,5 +109,7 @@ tiles = fromList
     , {- Ceil -}
       "resources/textures/block/topblock32.png"
     ]
+
+
 
 
