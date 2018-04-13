@@ -20,8 +20,6 @@ before_install:
 # library, executables, and test suites, and runs the test suites.
 # `--no-terminal works` around some quirks in Travis's terminal implementation.
 script: 
-- pwd
-- ls
 - stack --no-terminal --install-ghc test
 
 # Caching so the next build will be fast too.
