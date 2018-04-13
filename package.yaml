@@ -28,6 +28,7 @@ library:
   - websockets
   - JuicyPixels
   - array
+  - extensible-effects
   source-dirs: library
   default-extensions:
   - NamedFieldPuns

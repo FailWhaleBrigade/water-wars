@@ -1,8 +1,4 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE FlexibleContexts #-}
 
 module WaterWars.Core.GameState where
 
@@ -35,12 +31,7 @@ data GameState = GameState
   }
 
 newtype Entities = Entities (Seq Entity)
-  deriving newtype ( Monoid, MonoFunctor, GrowingAppend, MonoFoldable,
-    SemiSequence, MonoPointed)
   deriving (Read, Show)
-    -- MonoTraversable, IsSequence)
-
-type instance Element Entities = Entity
 
 data Entity = EntityPlayer InGamePlayer | Npc
   deriving (Show, Read)
@@ -52,6 +43,7 @@ data InGamePlayer = InGamePlayer
   , playerMaxHealth :: Int
   , playerHealth :: Int
   , playerViewDirection :: Angle
+  , playerMoveDirection :: Angle
   }
   deriving (Show, Read)
 
@@ -61,7 +53,7 @@ newtype Player = Player
   }
   deriving (Show, Read)
 
-newtype Projectiles = Projectiles (Seq Entity)
+newtype Projectiles = Projectiles (Seq Projectile)
 
 data Projectile = Projectile
   { projectileLocation :: Location
@@ -77,7 +69,15 @@ newtype BlockLocation = BlockLocation (Int, Int)
   deriving (Read, Show, Eq, Ord, Ix)
 
 newtype Angle = Angle Float
-  deriving (Show, Read)
+  deriving (Show, Read, Num)
 
 newtype Speed = Speed Float
-  deriving (Show, Read)
+  deriving (Show, Read, Num)
+
+-- TODO: module for the following
+moveLocation :: (Speed, Angle) -> Location -> Location
+moveLocation (Speed speed, Angle angle) (Location (x, y)) =
+    Location (x + dx, y + dy)
+    where
+        dx = speed * cos angle
+        dy = speed * sin angle
