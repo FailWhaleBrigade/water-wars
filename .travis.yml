@@ -10,11 +10,6 @@ addons:
     packages:
     - libgmp-dev
 
-# The different configurations we want to test. You could also do things like
-# change flags or use --stack-yaml to point to a different file.
-env:
-- ARGS="--resolver lts-11.3"
-
 before_install:
 # Download and unpack the stack executable
 - mkdir -p ~/.local/bin
@@ -24,7 +19,7 @@ before_install:
 # This line does all of the work: installs GHC if necessary, builds the
 # library, executables, and test suites, and runs the test suites.
 # `--no-terminal works` around some quirks in Travis's terminal implementation.
-script: stack $ARGS --no-terminal --install-ghc test
+script: stack --no-terminal --install-ghc test
 
 # Caching so the next build will be fast too.
 cache:
