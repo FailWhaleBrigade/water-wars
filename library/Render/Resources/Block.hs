@@ -1,9 +1,10 @@
 {-# LANGUAGE TypeFamilies #-}
-module Render.Resources.Block (Block(..), loadBlockMap,setBlocks) where
+module Render.Resources.Block where
 
 import ClassyPrelude
 import qualified Graphics.Gloss as Gloss
-import Render.State
+import Render.Solid
+import Render.Config
 
 import Codec.Resource
 
@@ -22,15 +23,6 @@ data Block
     | Middle
     | Ceil
     deriving (Show, Enum, Bounded, Eq, Ord, Read)
-
-fieldWidth :: Float
-fieldWidth = 256
-
-fieldHeight :: Float
-fieldHeight = 256
-
-blockSize :: Float
-blockSize = 32
 
 setBlocks :: BlockMap -> Seq Solid
 setBlocks blockmap = fromList
