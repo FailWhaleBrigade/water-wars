@@ -7,7 +7,7 @@ import Graphics.Gloss.Interface.IO.Game
 import Codec.Resource (loadPngAsBmp)
 import Render.Update (handleKeysIO, updateIO)
 import Render.State (initialState)
-import Render.Resources.Block (loadBlockMap)
+import Render.Resources.Block (loadBlockMap, BlockMap)
 import Render.Display (render)
 import Control.Monad.Except
 
@@ -21,21 +21,25 @@ fps = 60
 backgroundColor :: Color
 backgroundColor = white
 
+setup :: (MonadIO m, MonadError String m) => m (Picture, BlockMap)
+setup =
+    (,)
+        <$> loadPngAsBmp "resources/textures/background/background.png"
+        <*> loadBlockMap
+
 main :: IO ()
 main = do
-    bgTexEither  <- runExceptT $ loadPngAsBmp "resources/textures/background/background.png"
-    blocksEither <- runExceptT loadBlockMap
-    case bgTexEither of
-        Left  err   -> putStrLn $ "Could not load texture. Cause: " ++ tshow err
-        Right bgTex -> case blocksEither of
-            Left err ->
-                putStrLn $ "Could not load texture. Cause: " ++ tshow err
-            Right blocks -> playIO window
-                                   backgroundColor
-                                   fps
-                                   (initialState bgTex blocks)
-                                   render
-                                   handleKeysIO
-                                   updateIO
+    resources <- runExceptT setup
+    case resources of
+        Left err -> putStrLn $ "Could not load texture. Cause: " ++ tshow err
+        Right (bgTex, blocks) -> playIO window
+                                        backgroundColor
+                                        fps
+                                        (initialState bgTex blocks)
+                                        render
+                                        handleKeysIO
+                                        updateIO
+
+
 
 

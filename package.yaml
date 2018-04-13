@@ -38,6 +38,7 @@ library:
   - NoImplicitPrelude
   - ScopedTypeVariables
   - RecordWildCards
+  - FlexibleContexts
 
 executables:
   water-wars-server:
@@ -60,6 +61,7 @@ executables:
     - NoImplicitPrelude
     - ScopedTypeVariables
     - RecordWildCards
+    - FlexibleContexts
   water-wars-client:
     source-dirs: client
     main: Main.hs
@@ -76,6 +78,7 @@ executables:
     - NoImplicitPrelude
     - ScopedTypeVariables
     - RecordWildCards
+    - FlexibleContexts
 
 benchmarks:
   water-wars-benchmarks:

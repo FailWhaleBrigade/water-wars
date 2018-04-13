@@ -1,4 +1,3 @@
-{-# LANGUAGE FlexibleContexts #-}
 module Codec.Resource (loadPngAsBmp, bulkLoad) where
 
 import ClassyPrelude

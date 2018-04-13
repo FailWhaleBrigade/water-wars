@@ -1,4 +1,3 @@
-{-# LANGUAGE FlexibleContexts #-}
 module Render.Resources.Block where
 
 import ClassyPrelude
