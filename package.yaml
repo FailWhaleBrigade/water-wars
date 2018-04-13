@@ -58,7 +58,7 @@ executables:
     - NoImplicitPrelude
     - ScopedTypeVariables
     - RecordWildCards
-  client:
+  water-wars-client:
     source-dirs: client
     main: Main.hs
     dependencies:
