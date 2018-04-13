@@ -1,7 +1,9 @@
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts #-}
 module Render.Resources.Block where
 
 import ClassyPrelude
+import Control.Monad.Error.Class
+
 import qualified Graphics.Gloss as Gloss
 import Render.Solid
 import Render.Config
@@ -69,12 +71,10 @@ placeSingleBlock :: Float -> Float -> Block -> BlockMap -> [Solid]
 placeSingleBlock x y block blockmap =
     maybeToList (Solid blockSize blockSize (x, y) <$> lookup block blockmap)
 
-loadBlockMap :: IO (Either String BlockMap)
+loadBlockMap :: (MonadIO m, MonadError String m) => m BlockMap
 loadBlockMap = do
     loadedTextures <- bulkLoad blocks
-    return $ do
-        textures <- loadedTextures
-        Right (mapFromList (zip [Floor .. Ceil] (toList textures)))
+    return . mapFromList $ zip [Floor .. Ceil] (toList loadedTextures)
 
 blocks :: Seq FilePath
 blocks = fromList

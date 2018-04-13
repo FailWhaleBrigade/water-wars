@@ -28,6 +28,8 @@ library:
   - websockets
   - JuicyPixels
   - array
+  - mtl
+  - transformers
   - extensible-effects
   source-dirs: library
   default-extensions:
