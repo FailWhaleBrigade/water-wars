@@ -8,7 +8,7 @@ import WaterWars.Core.DefaultGame (defaultTerrain)
 import WaterWars.Core.GameState (Terrain(..), BlockLocation(..))
 import qualified WaterWars.Core.GameState as GameState
 
-import WaterWars.Client.Render.Solid
+import WaterWars.Client.Render.Entity.Solid
 import WaterWars.Client.Render.Config
 import WaterWars.Client.Resources.Block
 

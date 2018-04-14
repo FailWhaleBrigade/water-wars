@@ -1,4 +1,4 @@
-module WaterWars.Client.Render.Solid where
+module WaterWars.Client.Render.Entity.Solid where
 
 import ClassyPrelude
 import Graphics.Gloss

@@ -4,7 +4,7 @@ import ClassyPrelude
 import Control.Monad.Error.Class
 
 import qualified Graphics.Gloss as Gloss
-import WaterWars.Client.Render.Solid
+import WaterWars.Client.Render.Entity.Solid
 import WaterWars.Client.Render.Config
 
 import WaterWars.Client.Codec.Resource
