@@ -34,10 +34,10 @@ update :: Float -> World -> World
 update seconds = movePlayer seconds
 
 updateIO :: Float -> WorldSTM -> IO WorldSTM
-updateIO diff world@(WorldSTM tvar) = atomically $ do
-    state <- readTVar tvar
+updateIO diff world@(WorldSTM tvar) = do
+    state <- readTVarIO tvar
     let newState = update diff state
-    writeTVar tvar newState
+    atomically $ writeTVar tvar newState
     return world
 
 
