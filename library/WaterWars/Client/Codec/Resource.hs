@@ -1,9 +1,10 @@
-module Codec.Resource (loadPngAsBmp, bulkLoad) where
+module WaterWars.Client.Codec.Resource (loadPngAsBmp, bulkLoad) where
 
 import ClassyPrelude
-import Graphics.Gloss
 import qualified Codec.Picture as Juicy
 import Control.Monad.Error.Class
+
+import Graphics.Gloss
 
 loadPngAsBmp :: (MonadIO m, MonadError String m) => FilePath -> m Picture
 loadPngAsBmp path = do

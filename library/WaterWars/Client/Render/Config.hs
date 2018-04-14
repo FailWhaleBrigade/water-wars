@@ -1,4 +1,4 @@
-module Render.Config where
+module WaterWars.Client.Render.Config where
     
 import ClassyPrelude
 

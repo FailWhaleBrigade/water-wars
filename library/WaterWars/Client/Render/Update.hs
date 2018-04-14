@@ -1,10 +1,10 @@
-module Render.Update where
+module WaterWars.Client.Render.Update where
 
-import ClassyPrelude 
-import Graphics.Gloss
-import Render.State
+import ClassyPrelude
+
 import Graphics.Gloss.Interface.IO.Game
 
+import WaterWars.Client.Render.State
 
 handleKeys :: Event -> MyGame -> MyGame
 handleKeys (EventKey (Char c) _ _ _) game

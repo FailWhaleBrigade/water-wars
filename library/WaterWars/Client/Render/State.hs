@@ -1,4 +1,4 @@
-module Render.State where
+module WaterWars.Client.Render.State where
 
 import ClassyPrelude
 import Graphics.Gloss
@@ -8,9 +8,9 @@ import WaterWars.Core.DefaultGame (defaultTerrain)
 import WaterWars.Core.GameState (Terrain(..), BlockLocation(..))
 import qualified WaterWars.Core.GameState as GameState
 
-import Render.Solid
-import Render.Config
-import Render.Resources.Block
+import WaterWars.Client.Render.Solid
+import WaterWars.Client.Render.Config
+import WaterWars.Client.Render.Resources.Block
 
 type Radius = Float
 

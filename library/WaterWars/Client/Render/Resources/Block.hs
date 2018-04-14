@@ -1,13 +1,13 @@
-module Render.Resources.Block where
+module WaterWars.Client.Render.Resources.Block where
 
 import ClassyPrelude
 import Control.Monad.Error.Class
 
 import qualified Graphics.Gloss as Gloss
-import Render.Solid
-import Render.Config
+import WaterWars.Client.Render.Solid
+import WaterWars.Client.Render.Config
 
-import Codec.Resource
+import WaterWars.Client.Codec.Resource
 
 type BlockMap = Map Block Gloss.Picture
 

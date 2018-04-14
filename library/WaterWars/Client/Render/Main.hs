@@ -1,15 +1,16 @@
-module Render.Main(main) where
+module WaterWars.Client.Render.Main(main) where
 
 import ClassyPrelude
+import Control.Monad.Except
+
 import Graphics.Gloss
 import Graphics.Gloss.Interface.IO.Game
 
-import Codec.Resource (loadPngAsBmp)
-import Render.Update (handleKeysIO, updateIO)
-import Render.State (initialState)
-import Render.Resources.Block (loadBlockMap, BlockMap)
-import Render.Display (render)
-import Control.Monad.Except
+import WaterWars.Client.Codec.Resource (loadPngAsBmp)
+import WaterWars.Client.Render.Update (handleKeysIO, updateIO)
+import WaterWars.Client.Render.State (initialState)
+import WaterWars.Client.Render.Resources.Block (loadBlockMap, BlockMap)
+import WaterWars.Client.Render.Display (render)
 
 window :: Display
 window = InWindow "Water Wars" (800, 600) (10, 10)
@@ -22,10 +23,10 @@ backgroundColor :: Color
 backgroundColor = white
 
 setup :: (MonadIO m, MonadError String m) => m (Picture, BlockMap)
-setup =
-    (,)
-        <$> loadPngAsBmp "resources/textures/background/background.png"
-        <*> loadBlockMap
+setup = do
+    bgTex    <- loadPngAsBmp "resources/textures/background/background.png"
+    blockMap <- loadBlockMap
+    return (bgTex, blockMap)
 
 main :: IO ()
 main = do
@@ -39,7 +40,3 @@ main = do
                                         render
                                         handleKeysIO
                                         updateIO
-
-
-
-

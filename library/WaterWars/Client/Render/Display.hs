@@ -1,15 +1,16 @@
-module Render.Display where
+module WaterWars.Client.Render.Display where
 
 import ClassyPrelude
+
 import Graphics.Gloss
 
-import Render.State
-import Render.Solid
+import WaterWars.Client.Render.State
+import WaterWars.Client.Render.Solid
 
 -- convert a game state into a picture
 render :: MyGame -> IO Picture
-render game = return $ pictures
-    ([backgroundTexture game, player] ++ toList solidPictures)
+render game = return
+    $ pictures ([backgroundTexture game, player] ++ toList solidPictures)
   where
     player =
         uncurry translate (playerLoc game) $ color playerColor $ circleSolid 20
@@ -19,5 +20,3 @@ render game = return $ pictures
 solidToPicture :: Solid -> Picture
 solidToPicture solid =
     uncurry translate (solidCenter solid) (solidTexture solid)
-    
-
