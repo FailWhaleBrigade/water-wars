@@ -8,14 +8,17 @@ import WaterWars.Client.Render.State
 import WaterWars.Client.Render.Entity.Solid
 
 -- convert a game state into a picture
-render :: MyGame -> IO Picture
-render game = return
-    $ pictures ([backgroundTexture game, player] ++ toList solidPictures)
-  where
-    player =
-        uncurry translate (playerLoc game) $ color playerColor $ circleSolid 20
-    playerColor   = red
-    solidPictures = map solidToPicture (solids game)
+renderIO :: WorldSTM -> IO Picture
+renderIO (WorldSTM tvar) = render <$> readTVarIO tvar
+
+
+render :: World -> Picture
+render World{..} = pictures ([backgroundTexture, playerPicture] ++ toList solidPictures)
+        where
+        playerPicture =
+            uncurry translate (playerLoc player) $ color playerColor $ circleSolid 20
+        playerColor   = red
+        solidPictures = map solidToPicture solids
 
 solidToPicture :: Solid -> Picture
 solidToPicture solid =

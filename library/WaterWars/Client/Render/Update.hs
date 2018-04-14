@@ -6,28 +6,38 @@ import Graphics.Gloss.Interface.IO.Game
 
 import WaterWars.Client.Render.State
 
-handleKeys :: Event -> MyGame -> MyGame
-handleKeys (EventKey (Char c) _ _ _) game
-    | c == 'a' = game { playerVel = (-v, 0) }
-    | c == 'w' = game { playerVel = (0, v) }
-    | c == 's' = game { playerVel = (0, -v) }
-    | c == 'd' = game { playerVel = (v, 0) }
+handleKeys :: Event -> World -> World
+handleKeys (EventKey (Char c) _ _ _) world
+    | c == 'a'  = world { player = (player world) { playerVel = (-v, 0) } }
+    | c == 'w'  = world { player = (player world) { playerVel = (0, v) } }
+    | c == 's'  = world { player = (player world) { playerVel = (0, -v) } }
+    | c == 'd'  = world { player = (player world) { playerVel = (v, 0) } }
     where v = 10
-handleKeys _ game = game { playerVel = (0, 0) }
+handleKeys _ world = world { player = (player world) { playerVel = (0, 0) } }
 
-handleKeysIO :: Event -> MyGame -> IO MyGame
-handleKeysIO e state = return $ handleKeys e state
+handleKeysIO :: Event -> WorldSTM -> IO WorldSTM
+handleKeysIO e world@(WorldSTM tvar) = atomically $ do
+    state <- readTVar tvar
+    let newState = handleKeys e state
+    writeTVar tvar newState
+    return world
 
-movePlayer :: Float -> MyGame -> MyGame
-movePlayer seconds game = game { playerLoc = (x', y') }
+movePlayer :: Float -> World -> World
+movePlayer seconds world = world { player = (player world) { playerLoc = (x', y') } }
   where
-    (x , y ) = playerLoc game
-    (vx, vy) = playerVel game
+    (x , y ) = playerLoc $ player world
+    (vx, vy) = playerVel $ player world
     x'       = x + vx * seconds
     y'       = y + vy * seconds
 
-update :: Float -> MyGame -> MyGame
+update :: Float -> World -> World
 update seconds = movePlayer seconds
 
-updateIO :: Float -> MyGame -> IO MyGame
-updateIO diff state = return $ update diff state
+updateIO :: Float -> WorldSTM -> IO WorldSTM
+updateIO diff world@(WorldSTM tvar) = atomically $ do
+    state <- readTVar tvar
+    let newState = update diff state
+    writeTVar tvar newState
+    return world
+
+

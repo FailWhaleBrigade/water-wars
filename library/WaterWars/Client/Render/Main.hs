@@ -10,8 +10,8 @@ import WaterWars.Client.Codec.Resource (loadPngAsBmp)
 import WaterWars.Client.Resources.Block (loadBlockMap, BlockMap)
 
 import WaterWars.Client.Render.Update (handleKeysIO, updateIO)
-import WaterWars.Client.Render.State (initialState)
-import WaterWars.Client.Render.Display (render)
+import WaterWars.Client.Render.State (initializeState)
+import WaterWars.Client.Render.Display (renderIO)
 
 window :: Display
 window = InWindow "Water Wars" (800, 600) (10, 10)
@@ -34,10 +34,12 @@ main = do
     resources <- runExceptT setup
     case resources of
         Left err -> putStrLn $ "Could not load texture. Cause: " ++ tshow err
-        Right (bgTex, blocks) -> playIO window
-                                        backgroundColor
-                                        fps
-                                        (initialState bgTex blocks)
-                                        render
-                                        handleKeysIO
-                                        updateIO
+        Right (bgTex, blocks) -> do
+            worldStm <- initializeState bgTex blocks
+            playIO window
+                   backgroundColor
+                   fps
+                   worldStm
+                   renderIO
+                   handleKeysIO
+                   updateIO

@@ -16,44 +16,49 @@ type Radius = Float
 
 type Position = (Float, Float)
 
-data MyGame = Game 
-    { playerLoc :: (Float, Float)
-    , playerVel :: (Float, Float)
+newtype WorldSTM = WorldSTM (TVar World)
+
+data World = World
+    { player            :: Player
+    , otherPlayers      :: Seq Player
     , backgroundTexture :: Picture
     , blockMap :: BlockMap
-    , solids :: Seq Solid 
+    , solids :: Seq Solid
     } deriving Show
 
-initialState :: Picture -> BlockMap -> MyGame
-initialState bmp blockMap' =
-    Game 
-        { playerLoc = (0, -50) --the bottom middle of the field
-        , playerVel = (0, 0) -- not sure if we need velocity
-        , backgroundTexture = bmp
-        , solids = setBlocks blockMap' ++ fromList blockPositions
-        , blockMap = blockMap'
-        }
+data Player = Player
+    { playerLoc :: (Float, Float)
+    , playerVel :: (Float, Float)
+    } deriving (Eq, Show, Read)
 
-    where
-        terrainArray  = terrainBlocks defaultTerrain
-        (BlockLocation (lowerX, upperX), BlockLocation (lowerY, upperY)) =
-            bounds terrainArray
-        mapWidth      = fromIntegral (upperX - lowerX) * blockSize
-        mapHeight     = fromIntegral (upperY - lowerY) * blockSize
-        mapWidthHalf  = mapWidth / 2
-        mapHeightHalf = mapHeight / 2
-    
-        blockPositions :: [Solid]
-        blockPositions = mapMaybe
-            (\(loc, block) -> if block == GameState.SolidBlock
-                then
-                    blockLocationToSolid mapWidthHalf mapHeightHalf blockSize loc
-    
+initializeState :: Picture -> BlockMap -> IO WorldSTM
+initializeState bmp blockMap' = WorldSTM <$> newTVarIO World
+    { player            = Player (0, -50) (0, 0)
+    , otherPlayers      = empty
+    , backgroundTexture = bmp
+    , solids            = setBlocks blockMap' ++ fromList blockPositions
+    , blockMap          = blockMap'
+    }
+  where
+    terrainArray = terrainBlocks defaultTerrain
+    (BlockLocation (lowerX, upperX), BlockLocation (lowerY, upperY)) =
+        bounds terrainArray
+    mapWidth      = fromIntegral (upperX - lowerX) * blockSize
+    mapHeight     = fromIntegral (upperY - lowerY) * blockSize
+    mapWidthHalf  = mapWidth / 2
+    mapHeightHalf = mapHeight / 2
+
+    blockPositions :: [Solid]
+    blockPositions = mapMaybe
+        (\(loc, block) -> if block == GameState.SolidBlock
+            then
+                blockLocationToSolid mapWidthHalf mapHeightHalf blockSize loc
+
                     <$> lookup Middle blockMap'
-                else Nothing
-            )
-            (assocs terrainArray)
-    
+            else Nothing
+        )
+        (assocs terrainArray)
+
 
 blockLocationToSolid
     :: Float -> Float -> Float -> BlockLocation -> Picture -> Solid
