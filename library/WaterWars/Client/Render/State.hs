@@ -10,7 +10,7 @@ import qualified WaterWars.Core.GameState as GameState
 
 import WaterWars.Client.Render.Solid
 import WaterWars.Client.Render.Config
-import WaterWars.Client.Render.Resources.Block
+import WaterWars.Client.Resources.Block
 
 type Radius = Float
 

@@ -7,9 +7,10 @@ import Graphics.Gloss
 import Graphics.Gloss.Interface.IO.Game
 
 import WaterWars.Client.Codec.Resource (loadPngAsBmp)
+import WaterWars.Client.Resources.Block (loadBlockMap, BlockMap)
+
 import WaterWars.Client.Render.Update (handleKeysIO, updateIO)
 import WaterWars.Client.Render.State (initialState)
-import WaterWars.Client.Render.Resources.Block (loadBlockMap, BlockMap)
 import WaterWars.Client.Render.Display (render)
 
 window :: Display

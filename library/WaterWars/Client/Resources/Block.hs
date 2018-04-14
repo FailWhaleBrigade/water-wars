@@ -1,4 +1,4 @@
-module WaterWars.Client.Render.Resources.Block where
+module WaterWars.Client.Resources.Block where
 
 import ClassyPrelude
 import Control.Monad.Error.Class
