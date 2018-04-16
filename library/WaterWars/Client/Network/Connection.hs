@@ -8,8 +8,16 @@ import WaterWars.Client.Render.State
 import qualified WaterWars.Core.GameState as CoreState
 
 connectionThread :: MonadIO m => NetworkConfig -> WorldSTM -> m ()
-connectionThread NetworkConfig {..} world =
-    liftIO $ bracket (connectTo hostName portId) hClose (communicate world)
+connectionThread config@NetworkConfig {..} world = liftIO $ bracket
+    (do
+        infoM "Server Connection" $ "Open Connection to: " ++ show config
+        connectTo hostName portId
+    )
+    (\h -> do
+        warningM "Server Connection" "Connection has been closed"
+        hClose h
+    )
+    (communicate world)
 
 communicate :: MonadIO m => WorldSTM -> Handle -> m ()
 communicate (WorldSTM tvar) h = forever $ do
@@ -21,10 +29,11 @@ communicate (WorldSTM tvar) h = forever $ do
                 .  warningM "Server Connection"
                 $  "Could not parse the gameInfo: "
                 ++ show bs
-        Just info -> atomically $ do
-            world <- readTVar tvar
+        Just info -> do
+            liftIO $ infoM "Server Connection" "Received a game update"
+            world <- readTVarIO tvar
             let world' = updateWorld info world
-            writeTVar tvar world'
+            atomically $ writeTVar tvar world'
     return ()
 
 updateWorld :: CoreState.GameInformation -> World -> World
@@ -36,4 +45,8 @@ data NetworkConfig = NetworkConfig
     { portId   :: PortID
     , hostName :: HostName
     } deriving (Show, Eq)
+
+
+
+
 
