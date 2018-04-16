@@ -10,6 +10,8 @@ import WaterWars.Client.Render.Entity.Solid
 import WaterWars.Client.Render.Config
 import WaterWars.Client.Resources.Block
 
+import WaterWars.Client.Network.State
+
 type Radius = Float
 
 type Position = (Float, Float)
@@ -22,6 +24,7 @@ data World = World
     , backgroundTexture :: Picture
     , blockMap          :: BlockMap
     , solids            :: Seq Solid
+    , networkInfo       :: Maybe NetworkInfo 
     } deriving Show
 
 data Player = Player
@@ -36,6 +39,7 @@ initializeState bmp blockMap' = WorldSTM <$> newTVarIO World
     , backgroundTexture = bmp
     , solids            = empty
     , blockMap          = blockMap'
+    , networkInfo       = Nothing
     }
 
 setTerrain :: BlockMap -> Terrain -> World -> World
