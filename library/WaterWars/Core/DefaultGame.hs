@@ -3,7 +3,8 @@ module WaterWars.Core.DefaultGame where
 import ClassyPrelude
 import WaterWars.Core.GameState
 import Data.Array.IArray
-import Data.List (cycle)
+
+import Data.List (transpose)
 
 defaultGameMap :: GameMap
 defaultGameMap = GameMap
@@ -13,9 +14,28 @@ defaultGameMap = GameMap
 
 defaultTerrain :: Terrain
 defaultTerrain = Terrain
-  { terrainBlocks = listArray (BlockLocation (-3, -3), BlockLocation (3, 3))
-                              (cycle [SolidBlock, NoBlock])
-  , terrainBackground = "Use Default Background"
+  { terrainBlocks = listArray (BlockLocation (-8, -8), BlockLocation (8, 8))
+                              (concat $ transpose $ reverse
+                              [ replicate 17 SolidBlock 
+                              , [SolidBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, SolidBlock]
+                              , [SolidBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, SolidBlock]
+                              , [SolidBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, SolidBlock]
+                              , [SolidBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, SolidBlock]
+                              , [SolidBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, SolidBlock]
+                              , [SolidBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, SolidBlock, SolidBlock, SolidBlock, NoBlock, NoBlock, NoBlock, NoBlock, SolidBlock]
+                              , [SolidBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, SolidBlock]
+                              , [SolidBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, SolidBlock]
+                              , [SolidBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, SolidBlock]
+                              , [SolidBlock, NoBlock, NoBlock, NoBlock, SolidBlock, SolidBlock, SolidBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, SolidBlock]
+                              , [SolidBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, SolidBlock]
+                              , [SolidBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, SolidBlock]
+                              , [SolidBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, SolidBlock]
+                              , [SolidBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, SolidBlock]
+                              , [SolidBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, SolidBlock]
+                              , replicate 17 SolidBlock
+                              ] 
+                              )
+  , terrainBackground = "default"
   }
 
 defaultGameState :: GameState

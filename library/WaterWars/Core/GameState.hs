@@ -76,8 +76,12 @@ newtype Speed = Speed Float
 
 -- TODO: module for the following
 moveLocation :: (Speed, Angle) -> Location -> Location
-moveLocation (Speed speed, Angle angle) (Location (x, y)) =
-    Location (x + dx, y + dy)
-    where
-        dx = speed * cos angle
-        dy = speed * sin angle
+moveLocation (Speed speed, Angle angle) (Location (x, y)) = Location
+    (x + dx, y + dy)
+  where
+    dx = speed * cos angle
+    dy = speed * sin angle
+
+
+
+

@@ -35,7 +35,7 @@ initializeState bmp blockMap' = WorldSTM <$> newTVarIO World
     { player            = Player (0, -50) (0, 0)
     , otherPlayers      = empty
     , backgroundTexture = bmp
-    , solids            = setBlocks blockMap'
+    , solids            = empty -- setBlocks blockMap'
     , blockMap          = blockMap'
     }
 
