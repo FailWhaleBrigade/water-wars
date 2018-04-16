@@ -29,6 +29,7 @@ communicate (WorldSTM tvar) h = forever $ do
                 .  warningM "Server Connection"
                 $  "Could not parse the gameInfo: "
                 ++ show bs
+
         Just info -> do
             liftIO $ infoM "Server Connection" "Received a game update"
             world <- readTVarIO tvar
@@ -39,14 +40,10 @@ communicate (WorldSTM tvar) h = forever $ do
 updateWorld :: CoreState.GameInformation -> World -> World
 updateWorld (CoreState.Map gameMap) world@World {..} =
     setTerrain blockMap (CoreState.gameTerrain gameMap) world
+
 updateWorld (CoreState.State _) world@World {..} = world
 
 data NetworkConfig = NetworkConfig
     { portId   :: PortID
     , hostName :: HostName
     } deriving (Show, Eq)
-
-
-
-
-
