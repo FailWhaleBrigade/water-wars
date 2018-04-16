@@ -52,6 +52,7 @@ executables:
     - classy-prelude
     # - warp
     # - wai-websockets
+    - array
     - network
     ghc-options:
     - -rtsopts

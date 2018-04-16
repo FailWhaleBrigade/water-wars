@@ -22,12 +22,13 @@ connectionThread _ config@NetworkConfig {..} world = liftIO $ bracket
         warningM "Server Connection" "Connection is closed now"
         hClose h
     )
-    -- TODO: this function swallows things
-    (\h -> race_ (recieveUpdates world h) (sendUpdates world h))
+    -- TODO: this function swallows exception
+    (\h -> recieveUpdates world h)
 
 
 recieveUpdates :: MonadIO m => WorldSTM -> Handle -> m ()
 recieveUpdates (WorldSTM tvar) h = forever $ do
+    liftIO $ warningM "Server Connection" "Wait for Game Update"
     bs <- liftIO $ hGetContents h
     let maybeGameInfo = readMay $ decodeUtf8 bs
     case maybeGameInfo of
@@ -50,10 +51,11 @@ updateWorld (CoreState.Map gameMap) world@World {..} =
 
 updateWorld (CoreState.State _) world@World {..} = world
 
+-- TODO: send updates should issued by update loop
 sendUpdates :: MonadIO m => WorldSTM -> Handle -> m ()
 sendUpdates (WorldSTM tvar) h = forever $ do
     -- TODO: move this to bottom
-    liftIO $ threadDelay (seconds 1.0)
+    liftIO $ threadDelay (seconds 5.0)
     liftIO $ warningM "Server Connection" "Send an update to the Server"
     world <- readTVarIO tvar
     let action = extractGameAction world
