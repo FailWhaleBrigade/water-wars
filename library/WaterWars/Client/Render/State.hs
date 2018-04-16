@@ -5,7 +5,6 @@ import Graphics.Gloss
 import Data.Array.IArray
 
 import WaterWars.Core.GameState (Terrain(..), BlockLocation(..))
-import qualified WaterWars.Core.GameState as GameState
 
 import WaterWars.Client.Render.Entity.Solid
 import WaterWars.Client.Render.Config
@@ -35,7 +34,7 @@ initializeState bmp blockMap' = WorldSTM <$> newTVarIO World
     { player            = Player (0, -50) (0, 0)
     , otherPlayers      = empty
     , backgroundTexture = bmp
-    , solids            = empty -- setBlocks blockMap'
+    , solids            = empty 
     , blockMap          = blockMap'
     }
 
