@@ -1,4 +1,4 @@
-module WaterWars.Client.Resources.Block where
+module WaterWars.Client.Resources.Block (module WaterWars.Core.Entity.Block,BlockMap, placeSingleBlock, blocks, loadBlockMap) where
 
 import ClassyPrelude
 import Control.Monad.Error.Class
@@ -8,23 +8,10 @@ import WaterWars.Client.Render.Entity.Solid
 import WaterWars.Client.Render.Config
 
 import WaterWars.Client.Codec.Resource
+import WaterWars.Core.Entity.Block
 
 type BlockMap = Map Block Gloss.Picture
 
-data Block
-    = Floor
-    | EndLeft
-    | EndRight
-    | BottomLeftCorner
-    | BottomRightCorner
-    | TopRightCorner
-    | TopLeftCorner
-    | LeftWall
-    | RightWall
-    | Middle
-    | Ceil
-    deriving (Show, Enum, Bounded, Eq, Ord, Read)
- 
 
 placeSingleBlock :: Float -> Float -> Block -> BlockMap -> [Solid]
 placeSingleBlock x y block blockmap =
@@ -60,6 +47,8 @@ blocks = fromList
     , {- Ceil -}
       "resources/textures/block/topblock32.png"
     ]
+
+
 
 
 

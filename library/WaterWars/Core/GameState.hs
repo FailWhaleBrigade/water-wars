@@ -5,6 +5,8 @@ module WaterWars.Core.GameState where
 import ClassyPrelude
 import Data.Array.IArray
 
+import WaterWars.Core.Entity.Block
+
 data GameInformation 
   = Map GameMap 
   | State GameState 
@@ -21,12 +23,6 @@ data Terrain = Terrain
   { terrainBlocks :: Array BlockLocation Block
   , terrainBackground :: String -- TODO: how to send info about background?
   }
-  deriving (Show, Read, Eq)
-
--- |The content of a grid-cell in the map. This can be empty or a block
-data Block
-  = SolidBlock
-  | NoBlock
   deriving (Show, Read, Eq)
 
 -- |Master-state of the whole game

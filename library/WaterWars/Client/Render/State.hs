@@ -52,11 +52,9 @@ setTerrain blockMap terrain world = world { solids = (solids world) ++ fromList 
     
         blockPositions :: [Solid]
         blockPositions = mapMaybe
-            (\(loc, block) -> if block == GameState.SolidBlock
-                then
+            (\(loc, block) -> 
                     blockLocationToSolid mapWidthHalf mapHeightHalf blockSize loc
-                        <$> lookup Middle blockMap
-                else Nothing
+                        <$> lookup block blockMap
             )
             (assocs terrainArray)
 
