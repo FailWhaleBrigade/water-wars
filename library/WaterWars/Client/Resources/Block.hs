@@ -24,47 +24,7 @@ data Block
     | Middle
     | Ceil
     deriving (Show, Enum, Bounded, Eq, Ord, Read)
-
-setBlocks :: BlockMap -> Seq Solid
-setBlocks blockmap = fromList
-    (  mapMaybe
-          (\x ->
-              Solid blockSize blockSize (x, fieldHeight) <$> lookup Ceil blockmap
-          )
-          [-fieldWidth, (-fieldWidth + blockSize) .. fieldWidth]
-        -- ceiling placement
-    ++ mapMaybe
-           (\y ->
-               Solid blockSize blockSize (fieldWidth, y)
-                   <$> lookup RightWall blockmap
-           )
-           [(fieldHeight - blockSize), (fieldHeight - blockSize * 2) .. -fieldHeight]
-        -- right wall placement
-    ++ mapMaybe
-           (\x ->
-               Solid blockSize blockSize (x, -fieldHeight)
-                   <$> lookup Floor blockmap
-           )
-           [-fieldWidth, (-fieldWidth + blockSize) .. fieldWidth]
-        -- floor placement
-    ++ mapMaybe
-           (\y ->
-               Solid blockSize blockSize (-fieldWidth, y)
-                   <$> lookup LeftWall blockmap
-           )
-           [-fieldHeight, (-fieldHeight + blockSize) .. fieldHeight]
-        -- left wall placement
-    ++ mapMaybe
-           (\x -> Solid blockSize blockSize (x, -100) <$> lookup Floor blockmap)
-           [-64, (-64 + blockSize) .. 64]
-        -- platform
-    ++ placeSingleBlock (-96)         (-100)         EndLeft           blockmap
-    ++ placeSingleBlock 96            (-100)         EndRight          blockmap
-    ++ placeSingleBlock fieldWidth    (-fieldHeight) BottomRightCorner blockmap -- bottom right corner placement
-    ++ placeSingleBlock fieldWidth    fieldHeight    TopRightCorner    blockmap -- top right corner placement
-    ++ placeSingleBlock (-fieldWidth) (-fieldHeight) BottomLeftCorner  blockmap -- bottom left corner placement
-    ++ placeSingleBlock (-fieldWidth) fieldHeight    TopLeftCorner     blockmap -- top left corner placement
-    ) 
+ 
 
 placeSingleBlock :: Float -> Float -> Block -> BlockMap -> [Solid]
 placeSingleBlock x y block blockmap =
