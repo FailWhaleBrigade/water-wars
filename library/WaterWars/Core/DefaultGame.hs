@@ -9,7 +9,7 @@ import Data.List (transpose)
 defaultGameMap :: GameMap
 defaultGameMap = GameMap
   { gameTerrain = defaultTerrain
-  , gamePlayers = singleton $ defaultPlayer
+  , gamePlayers = singleton defaultPlayer
   }
 
 defaultTerrain :: Terrain

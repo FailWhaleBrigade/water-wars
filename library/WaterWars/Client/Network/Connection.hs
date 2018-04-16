@@ -12,11 +12,13 @@ connectionThread NetworkConfig {..} world =
 communicate :: MonadIO m => WorldSTM -> Handle -> m ()
 communicate (WorldSTM tvar) h = do
     bs <- liftIO $ hGetContents h
-    let Just gameMap = readMay $ decodeUtf8 bs
-    atomically $ do 
-        world <- readTVar tvar
-        let world' = setTerrain (blockMap world) (gameTerrain gameMap) world
-        writeTVar tvar world'
+    let gameMapMaybe = readMay $ decodeUtf8 bs
+    case gameMapMaybe of
+        Nothing -> putStrLn "Include logging"
+        Just gameMap -> atomically $ do 
+            world <- readTVar tvar
+            let world' = setTerrain (blockMap world) (gameTerrain gameMap) world
+            writeTVar tvar world'
     return ()
 
 data NetworkConfig = NetworkConfig
