@@ -8,8 +8,6 @@ import Control.Concurrent
 import Graphics.Gloss
 import Graphics.Gloss.Interface.IO.Game
 
-import Network
-
 import WaterWars.Client.Codec.Resource (loadPngAsBmp)
 import WaterWars.Client.Resources.Block (loadBlockMap, BlockMap)
 
@@ -36,13 +34,13 @@ setup = do
     return (bgTex, blockMap)
 
 main :: IO ()
-main = withSocketsDo $ do
+main = do
     resources <- runExceptT setup
     case resources of
         Left err -> putStrLn $ "Could not load texture. Cause: " ++ tshow err
         Right (bgTex, blocks) -> do
             worldStm <- initializeState bgTex blocks
-            _ <- async (connectionThread Nothing (NetworkConfig (PortNumber 1234) "localhost") worldStm)
+            _ <- async (connectionThread Nothing (NetworkConfig 1234 "localhost") worldStm)
             playIO window
                    backgroundColor
                    fps

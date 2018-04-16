@@ -30,7 +30,7 @@ library:
   - array
   - transformers
   - mtl
-  - network
+  - websockets
   - extensible-effects
   - hslogger
   source-dirs: library
@@ -53,7 +53,7 @@ executables:
     # - warp
     # - wai-websockets
     - array
-    - network
+    - websockets
     ghc-options:
     - -rtsopts
     - -threaded

@@ -1,8 +1,9 @@
 module WaterWars.Client.Network.Connection (module WaterWars.Client.Network.State, connectionThread) where
 
 import ClassyPrelude
-import Network
+import Network.WebSockets
 import System.Log.Logger
+import qualified System.IO as IO
 
 import Control.Concurrent
 
@@ -13,24 +14,15 @@ import qualified WaterWars.Core.GameAction as CoreAction
 
 connectionThread
     :: MonadIO m => Maybe NetworkInfo -> NetworkConfig -> WorldSTM -> m ()
-connectionThread _ config@NetworkConfig {..} world = liftIO $ bracket
-    (do
-        infoM "Server Connection" $ "Open Connection to: " ++ show config
-        connectTo hostName portId
-    )
-    (\h -> do
-        warningM "Server Connection" "Connection is closed now"
-        hClose h
-    )
-    -- TODO: this function swallows exception
-    (\h -> recieveUpdates world h)
+connectionThread _ config@NetworkConfig {..} world = 
+    liftIO $ runClient hostName portId "" (receiveUpdates world)
 
 
-recieveUpdates :: MonadIO m => WorldSTM -> Handle -> m ()
-recieveUpdates (WorldSTM tvar) h = forever $ do
+receiveUpdates :: MonadIO m => WorldSTM -> Connection -> m ()
+receiveUpdates (WorldSTM tvar) conn = forever $ do
     liftIO $ warningM "Server Connection" "Wait for Game Update"
-    bs <- liftIO $ hGetContents h
-    let maybeGameInfo = readMay $ decodeUtf8 bs
+    bs:: Text <- (liftIO $ receiveData conn)
+    let maybeGameInfo = readMay bs :: Maybe CoreState.GameInformation
     case maybeGameInfo of
         Nothing ->
             liftIO

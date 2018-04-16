@@ -1,7 +1,7 @@
 module Main where
 
 import ClassyPrelude
-import Network
+import Network.WebSockets
 
 import Control.Concurrent
 
@@ -14,18 +14,14 @@ import WaterWars.Core.Entity.Block
 
 main :: IO ()
 main = do
-  socket <- listenOn $ PortNumber 1234
-  (connHandle, clientName, clientPort) <- accept socket
-  putStrLn $ tshow clientName ++ " " ++ tshow clientPort
-  hPutText connHandle . tshow $ Map defaultGameMap
-  threadDelay (3 * 1000000)
-  hPutText connHandle . tshow $ Map aGameMap
-  hClose connHandle
-  sClose socket
+  runServer "localhost" 1234 $ \conn -> do
+    connHandle <- acceptRequest conn
+    putStrLn "Client connected"
+    sendTextData connHandle $ tshow (Map defaultGameMap)
+    threadDelay (3 * 1000000)
+    sendTextData connHandle $ tshow (Map aGameMap)
+    return ()
   return ()
-
-hPutText :: Handle -> Text -> IO ()
-hPutText h = hPut h . encodeUtf8
 
 aGameMap :: GameMap
 aGameMap = GameMap
