@@ -30,6 +30,7 @@ library:
   - array
   - transformers
   - mtl
+  - network
   - extensible-effects
   source-dirs: library
   default-extensions:
