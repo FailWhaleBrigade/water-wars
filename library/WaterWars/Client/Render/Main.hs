@@ -42,7 +42,7 @@ main = withSocketsDo $ do
         Left err -> putStrLn $ "Could not load texture. Cause: " ++ tshow err
         Right (bgTex, blocks) -> do
             worldStm <- initializeState bgTex blocks
-            _ <- async (connectionThread (NetworkConfig (PortNumber 1234) "localhost") worldStm)
+            _ <- async (connectionThread Nothing (NetworkConfig (PortNumber 1234) "localhost") worldStm)
             playIO window
                    backgroundColor
                    fps

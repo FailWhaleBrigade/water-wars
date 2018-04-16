@@ -1,14 +1,16 @@
-module WaterWars.Client.Network.Connection where
+module WaterWars.Client.Network.Connection (module WaterWars.Client.Network.State, connectionThread) where
 
 import ClassyPrelude
 import Network
 import System.Log.Logger
 
-import WaterWars.Client.Render.State
+import WaterWars.Client.Render.State (setTerrain, WorldSTM(..), World(..))
+import WaterWars.Client.Network.State (NetworkConfig(..), NetworkInfo(..))
 import qualified WaterWars.Core.GameState as CoreState
 
-connectionThread :: MonadIO m => NetworkConfig -> WorldSTM -> m ()
-connectionThread config@NetworkConfig {..} world = liftIO $ bracket
+connectionThread
+    :: MonadIO m => Maybe NetworkInfo -> NetworkConfig -> WorldSTM -> m ()
+connectionThread _ config@NetworkConfig {..} world = liftIO $ bracket
     (do
         infoM "Server Connection" $ "Open Connection to: " ++ show config
         connectTo hostName portId
@@ -42,8 +44,3 @@ updateWorld (CoreState.Map gameMap) world@World {..} =
     setTerrain blockMap (CoreState.gameTerrain gameMap) world
 
 updateWorld (CoreState.State _) world@World {..} = world
-
-data NetworkConfig = NetworkConfig
-    { portId   :: PortID
-    , hostName :: HostName
-    } deriving (Show, Eq)
