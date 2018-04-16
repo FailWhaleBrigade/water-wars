@@ -20,8 +20,8 @@ data World = World
     { player            :: Player
     , otherPlayers      :: Seq Player
     , backgroundTexture :: Picture
-    , blockMap :: BlockMap
-    , solids :: Seq Solid
+    , blockMap          :: BlockMap
+    , solids            :: Seq Solid
     } deriving Show
 
 data Player = Player
@@ -34,28 +34,30 @@ initializeState bmp blockMap' = WorldSTM <$> newTVarIO World
     { player            = Player (0, -50) (0, 0)
     , otherPlayers      = empty
     , backgroundTexture = bmp
-    , solids            = empty 
+    , solids            = empty
     , blockMap          = blockMap'
     }
 
 setTerrain :: BlockMap -> Terrain -> World -> World
-setTerrain blockMap terrain world = world { solids = (solids world) ++ fromList blockPositions }
-    where
-        terrainArray = terrainBlocks terrain
-        (BlockLocation (lowerX, upperX), BlockLocation (lowerY, upperY)) =
-            bounds terrainArray
-        mapWidth      = fromIntegral (upperX - lowerX) * blockSize
-        mapHeight     = fromIntegral (upperY - lowerY) * blockSize
-        mapWidthHalf  = mapWidth / 2
-        mapHeightHalf = mapHeight / 2
-    
-        blockPositions :: [Solid]
-        blockPositions = mapMaybe
-            (\(loc, block) -> 
-                    blockLocationToSolid mapWidthHalf mapHeightHalf blockSize loc
-                        <$> lookup block blockMap
-            )
-            (assocs terrainArray)
+setTerrain blockMap terrain world = world
+    { solids = solids world ++ fromList blockPositions
+    }
+  where
+    terrainArray = terrainBlocks terrain
+    (BlockLocation (lowerX, upperX), BlockLocation (lowerY, upperY)) =
+        bounds terrainArray
+    mapWidth      = fromIntegral (upperX - lowerX) * blockSize
+    mapHeight     = fromIntegral (upperY - lowerY) * blockSize
+    mapWidthHalf  = mapWidth / 2
+    mapHeightHalf = mapHeight / 2
+
+    blockPositions :: [Solid]
+    blockPositions = mapMaybe
+        (\(loc, block) ->
+            blockLocationToSolid mapWidthHalf mapHeightHalf blockSize loc
+                <$> lookup block blockMap
+        )
+        (assocs terrainArray)
 
 blockLocationToSolid
     :: Float -> Float -> Float -> BlockLocation -> Picture -> Solid
