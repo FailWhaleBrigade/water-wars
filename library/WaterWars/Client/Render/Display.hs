@@ -13,12 +13,12 @@ renderIO (WorldSTM tvar) = render <$> readTVarIO tvar
 
 
 render :: World -> Picture
-render World{..} = pictures ([backgroundTexture, playerPicture] ++ toList solidPictures)
+render World{..} = pictures ([backgroundTexture renderInfo, playerPicture] ++ toList solidPictures)
         where
         playerPicture =
-            uncurry translate (playerLoc player) $ color playerColor $ circleSolid 20
+            uncurry translate (playerLoc $ player worldInfo) $ color playerColor $ circleSolid 20
         playerColor   = red
-        solidPictures = map solidToPicture solids
+        solidPictures = map solidToPicture (solids renderInfo)
 
 solidToPicture :: Solid -> Picture
 solidToPicture solid =
