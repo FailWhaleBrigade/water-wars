@@ -7,20 +7,22 @@ module WaterWars.Server.GameNg where
 import ClassyPrelude
 import WaterWars.Core.GameState
 import WaterWars.Core.GameAction
+import WaterWars.Core.Physics
 import Control.Eff.Exception
 import Control.Eff.State.Strict
 import Control.Eff
 
-runGameTick :: GameState -> Map Player Action -> Either GameError GameState
+
+runGameTick :: GameState -> Map Player Action -> GameState
 runGameTick gameState =
-    run . runError . flip execState gameState . gameTick
+    run . flip execState gameState . gameTick
 
 gameTick
-    :: (Member (State GameState) e, Member (Exc GameError) e)
+    :: (Member (State GameState) e)
     => Map Player Action
     -> Eff e ()
 gameTick _ = do
-    throwError' GameError
+    moveProjectiles
     return ()
 
 -- |Moves all projectiles in the game. This is effectful since the movement
@@ -39,7 +41,7 @@ moveProjectile (projectile@Projectile {..}) = return projectile
         projectileLocation
     }
 
-data GameError = GameError
+data GameError = GameError deriving (Eq, Show)
 
 throwError' :: (Member (Exc e) r) => e -> Eff r ()
 throwError' = throwError

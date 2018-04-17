@@ -52,7 +52,7 @@ data InGamePlayer = InGamePlayer
 newtype Player = Player
   { playerId :: Text
   }
-  deriving (Show, Read, Eq)
+  deriving (Show, Read, Eq, Ord)
 
 newtype Projectiles = Projectiles (Seq Projectile) deriving (Show, Eq, Read)
 
@@ -74,13 +74,3 @@ newtype Angle = Angle Float
 
 newtype Speed = Speed Float
   deriving (Show, Read, Num, Eq)
-
--- TODO: module for the following
-moveLocation :: (Speed, Angle) -> Location -> Location
-moveLocation (Speed speed, Angle angle) (Location (x, y)) = Location
-    (x + dx, y + dy)
-  where
-    dx = speed * cos angle
-    dy = speed * sin angle
-
-

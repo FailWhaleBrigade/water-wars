@@ -8,15 +8,20 @@ import WaterWars.Server.GameNg
 -- to be forked in own thread
 runGameLoop :: MonadIO m => TVar ServerState -> m ()
 runGameLoop serverStateStm = do
-    ServerState{..} <- atomically $ do
+    ServerState {..} <- atomically $ do
         serverState@(ServerState {..}) <- readTVar serverStateStm
-        case runGameTick gameState actions of
-            Right newState -> do
-                let newServerState = serverState { gameState = newState }
-                writeTVar serverStateStm newServerState
-                return newServerState
-            Left gameError -> undefined
+        let newState = runGameTick gameState actions
+        let newServerState = serverState { gameState = newState }
+        writeTVar serverStateStm newServerState
+        return newServerState
     sendGameState connections gameState
+
+
+allGameTicks :: [Map Player Action] -> GameState -> [GameState]
+allGameTicks [] _ = []
+allGameTicks (actions:rest) initialState =
+    let nextState = runGameTick initialState actions
+    in initialState : allGameTicks rest nextState
 
 
 data ServerState = ServerState
