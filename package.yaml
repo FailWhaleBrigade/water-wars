@@ -33,6 +33,7 @@ library:
   - websockets
   - extensible-effects
   - hslogger
+  - stm
   source-dirs: library
   default-extensions:
   - NamedFieldPuns

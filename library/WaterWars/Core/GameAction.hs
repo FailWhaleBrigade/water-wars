@@ -13,4 +13,4 @@ data RawAction
     | Shoot { shootAngle :: Angle }
     deriving (Show, Read, Eq)
 
-data RunDirection = Left | Right deriving (Show, Read, Eq, Enum, Bounded)
+data RunDirection = RunLeft | RunRight deriving (Show, Read, Eq, Enum, Bounded)

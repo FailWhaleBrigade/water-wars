@@ -11,6 +11,10 @@ import Control.Eff.Exception
 import Control.Eff.State.Strict
 import Control.Eff
 
+runGameTick :: GameState -> Map Player Action -> Either GameError GameState
+runGameTick gameState =
+    run . runError . flip execState gameState . gameTick
+
 gameTick
     :: (Member (State GameState) e, Member (Exc GameError) e)
     => Map Player Action
