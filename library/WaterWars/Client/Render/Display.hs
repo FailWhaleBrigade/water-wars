@@ -29,6 +29,7 @@ render World {..} = Gloss.pictures
     playerColor   = red
     solidPictures = map solidToPicture (solids renderInfo)
     mantaPicture  = animateAnimation (animation renderInfo)
+
 solidToPicture :: Solid -> Picture
 solidToPicture solid =
     uncurry translate (solidCenter solid) (solidTexture solid)
@@ -38,26 +39,13 @@ projectileToPicture p tex = scale 0.2 0.2 $ translate x y tex
     where Location (x, y) = projectileLocation p
 
 animateAnimation :: Animation -> Picture
-animateAnimation a = translate x y img
+animateAnimation Animation {..} = translate x y img
   where
-    Location (x, y) = location a
-    ind             = picInd a
-    img             = animationPictures a `indexEx` ind
+    Location (x, y) = location
+    img             = animationPictures `indexEx` picInd
 
 updateAnimation :: Animation -> Animation
-updateAnimation a = if cntdwn == 0
-    then
-        let newCntdwn = cntdwnMax
-            newPicInd = ind + 1
-        in  a { countDownTilNext = newCntdwn
-              , picInd           = newPicInd
-              , location         = Location (x + 1, y)
-              }
+updateAnimation a@Animation {..} = if countDownTilNext == 0
+    then a { picInd = picInd + 1, location = Location (x + 1, y) }
     else a { location = Location (x + 1, y) }
-  where
-    cntdwn          = countDownTilNext a
-    cntdwnMax       = countDownMax a
-    ind          = picInd a
-    Location (x, y) = location a
-
-
+    where Location (x, y) = location

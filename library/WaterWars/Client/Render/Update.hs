@@ -7,17 +7,17 @@ import qualified Graphics.Gloss.Interface.IO.Game as Gloss
 import WaterWars.Client.Render.State
 
 handleKeys :: Event -> World -> World
-handleKeys (EventKey (Char c) Gloss.Down _ _) World {..}
-    | c == 'a' = World {worldInfo = worldInfo { walkLeft = True }, ..}
-    | c == 'w' = World {worldInfo = worldInfo { jump = True }, ..}
-    | c == 's' = World {worldInfo = worldInfo { duck = True }, ..}
-    | c == 'd' = World {worldInfo = worldInfo { walkRight = True }, ..}
-handleKeys (EventKey (Char c) Gloss.Up _ _) World {..}
-    | c == 'a' = World {worldInfo = worldInfo { walkLeft = False }, ..}
-    | c == 'w' = World {worldInfo = worldInfo { jump = False }, ..}
-    | c == 's' = World {worldInfo = worldInfo { duck = False }, ..}
-    | c == 'd' = World {worldInfo = worldInfo { walkRight = False }, ..}
-handleKeys _ World {..} = World {..}
+handleKeys (EventKey (Char c) Gloss.Down _ _) world@World {..}
+    | c == 'a' = world {worldInfo = worldInfo { walkLeft = True }}
+    | c == 'w' = world {worldInfo = worldInfo { jump = True }}
+    | c == 's' = world {worldInfo = worldInfo { duck = True }}
+    | c == 'd' = world {worldInfo = worldInfo { walkRight = True }}
+handleKeys (EventKey (Char c) Gloss.Up _ _) world@World {..}
+    | c == 'a' = world {worldInfo = worldInfo { walkLeft = False }}
+    | c == 'w' = world {worldInfo = worldInfo { jump = False }}
+    | c == 's' = world {worldInfo = worldInfo { duck = False }}
+    | c == 'd' = world {worldInfo = worldInfo { walkRight = False }}
+handleKeys _ world = world
 
 handleKeysIO :: Event -> WorldSTM -> IO WorldSTM
 handleKeysIO e world@(WorldSTM tvar) = atomically $ do
