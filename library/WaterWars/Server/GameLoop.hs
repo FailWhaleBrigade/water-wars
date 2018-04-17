@@ -9,19 +9,18 @@ import WaterWars.Server.GameNg
 runGameLoop :: MonadIO m => TVar ServerState -> m ()
 runGameLoop serverStateStm = do
     ServerState {..} <- atomically $ do
-        serverState@(ServerState {..}) <- readTVar serverStateStm
+        serverState@ServerState {..} <- readTVar serverStateStm
         let newState = runGameTick gameState actions
         let newServerState = serverState { gameState = newState }
         writeTVar serverStateStm newServerState
         return newServerState
-    sendGameState connections gameState
+    broadcastGameState connections gameState
 
 
 allGameTicks :: [Map Player Action] -> GameState -> [GameState]
-allGameTicks [] _ = []
+allGameTicks [] s = [s]
 allGameTicks (actions:rest) initialState =
-    let nextState = runGameTick initialState actions
-    in initialState : allGameTicks rest nextState
+    initialState : allGameTicks rest (runGameTick initialState actions)
 
 
 data ServerState = ServerState
@@ -35,5 +34,5 @@ data ServerState = ServerState
 data Connections = SomeConnections
 
 -- TODO: move this function
-sendGameState :: MonadIO m => Connections -> GameState -> m ()
-sendGameState = undefined
+broadcastGameState :: MonadIO m => Connections -> GameState -> m ()
+broadcastGameState = undefined

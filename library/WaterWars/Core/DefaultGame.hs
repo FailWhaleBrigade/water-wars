@@ -34,7 +34,7 @@ defaultTerrain = Terrain
                               , [SolidBlock LeftWall, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, SolidBlock RightWall]
                               , [SolidBlock LeftWall, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, SolidBlock RightWall]
                               , [SolidBlock BottomLeftCorner] ++ replicate 15 (SolidBlock Floor) ++ [SolidBlock BottomRightCorner]
-                              ] 
+                              ]
                               )
   , terrainBackground = "default"
   }
@@ -53,7 +53,7 @@ defaultEntityPlayer = EntityPlayer defaultInGamePlayer
 
 defaultInGamePlayer :: InGamePlayer
 defaultInGamePlayer = InGamePlayer
-    { playerDesciption = defaultPlayer
+    { playerDescription = defaultPlayer
     , playerLocation = Location (0.0, 0.0)
     , playerMaxHealth = 10
     , playerHealth = 10

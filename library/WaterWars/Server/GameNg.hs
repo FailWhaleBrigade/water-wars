@@ -14,15 +14,12 @@ import Control.Eff
 
 
 runGameTick :: GameState -> Map Player Action -> GameState
-runGameTick gameState =
-    run . flip execState gameState . gameTick
+runGameTick gameState = run . flip execState gameState . gameTick
 
-gameTick
-    :: (Member (State GameState) e)
-    => Map Player Action
-    -> Eff e ()
-gameTick _ = do
+gameTick :: (Member (State GameState) e) => Map Player Action -> Eff e ()
+gameTick actions = do
     moveProjectiles
+    moveEntities actions
     return ()
 
 -- |Moves all projectiles in the game. This is effectful since the movement
@@ -31,7 +28,7 @@ moveProjectiles :: (Member (State GameState) e) => Eff e ()
 moveProjectiles = do
     Projectiles projectiles <- gets gameProjectiles
     newProjectiles          <- mapM moveProjectile projectiles
-    modify (\s -> s { gameProjectiles = Projectiles newProjectiles })
+    modify $ \s -> s { gameProjectiles = Projectiles newProjectiles }
     return ()
 
 moveProjectile :: (Member (State GameState) e) => Projectile -> Eff e Projectile
@@ -40,6 +37,31 @@ moveProjectile (projectile@Projectile {..}) = return projectile
         (projectileSpeed, projectileDirection)
         projectileLocation
     }
+
+moveEntities :: Member (State GameState) e => Map Player Action -> Eff e ()
+moveEntities actions = do
+    Entities entities <- gets gameEntities
+    newEntities       <- mapM (moveEntity actions) entities
+    modify $ \s -> s { gameEntities = Entities newEntities }
+
+moveEntity
+    :: Member (State GameState) e => Map Player Action -> Entity -> Eff e Entity
+moveEntity actions Npc = return Npc
+moveEntity actions (EntityPlayer (player@InGamePlayer {..})) =
+    let
+        movedPlayer = do -- maybe monad
+            Action a <- lookup playerDescription actions
+            Run {..} <- find isRunAction a
+            let runAngle = case runDirection of
+                    RunLeft  -> 0
+                    RunRight -> pi
+            return player
+                { playerLocation = moveLocation (0.5, runAngle) playerLocation
+                }
+    in  case movedPlayer of
+            Nothing     -> return $ EntityPlayer player
+            Just player -> return $ EntityPlayer player
+
 
 data GameError = GameError deriving (Eq, Show)
 

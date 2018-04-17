@@ -39,7 +39,7 @@ data Entity = EntityPlayer InGamePlayer | Npc
 
 
 data InGamePlayer = InGamePlayer
-  { playerDesciption :: Player
+  { playerDescription :: Player
   , playerLocation :: Location
   , playerMaxHealth :: Int
   , playerHealth :: Int
@@ -47,7 +47,6 @@ data InGamePlayer = InGamePlayer
   , playerMoveDirection :: Angle
   }
   deriving (Show, Read, Eq)
-
 
 newtype Player = Player
   { playerId :: Text
@@ -70,7 +69,7 @@ newtype BlockLocation = BlockLocation (Int, Int)
   deriving (Read, Show, Eq, Ord, Ix)
 
 newtype Angle = Angle Float
-  deriving (Show, Read, Num, Eq)
+  deriving (Show, Read, Num, Eq, Floating, Fractional)
 
 newtype Speed = Speed Float
-  deriving (Show, Read, Num, Eq)
+  deriving (Show, Read, Num, Eq, Floating, Fractional)

@@ -14,3 +14,7 @@ data RawAction
     deriving (Show, Read, Eq)
 
 data RunDirection = RunLeft | RunRight deriving (Show, Read, Eq, Enum, Bounded)
+
+isRunAction :: RawAction -> Bool
+isRunAction (Run _) = True
+isRunAction _ = False
