@@ -26,9 +26,9 @@ allGameTicks (actions:rest) initialState =
 
 data ServerState = ServerState
     { connections :: Connections
-    , gameMap :: GameMap
-    , gameState :: GameState
-    , actions :: Map Player Action
+    , gameMap     :: GameMap
+    , gameState   :: GameState
+    , actions     :: Map Player Action
     }
 
 -- TODO: move this data-definition to connections-management

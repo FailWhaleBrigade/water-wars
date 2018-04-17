@@ -7,13 +7,40 @@ import Graphics.Gloss.Interface.IO.Game
 import WaterWars.Client.Render.State
 
 handleKeys :: Event -> World -> World
-handleKeys (EventKey (Char c) _ _ _) world
-    | c == 'a'  = world { player = (player world) { playerVel = (-v, 0) } }
-    | c == 'w'  = world { player = (player world) { playerVel = (0, v) } }
-    | c == 's'  = world { player = (player world) { playerVel = (0, -v) } }
-    | c == 'd'  = world { player = (player world) { playerVel = (v, 0) } }
+handleKeys (EventKey (Char c) _ _ _) World {..}
+    |
+-- TODO: change variables such as `walkLeft` to True iff 'a' is down
+-- TODO: on release key, update variables such as `walkLeft`
+      c == 'a' = World
+        { worldInfo = worldInfo
+            { player = (player worldInfo) { playerVel = (-v, 0) }
+            }
+        , ..
+        }
+    | c == 'w' = World
+        { worldInfo = worldInfo
+            { player = (player worldInfo) { playerVel = (0, v) }
+            }
+        , ..
+        }
+    | c == 's' = World
+        { worldInfo = worldInfo
+            { player = (player worldInfo) { playerVel = (0, -v) }
+            }
+        , ..
+        }
+    | c == 'd' = World
+        { worldInfo = worldInfo
+            { player = (player worldInfo) { playerVel = (v, 0) }
+            }
+        , ..
+        }
     where v = 10
-handleKeys _ world = world { player = (player world) { playerVel = (0, 0) } }
+handleKeys _ World {..} = World
+    { worldInfo = worldInfo { player = (player worldInfo) { playerVel = (0, 0) }
+                            }
+    , ..
+    }
 
 handleKeysIO :: Event -> WorldSTM -> IO WorldSTM
 handleKeysIO e world@(WorldSTM tvar) = atomically $ do
@@ -23,10 +50,15 @@ handleKeysIO e world@(WorldSTM tvar) = atomically $ do
     return world
 
 movePlayer :: Float -> World -> World
-movePlayer seconds world = world { player = (player world) { playerLoc = (x', y') } }
+movePlayer seconds World {..} = World
+    { worldInfo = worldInfo
+        { player = (player worldInfo) { playerLoc = (x', y') }
+        }
+    , ..
+    }
   where
-    (x , y ) = playerLoc $ player world
-    (vx, vy) = playerVel $ player world
+    (x , y ) = playerLoc $ player worldInfo
+    (vx, vy) = playerVel $ player worldInfo
     x'       = x + vx * seconds
     y'       = y + vy * seconds
 
@@ -39,5 +71,3 @@ updateIO diff world@(WorldSTM tvar) = do
     let newState = update diff state
     atomically $ writeTVar tvar newState
     return world
-
-

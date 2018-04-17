@@ -6,14 +6,14 @@ import System.Log.Logger
 
 import Control.Concurrent
 
-import WaterWars.Client.Render.State (setTerrain, WorldSTM(..), World(..))
+import WaterWars.Client.Render.State
 import WaterWars.Client.Network.State (NetworkConfig(..), NetworkInfo(..))
+import qualified WaterWars.Network.Protocol as Protocol
 import qualified WaterWars.Core.GameState as CoreState
-import qualified WaterWars.Core.GameAction as CoreAction
 
 connectionThread
     :: MonadIO m => Maybe NetworkInfo -> NetworkConfig -> WorldSTM -> m ()
-connectionThread _ NetworkConfig {..} world = 
+connectionThread _ NetworkConfig {..} world =
     liftIO $ runClient hostName portId "" (receiveUpdates world)
 
 
@@ -21,7 +21,7 @@ receiveUpdates :: MonadIO m => WorldSTM -> Connection -> m ()
 receiveUpdates (WorldSTM tvar) conn = forever $ do
     liftIO $ warningM "Server Connection" "Wait for Game Update"
     bs :: Text <- liftIO $ receiveData conn
-    let maybeGameInfo = readMay bs :: Maybe CoreState.GameInformation
+    let maybeGameInfo = readMay bs :: Maybe Protocol.GameInformation
     case maybeGameInfo of
         Nothing ->
             liftIO
@@ -36,11 +36,11 @@ receiveUpdates (WorldSTM tvar) conn = forever $ do
             atomically $ writeTVar tvar world'
     return ()
 
-updateWorld :: CoreState.GameInformation -> World -> World
-updateWorld (CoreState.Map gameMap) world@World {..} =
-    setTerrain blockMap (CoreState.gameTerrain gameMap) world
+updateWorld :: Protocol.GameInformation -> World -> World
+updateWorld (Protocol.Map gameMap) world@World {..} =
+    setTerrain (blockMap renderInfo) (CoreState.gameTerrain gameMap) world
 
-updateWorld (CoreState.State _) world@World {..} = world
+updateWorld (Protocol.State _) world@World {..} = world
 
 -- TODO: send updates should issued by update loop
 sendUpdates :: MonadIO m => WorldSTM -> Handle -> m ()
@@ -53,8 +53,8 @@ sendUpdates (WorldSTM tvar) h = forever $ do
     hPut h . encodeUtf8 $ tshow action
     return ()
 
-extractGameAction :: World -> CoreAction.Action
+extractGameAction :: World -> Protocol.PlayerAction
 extractGameAction _ = undefined -- TODO: convert world information to action
 
-seconds :: Float -> Int 
-seconds = floor . (*1000000)
+seconds :: Float -> Int
+seconds = floor . (* 1000000)

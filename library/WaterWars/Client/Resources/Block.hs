@@ -12,7 +12,6 @@ import WaterWars.Core.Terrain.Block
 
 type BlockMap = Map BlockContent Gloss.Picture
 
-
 placeSingleBlock :: Float -> Float -> BlockContent -> BlockMap -> [Solid]
 placeSingleBlock x y block blockmap =
     maybeToList (Solid blockSize blockSize (x, y) <$> lookup block blockmap)
@@ -47,4 +46,3 @@ blocks = fromList
     , {- Ceil -}
       "resources/textures/block/topblock32.png"
     ]
-

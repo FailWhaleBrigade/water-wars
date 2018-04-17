@@ -10,7 +10,9 @@ import WaterWars.Client.Render.Terrain.Solid
 import WaterWars.Client.Render.Config
 import WaterWars.Client.Resources.Block
 
-import WaterWars.Client.Network.State
+import qualified WaterWars.Client.Network.State as NetworkState
+
+import qualified WaterWars.Core.GameState as CoreState
 
 type Radius = Float
 
@@ -19,12 +21,26 @@ type Position = (Float, Float)
 newtype WorldSTM = WorldSTM (TVar World)
 
 data World = World
-    { player            :: Player
-    , otherPlayers      :: Seq Player
+    { renderInfo  :: RenderInfo
+    , worldInfo   :: WorldInfo
+    , networkInfo :: Maybe NetworkState.NetworkInfo
+    }
+
+data RenderInfo = RenderInfo
+    -- TODO: more render information, e.g. Player textures, animation textures, ...
+    { blockMap          :: BlockMap
     , backgroundTexture :: Picture
-    , blockMap          :: BlockMap
     , solids            :: Seq Solid
-    , networkInfo       :: Maybe NetworkInfo 
+    } deriving Show
+
+data WorldInfo = WorldInfo
+    { jump      :: Bool
+    , walkLeft  :: Bool
+    , walkRight :: Bool
+    , shoot     :: Bool
+    , exitGame  :: Bool
+    , player    :: Player -- TODO: should use Player from WaterWars.Core.GameState 
+    , otherPlayers :: Seq Player
     } deriving Show
 
 data Player = Player
@@ -34,17 +50,27 @@ data Player = Player
 
 initializeState :: Picture -> BlockMap -> IO WorldSTM
 initializeState bmp blockMap' = WorldSTM <$> newTVarIO World
-    { player            = Player (0, -50) (0, 0)
-    , otherPlayers      = empty
-    , backgroundTexture = bmp
-    , solids            = empty
-    , blockMap          = blockMap'
-    , networkInfo       = Nothing
+    { renderInfo  = RenderInfo
+        { blockMap          = blockMap'
+        , backgroundTexture = bmp
+        , solids            = empty
+        }
+    , worldInfo   = WorldInfo
+        { jump         = False
+        , walkLeft     = False
+        , walkRight    = False
+        , shoot        = False
+        , exitGame     = False
+        , player       = Player (0, 0) (0, 0)
+        , otherPlayers = empty
+        }
+    , networkInfo = Nothing
     }
 
 setTerrain :: BlockMap -> Terrain -> World -> World
-setTerrain blockMap terrain world = world
-    { solids = solids world ++ fromList blockPositions
+setTerrain blockMap terrain World {..} = World
+    { renderInfo = renderInfo { solids = fromList blockPositions }
+    , ..
     }
   where
     terrainArray = terrainBlocks terrain
@@ -57,12 +83,11 @@ setTerrain blockMap terrain world = world
 
     blockPositions :: [Solid]
     blockPositions = mapMaybe
-        (\(loc, block) ->
-            case block of
-                NoBlock -> Nothing 
-                SolidBlock content -> 
-                    blockLocationToSolid mapWidthHalf mapHeightHalf blockSize loc
-                        <$> lookup content blockMap
+        (\(loc, block) -> case block of
+            NoBlock -> Nothing
+            SolidBlock content ->
+                blockLocationToSolid mapWidthHalf mapHeightHalf blockSize loc
+                    <$> lookup content blockMap
         )
         (assocs terrainArray)
 
@@ -72,8 +97,8 @@ blockLocationToSolid mapWidthHalf mapHeightHalf size (BlockLocation (x, y)) pict
     = Solid
         { solidWidth   = size
         , solidHeight  = size
-        , solidCenter  = ( (fromIntegral x) * size - mapWidthHalf
-                         , (fromIntegral y) * size - mapHeightHalf
+        , solidCenter  = ( fromIntegral x * size - mapWidthHalf
+                         , fromIntegral y * size - mapHeightHalf
                          )
         , solidTexture = picture
         }
