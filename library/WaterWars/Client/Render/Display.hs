@@ -11,14 +11,17 @@ import WaterWars.Client.Render.Terrain.Solid
 renderIO :: WorldSTM -> IO Picture
 renderIO (WorldSTM tvar) = render <$> readTVarIO tvar
 
-
+-- TODO: render WorldInfo in combination with RenderInfo
 render :: World -> Picture
-render World{..} = pictures ([backgroundTexture renderInfo, playerPicture] ++ toList solidPictures)
-        where
-        playerPicture =
-            uncurry translate (playerLoc $ player worldInfo) $ color playerColor $ circleSolid 20
-        playerColor   = red
-        solidPictures = map solidToPicture (solids renderInfo)
+render World {..} = pictures
+    ([backgroundTexture renderInfo, playerPicture] ++ toList solidPictures)
+  where
+    playerPicture =
+        uncurry translate (playerLoc $ player worldInfo)
+            $ color playerColor
+            $ circleSolid 20
+    playerColor   = red
+    solidPictures = map solidToPicture (solids renderInfo)
 
 solidToPicture :: Solid -> Picture
 solidToPicture solid =

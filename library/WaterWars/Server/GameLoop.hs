@@ -8,7 +8,7 @@ import WaterWars.Server.GameNg
 -- to be forked in own thread
 runGameLoop :: MonadIO m => TVar ServerState -> m ()
 runGameLoop serverStateStm = do
-    ServerState{..} <- atomically $ do
+    ServerState {..} <- atomically $ do
         serverState@(ServerState {..}) <- readTVar serverStateStm
         case runGameTick gameState actions of
             Right newState -> do
@@ -21,9 +21,9 @@ runGameLoop serverStateStm = do
 
 data ServerState = ServerState
     { connections :: Connections
-    , gameMap :: GameMap
-    , gameState :: GameState
-    , actions :: Map Player Action
+    , gameMap     :: GameMap
+    , gameState   :: GameState
+    , actions     :: Map Player Action
     }
 
 -- TODO: move this data-definition to connections-management

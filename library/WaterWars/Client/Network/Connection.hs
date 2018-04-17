@@ -13,7 +13,7 @@ import qualified WaterWars.Core.GameState as CoreState
 
 connectionThread
     :: MonadIO m => Maybe NetworkInfo -> NetworkConfig -> WorldSTM -> m ()
-connectionThread _ NetworkConfig {..} world = 
+connectionThread _ NetworkConfig {..} world =
     liftIO $ runClient hostName portId "" (receiveUpdates world)
 
 
@@ -56,5 +56,5 @@ sendUpdates (WorldSTM tvar) h = forever $ do
 extractGameAction :: World -> Protocol.PlayerAction
 extractGameAction _ = undefined -- TODO: convert world information to action
 
-seconds :: Float -> Int 
-seconds = floor . (*1000000)
+seconds :: Float -> Int
+seconds = floor . (* 1000000)

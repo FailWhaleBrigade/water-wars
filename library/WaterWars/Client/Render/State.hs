@@ -55,19 +55,22 @@ initializeState bmp blockMap' = WorldSTM <$> newTVarIO World
         , solids            = empty
         }
     , worldInfo   = WorldInfo
-        { jump      = False
-        , walkLeft  = False
-        , walkRight = False
-        , shoot     = False
-        , exitGame  = False
-        , player    = Player (0,0) (0,0)
+        { jump         = False
+        , walkLeft     = False
+        , walkRight    = False
+        , shoot        = False
+        , exitGame     = False
+        , player       = Player (0, 0) (0, 0)
         , otherPlayers = empty
         }
     , networkInfo = Nothing
     }
 
 setTerrain :: BlockMap -> Terrain -> World -> World
-setTerrain blockMap terrain World {..} = World { renderInfo = renderInfo { solids = fromList blockPositions }, .. }
+setTerrain blockMap terrain World {..} = World
+    { renderInfo = renderInfo { solids = fromList blockPositions }
+    , ..
+    }
   where
     terrainArray = terrainBlocks terrain
     (BlockLocation (lowerX, upperX), BlockLocation (lowerY, upperY)) =
@@ -93,10 +96,8 @@ blockLocationToSolid mapWidthHalf mapHeightHalf size (BlockLocation (x, y)) pict
     = Solid
         { solidWidth   = size
         , solidHeight  = size
-        , solidCenter  = ( (fromIntegral x) * size - mapWidthHalf
-                         , (fromIntegral y) * size - mapHeightHalf
+        , solidCenter  = ( fromIntegral x * size - mapWidthHalf
+                         , fromIntegral y * size - mapHeightHalf
                          )
         , solidTexture = picture
         }
-
-
