@@ -1,22 +1,26 @@
-module WaterWars.Client.Render.State where
+module WaterWars.Client.Render.State 
+    ( module WaterWars.Core.GameState
+    , World(..)
+    , WorldSTM(..)
+    , RenderInfo(..)
+    , WorldInfo(..)
+    , initializeState
+    , setTerrain
+    ) where
 
 import ClassyPrelude
 import Graphics.Gloss
 import Data.Array.IArray
 
-import WaterWars.Core.GameState (Terrain(..), BlockLocation(..))
-
 import WaterWars.Client.Render.Terrain.Solid
 import WaterWars.Client.Render.Config
+
 import WaterWars.Client.Resources.Block
 
 import qualified WaterWars.Client.Network.State as NetworkState
 
 import qualified WaterWars.Core.GameState as CoreState
-
-type Radius = Float
-
-type Position = (Float, Float)
+import WaterWars.Core.GameState
 
 newtype WorldSTM = WorldSTM (TVar World)
 
@@ -39,14 +43,10 @@ data WorldInfo = WorldInfo
     , walkRight :: Bool
     , shoot     :: Bool
     , exitGame  :: Bool
-    , player    :: Player -- TODO: should use Player from WaterWars.Core.GameState 
-    , otherPlayers :: Seq Player
+    , player    :: CoreState.InGamePlayer -- TODO: should use Player from WaterWars.Core.GameState 
+    , otherPlayers :: Seq CoreState.InGamePlayer
+    , projectiles :: CoreState.Projectiles
     } deriving Show
-
-data Player = Player
-    { playerLoc :: (Float, Float)
-    , playerVel :: (Float, Float)
-    } deriving (Eq, Show, Read)
 
 initializeState :: Picture -> BlockMap -> IO WorldSTM
 initializeState bmp blockMap' = WorldSTM <$> newTVarIO World
@@ -61,19 +61,27 @@ initializeState bmp blockMap' = WorldSTM <$> newTVarIO World
         , walkRight    = False
         , shoot        = False
         , exitGame     = False
-        , player       = Player (0, 0) (0, 0)
+        , player       = CoreState.InGamePlayer
+            { CoreState.playerDescription   = CoreState.Player "unknown"
+            , CoreState.playerLocation      = CoreState.Location (0, 0)
+            , CoreState.playerMaxHealth     = 100
+            , CoreState.playerHealth        = 100
+            , CoreState.playerViewDirection = CoreState.Angle 0.0
+            , CoreState.playerMoveDirection = CoreState.Angle 0.0
+            }
         , otherPlayers = empty
+        , projectiles  = CoreState.Projectiles empty
         }
     , networkInfo = Nothing
     }
 
-setTerrain :: BlockMap -> Terrain -> World -> World
+setTerrain :: BlockMap -> CoreState.Terrain -> World -> World
 setTerrain blockMap terrain World {..} = World
     { renderInfo = renderInfo { solids = fromList blockPositions }
     , ..
     }
   where
-    terrainArray = terrainBlocks terrain
+    terrainArray = CoreState.terrainBlocks terrain
     (BlockLocation (lowerX, upperX), BlockLocation (lowerY, upperY)) =
         bounds terrainArray
     mapWidth      = fromIntegral (upperX - lowerX) * blockSize
@@ -102,3 +110,4 @@ blockLocationToSolid mapWidthHalf mapHeightHalf size (BlockLocation (x, y)) pict
                          )
         , solidTexture = picture
         }
+

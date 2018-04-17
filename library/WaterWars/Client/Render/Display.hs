@@ -16,12 +16,10 @@ render :: World -> Picture
 render World {..} = pictures
     ([backgroundTexture renderInfo, playerPicture] ++ toList solidPictures)
   where
-    playerPicture =
-        uncurry translate (playerLoc $ player worldInfo)
-            $ color playerColor
-            $ circleSolid 20
-    playerColor   = red
-    solidPictures = map solidToPicture (solids renderInfo)
+    Location (x, y) = playerLocation $ player worldInfo
+    playerPicture   = translate x y $ color playerColor $ circleSolid 20
+    playerColor     = red
+    solidPictures   = map solidToPicture (solids renderInfo)
 
 solidToPicture :: Solid -> Picture
 solidToPicture solid =

@@ -11,5 +11,5 @@ data GameInformation
     deriving (Show, Read, Eq)
 
 newtype PlayerAction =
-    Action CoreAction.Action
+    PlayerAction CoreAction.Action
     deriving (Show, Read, Eq)

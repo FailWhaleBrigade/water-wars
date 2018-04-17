@@ -65,6 +65,10 @@ data Projectile = Projectile
 newtype Location = Location (Float, Float)
   deriving (Show, Read, Eq)
 
+instance Monoid Location where
+  mempty = Location (0, 0)
+  mappend (Location (x, y)) (Location (a, b)) = Location (x + a, y + b)
+
 newtype BlockLocation = BlockLocation (Int, Int)
   deriving (Read, Show, Eq, Ord, Ix)
 

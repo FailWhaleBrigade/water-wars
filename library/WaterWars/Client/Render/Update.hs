@@ -3,44 +3,21 @@ module WaterWars.Client.Render.Update where
 import ClassyPrelude
 
 import Graphics.Gloss.Interface.IO.Game
-
+import qualified Graphics.Gloss.Interface.IO.Game as Gloss
 import WaterWars.Client.Render.State
 
 handleKeys :: Event -> World -> World
-handleKeys (EventKey (Char c) _ _ _) World {..}
-    |
--- TODO: change variables such as `walkLeft` to True iff 'a' is down
--- TODO: on release key, update variables such as `walkLeft`
-      c == 'a' = World
-        { worldInfo = worldInfo
-            { player = (player worldInfo) { playerVel = (-v, 0) }
-            }
-        , ..
-        }
-    | c == 'w' = World
-        { worldInfo = worldInfo
-            { player = (player worldInfo) { playerVel = (0, v) }
-            }
-        , ..
-        }
-    | c == 's' = World
-        { worldInfo = worldInfo
-            { player = (player worldInfo) { playerVel = (0, -v) }
-            }
-        , ..
-        }
-    | c == 'd' = World
-        { worldInfo = worldInfo
-            { player = (player worldInfo) { playerVel = (v, 0) }
-            }
-        , ..
-        }
-    where v = 10
-handleKeys _ World {..} = World
-    { worldInfo = worldInfo { player = (player worldInfo) { playerVel = (0, 0) }
-                            }
-    , ..
-    }
+handleKeys (EventKey (Char c) Gloss.Down _ _) World {..}
+    | c == 'a' = World {worldInfo = worldInfo { walkLeft = True }, ..}
+    | c == 'w' = World {worldInfo = worldInfo { jump = True }, ..}
+    | c == 's' = World {..}
+    | c == 'd' = World {worldInfo = worldInfo { walkRight = True }, ..}
+handleKeys (EventKey (Char c) Gloss.Up _ _) World {..}
+    | c == 'a' = World {worldInfo = worldInfo { walkLeft = False }, ..}
+    | c == 'w' = World {worldInfo = worldInfo { jump = False }, ..}
+    | c == 's' = World {..}
+    | c == 'd' = World {worldInfo = worldInfo { walkRight = False }, ..}
+handleKeys _ World {..} = World {..}
 
 handleKeysIO :: Event -> WorldSTM -> IO WorldSTM
 handleKeysIO e world@(WorldSTM tvar) = atomically $ do
@@ -50,17 +27,22 @@ handleKeysIO e world@(WorldSTM tvar) = atomically $ do
     return world
 
 movePlayer :: Float -> World -> World
-movePlayer seconds World {..} = World
-    { worldInfo = worldInfo
-        { player = (player worldInfo) { playerLoc = (x', y') }
-        }
-    , ..
-    }
-  where
-    (x , y ) = playerLoc $ player worldInfo
-    (vx, vy) = playerVel $ player worldInfo
-    x'       = x + vx * seconds
-    y'       = y + vy * seconds
+movePlayer seconds World {..} =
+    let v              = 10
+        WorldInfo {..} = worldInfo
+        diffs          = concatMap snd $ filter
+            fst
+            [ (walkLeft , Location (-v, 0))
+            , (jump     , Location (0, v))
+            , (walkRight, Location (v, 0))
+            ]
+        oldLocation = playerLocation player
+    in  World
+            { worldInfo = worldInfo
+                { player = player { playerLocation = oldLocation ++ diffs }
+                }
+            , ..
+            }
 
 update :: Float -> World -> World
 update seconds = movePlayer seconds
