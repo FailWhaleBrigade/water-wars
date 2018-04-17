@@ -1,5 +1,6 @@
 module WaterWars.Client.Render.State
     ( module WaterWars.Core.GameState
+    , Animation(..)
     , World(..)
     , WorldSTM(..)
     , RenderInfo(..)
@@ -20,9 +21,19 @@ import WaterWars.Client.Resources.Block
 import qualified WaterWars.Client.Network.State as NetworkState
 
 import qualified WaterWars.Core.GameState as CoreState
+import qualified WaterWars.Core.DefaultGame as DefaultGame
+
 import WaterWars.Core.GameState
 
 newtype WorldSTM = WorldSTM (TVar World)
+
+data Animation = Animation
+    { location :: Location
+    , countDownTilNext :: Integer
+    , countDownMax :: Integer
+    , animationPictures :: [Picture]
+    , picInd :: Int
+    } deriving Show
 
 data World = World
     { renderInfo  :: RenderInfo
@@ -34,7 +45,9 @@ data RenderInfo = RenderInfo
     -- TODO: more render information, e.g. Player textures, animation textures, ...
     { blockMap          :: BlockMap
     , backgroundTexture :: Picture
+    , projectileTexture :: Picture
     , solids            :: Seq Solid
+    , animation :: Animation
     } deriving Show
 
 data WorldInfo = WorldInfo
@@ -44,16 +57,24 @@ data WorldInfo = WorldInfo
     , shoot     :: Bool
     , duck      :: Bool
     , exitGame  :: Bool
-    , player    :: CoreState.InGamePlayer -- TODO: should use Player from WaterWars.Core.GameState
+    , player    :: CoreState.InGamePlayer
     , otherPlayers :: Seq CoreState.InGamePlayer
-    , projectiles :: CoreState.Projectiles
+    , projectiles  :: Seq CoreState.Projectile
     } deriving Show
 
-initializeState :: Picture -> BlockMap -> IO WorldSTM
-initializeState bmp blockMap' = WorldSTM <$> newTVarIO World
+initializeState :: Picture -> Picture -> [Picture] -> BlockMap -> IO WorldSTM
+initializeState bmpBg bmpPrj bmpsMan blockMap' = WorldSTM <$> newTVarIO World
     { renderInfo  = RenderInfo
         { blockMap          = blockMap'
-        , backgroundTexture = bmp
+        , backgroundTexture = bmpBg
+        , projectileTexture = bmpPrj
+        , animation         = Animation
+            { location          = Location (-100, -100)
+            , countDownTilNext  = 60
+            , countDownMax      = 60
+            , animationPictures = bmpsMan
+            , picInd            = 0
+            }
         , solids            = empty
         }
     , worldInfo   = WorldInfo
@@ -69,10 +90,11 @@ initializeState bmp blockMap' = WorldSTM <$> newTVarIO World
             , CoreState.playerMaxHealth     = 100
             , CoreState.playerHealth        = 100
             , CoreState.playerViewDirection = CoreState.Angle 0.0
-            , CoreState.playerVelocity = CoreState.VelocityVector 0.0 0.0
+            , CoreState.playerVelocity      = CoreState.VelocityVector 0.0 0.0
             }
         , otherPlayers = empty
-        , projectiles  = CoreState.Projectiles empty
+        , projectiles  = fromList
+            [DefaultGame.defaultProjectile, DefaultGame.defaultProjectile]
         }
     , networkInfo = Nothing
     }
@@ -112,3 +134,4 @@ blockLocationToSolid mapWidthHalf mapHeightHalf size (BlockLocation (x, y)) pict
                          )
         , solidTexture = picture
         }
+        
