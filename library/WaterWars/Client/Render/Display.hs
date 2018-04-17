@@ -14,7 +14,7 @@ renderIO (WorldSTM tvar) = render <$> readTVarIO tvar
 -- TODO: render WorldInfo in combination with RenderInfo
 render :: World -> Picture
 render World {..} = pictures
-    ([backgroundTexture renderInfo, playerPicture] ++ toList solidPictures)
+    ([backgroundTexture renderInfo] ++ toList solidPictures ++ [playerPicture])
   where
     Location (x, y) = playerLocation $ player worldInfo
     playerPicture   = translate x y $ color playerColor $ circleSolid 20

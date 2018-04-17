@@ -42,6 +42,7 @@ data WorldInfo = WorldInfo
     , walkLeft  :: Bool
     , walkRight :: Bool
     , shoot     :: Bool
+    , duck      :: Bool
     , exitGame  :: Bool
     , player    :: CoreState.InGamePlayer -- TODO: should use Player from WaterWars.Core.GameState 
     , otherPlayers :: Seq CoreState.InGamePlayer
@@ -59,6 +60,7 @@ initializeState bmp blockMap' = WorldSTM <$> newTVarIO World
         { jump         = False
         , walkLeft     = False
         , walkRight    = False
+        , duck         = False
         , shoot        = False
         , exitGame     = False
         , player       = CoreState.InGamePlayer
