@@ -44,7 +44,7 @@ data InGamePlayer = InGamePlayer
   , playerMaxHealth :: Int
   , playerHealth :: Int
   , playerViewDirection :: Angle
-  , playerMoveDirection :: Angle
+  , playerVelocity :: VelocityVector
   }
   deriving (Show, Read, Eq)
 
@@ -57,8 +57,7 @@ newtype Projectiles = Projectiles (Seq Projectile) deriving (Show, Eq, Read)
 
 data Projectile = Projectile
   { projectileLocation :: Location
-  , projectileSpeed :: Speed
-  , projectileDirection :: Angle
+  , projectileVelocity :: VelocityVector
   }
   deriving (Show, Read, Eq)
 
@@ -71,6 +70,9 @@ instance Monoid Location where
 
 newtype BlockLocation = BlockLocation (Int, Int)
   deriving (Read, Show, Eq, Ord, Ix)
+
+data VelocityVector = VelocityVector Float Float
+    deriving (Show, Read, Eq)
 
 newtype Angle = Angle Float
   deriving (Show, Read, Num, Eq, Floating, Fractional)

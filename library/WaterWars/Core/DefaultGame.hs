@@ -58,7 +58,7 @@ defaultInGamePlayer = InGamePlayer
     , playerMaxHealth = 10
     , playerHealth = 10
     , playerViewDirection = 1
-    , playerMoveDirection = 0
+    , playerVelocity = VelocityVector 0 0
     }
 
 defaultPlayer :: Player
@@ -70,6 +70,5 @@ defaultProjectiles = Projectiles $ singleton defaultProjectile
 defaultProjectile :: Projectile
 defaultProjectile = Projectile
     { projectileLocation = Location (1.0, 1.0)
-    , projectileSpeed = 1
-    , projectileDirection = 0
+    , projectileVelocity = VelocityVector 0.5 0
     }

@@ -33,9 +33,7 @@ moveProjectiles = do
 
 moveProjectile :: (Member (State GameState) e) => Projectile -> Eff e Projectile
 moveProjectile (projectile@Projectile {..}) = return projectile
-    { projectileLocation = moveLocation
-        (projectileSpeed, projectileDirection)
-        projectileLocation
+    { projectileLocation = moveLocation projectileVelocity projectileLocation
     }
 
 moveEntities :: Member (State GameState) e => Map Player Action -> Eff e ()
@@ -46,21 +44,18 @@ moveEntities actions = do
 
 moveEntity
     :: Member (State GameState) e => Map Player Action -> Entity -> Eff e Entity
-moveEntity actions Npc = return Npc
+moveEntity _ Npc = return Npc
 moveEntity actions (EntityPlayer (player@InGamePlayer {..})) =
     let
-        movedPlayer = do -- maybe monad
+        movedPlayerMay = do -- maybe monad
             Action a <- lookup playerDescription actions
             Run {..} <- find isRunAction a
-            let runAngle = case runDirection of
-                    RunLeft  -> 0
-                    RunRight -> pi
+            let v = runVelocityVector runDirection
             return player
-                { playerLocation = moveLocation (0.5, runAngle) playerLocation
+                { playerLocation = moveLocation v playerLocation
+                , playerVelocity = v
                 }
-    in  case movedPlayer of
-            Nothing     -> return $ EntityPlayer player
-            Just player -> return $ EntityPlayer player
+    in  return . EntityPlayer $ fromMaybe player movedPlayerMay
 
 
 data GameError = GameError deriving (Eq, Show)

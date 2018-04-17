@@ -1,4 +1,4 @@
-module WaterWars.Client.Render.State 
+module WaterWars.Client.Render.State
     ( module WaterWars.Core.GameState
     , World(..)
     , WorldSTM(..)
@@ -44,7 +44,7 @@ data WorldInfo = WorldInfo
     , shoot     :: Bool
     , duck      :: Bool
     , exitGame  :: Bool
-    , player    :: CoreState.InGamePlayer -- TODO: should use Player from WaterWars.Core.GameState 
+    , player    :: CoreState.InGamePlayer -- TODO: should use Player from WaterWars.Core.GameState
     , otherPlayers :: Seq CoreState.InGamePlayer
     , projectiles :: CoreState.Projectiles
     } deriving Show
@@ -69,7 +69,7 @@ initializeState bmp blockMap' = WorldSTM <$> newTVarIO World
             , CoreState.playerMaxHealth     = 100
             , CoreState.playerHealth        = 100
             , CoreState.playerViewDirection = CoreState.Angle 0.0
-            , CoreState.playerMoveDirection = CoreState.Angle 0.0
+            , CoreState.playerVelocity = CoreState.VelocityVector 0.0 0.0
             }
         , otherPlayers = empty
         , projectiles  = CoreState.Projectiles empty
@@ -112,4 +112,3 @@ blockLocationToSolid mapWidthHalf mapHeightHalf size (BlockLocation (x, y)) pict
                          )
         , solidTexture = picture
         }
-
