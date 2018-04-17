@@ -8,6 +8,8 @@ import WaterWars.Client.Render.State
 
 handleKeys :: Event -> World -> World
 handleKeys (EventKey (Char c) _ _ _) World { ..}
+-- TODO: change variables such as `walkLeft` to True iff 'a' is down
+-- TODO: on release key, update variables such as `walkLeft`
     | c == 'a'  = World { worldInfo = worldInfo { player = (player worldInfo) { playerVel = (-v, 0) } }, .. }
     | c == 'w'  = World { worldInfo = worldInfo { player = (player worldInfo) { playerVel = (0, v) } }, .. }
     | c == 's'  = World { worldInfo = worldInfo { player = (player worldInfo) { playerVel = (0, -v) } }, .. }
