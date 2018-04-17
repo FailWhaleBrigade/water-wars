@@ -27,6 +27,7 @@ data World = World
     }
 
 data RenderInfo = RenderInfo
+    -- TODO: more render information, e.g. Player textures, animation textures, ...
     { blockMap          :: BlockMap
     , backgroundTexture :: Picture
     , solids            :: Seq Solid
@@ -38,7 +39,7 @@ data WorldInfo = WorldInfo
     , walkRight :: Bool
     , shoot     :: Bool
     , exitGame  :: Bool
-    , player    :: Player
+    , player    :: Player -- TODO: should use Player from WaterWars.Core.GameState 
     , otherPlayers :: Seq Player
     } deriving Show
 
