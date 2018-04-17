@@ -10,10 +10,10 @@ import WaterWars.Client.Render.Config
 import WaterWars.Client.Codec.Resource
 import WaterWars.Core.Entity.Block
 
-type BlockMap = Map Block Gloss.Picture
+type BlockMap = Map BlockContent Gloss.Picture
 
 
-placeSingleBlock :: Float -> Float -> Block -> BlockMap -> [Solid]
+placeSingleBlock :: Float -> Float -> BlockContent -> BlockMap -> [Solid]
 placeSingleBlock x y block blockmap =
     maybeToList (Solid blockSize blockSize (x, y) <$> lookup block blockmap)
 
@@ -47,9 +47,3 @@ blocks = fromList
     , {- Ceil -}
       "resources/textures/block/topblock32.png"
     ]
-
-
-
-
-
-

@@ -7,9 +7,9 @@ import Data.Array.IArray
 
 import WaterWars.Core.Entity.Block
 
-data GameInformation 
-  = Map GameMap 
-  | State GameState 
+data GameInformation
+  = Map GameMap
+  | State GameState
   deriving (Show, Read, Eq)
 
 data GameMap = GameMap
@@ -54,7 +54,7 @@ newtype Player = Player
   }
   deriving (Show, Read, Eq)
 
-newtype Projectiles = Projectiles (Seq Projectile) deriving (Show, Eq, Read) 
+newtype Projectiles = Projectiles (Seq Projectile) deriving (Show, Eq, Read)
 
 data Projectile = Projectile
   { projectileLocation :: Location
@@ -82,7 +82,5 @@ moveLocation (Speed speed, Angle angle) (Location (x, y)) = Location
   where
     dx = speed * cos angle
     dy = speed * sin angle
-
-
 
 

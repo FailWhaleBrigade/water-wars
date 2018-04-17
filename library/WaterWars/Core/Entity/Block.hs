@@ -2,7 +2,7 @@ module WaterWars.Core.Entity.Block where
 
 import ClassyPrelude
 
-data Block
+data BlockContent
     = Floor
     | EndLeft
     | EndRight
@@ -14,5 +14,9 @@ data Block
     | RightWall
     | Middle
     | Ceil
-    | NoBlock
     deriving (Show, Enum, Bounded, Eq, Ord, Read)
+
+data Block 
+    = SolidBlock BlockContent
+    | NoBlock 
+    deriving (Show, Eq, Ord, Read)

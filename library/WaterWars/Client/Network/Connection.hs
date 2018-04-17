@@ -3,7 +3,6 @@ module WaterWars.Client.Network.Connection (module WaterWars.Client.Network.Stat
 import ClassyPrelude
 import Network.WebSockets
 import System.Log.Logger
-import qualified System.IO as IO
 
 import Control.Concurrent
 
@@ -14,14 +13,14 @@ import qualified WaterWars.Core.GameAction as CoreAction
 
 connectionThread
     :: MonadIO m => Maybe NetworkInfo -> NetworkConfig -> WorldSTM -> m ()
-connectionThread _ config@NetworkConfig {..} world = 
+connectionThread _ NetworkConfig {..} world = 
     liftIO $ runClient hostName portId "" (receiveUpdates world)
 
 
 receiveUpdates :: MonadIO m => WorldSTM -> Connection -> m ()
 receiveUpdates (WorldSTM tvar) conn = forever $ do
     liftIO $ warningM "Server Connection" "Wait for Game Update"
-    bs:: Text <- (liftIO $ receiveData conn)
+    bs :: Text <- liftIO $ receiveData conn
     let maybeGameInfo = readMay bs :: Maybe CoreState.GameInformation
     case maybeGameInfo of
         Nothing ->

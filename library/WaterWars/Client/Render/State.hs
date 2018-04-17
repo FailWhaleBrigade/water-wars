@@ -58,8 +58,11 @@ setTerrain blockMap terrain world = world
     blockPositions :: [Solid]
     blockPositions = mapMaybe
         (\(loc, block) ->
-            blockLocationToSolid mapWidthHalf mapHeightHalf blockSize loc
-                <$> lookup block blockMap
+            case block of
+                NoBlock -> Nothing 
+                SolidBlock content -> 
+                    blockLocationToSolid mapWidthHalf mapHeightHalf blockSize loc
+                        <$> lookup content blockMap
         )
         (assocs terrainArray)
 
