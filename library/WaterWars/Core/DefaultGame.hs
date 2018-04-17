@@ -41,15 +41,12 @@ defaultTerrain = Terrain
 
 defaultGameState :: GameState
 defaultGameState = GameState
-    { gameEntities = defaultEntities
+    { inGamePlayers = defaultInGamePlayers
     , gameProjectiles = defaultProjectiles
     }
 
-defaultEntities :: Entities
-defaultEntities = Entities $ fromList [ defaultEntityPlayer ]
-
-defaultEntityPlayer :: Entity
-defaultEntityPlayer = EntityPlayer defaultInGamePlayer
+defaultInGamePlayers :: InGamePlayers
+defaultInGamePlayers = InGamePlayers $ fromList [ defaultInGamePlayer ]
 
 defaultInGamePlayer :: InGamePlayer
 defaultInGamePlayer = InGamePlayer

@@ -1,25 +1,30 @@
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE MonoLocalBinds #-} -- TODO: ask someone
+{-# LANGUAGE MonoLocalBinds #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module WaterWars.Server.GameNg where
 
-import ClassyPrelude
+import ClassyPrelude hiding (Reader, ask) -- hide MTL functions reexported by prelude
 import WaterWars.Core.GameState
 import WaterWars.Core.GameAction
 import WaterWars.Core.Physics
-import Control.Eff.Exception
 import Control.Eff.State.Strict
+import Control.Eff.Reader.Strict
 import Control.Eff
 
 
 runGameTick :: GameState -> Map Player Action -> GameState
-runGameTick gameState = run . flip execState gameState . gameTick
+runGameTick gameState gameAction =
+    run . flip execState gameState . flip runReader gameAction $ gameTick
 
-gameTick :: (Member (State GameState) e) => Map Player Action -> Eff e ()
-gameTick actions = do
+gameTick
+    :: (Member (State GameState) e, Member (Reader (Map Player Action)) e)
+    => Eff e ()
+gameTick = do
+    applyActionsToPlayers
+
     moveProjectiles
-    moveEntities actions
+    movePlayers
     return ()
 
 -- |Moves all projectiles in the game. This is effectful since the movement
@@ -27,43 +32,54 @@ gameTick actions = do
 moveProjectiles :: (Member (State GameState) e) => Eff e ()
 moveProjectiles = do
     Projectiles projectiles <- gets gameProjectiles
-    newProjectiles          <- mapM moveProjectile projectiles
+    let newProjectiles = map moveProjectile projectiles
     modify $ \s -> s { gameProjectiles = Projectiles newProjectiles }
-    return ()
 
-moveProjectile :: (Member (State GameState) e) => Projectile -> Eff e Projectile
-moveProjectile (projectile@Projectile {..}) = return projectile
+moveProjectile :: Projectile -> Projectile
+moveProjectile (projectile@Projectile {..}) = projectile
     { projectileLocation = moveLocation projectileVelocity projectileLocation
     }
 
-moveEntities :: Member (State GameState) e => Map Player Action -> Eff e ()
-moveEntities actions = do
-    Entities entities <- gets gameEntities
-    newEntities       <- mapM (moveEntity actions) entities
-    modify $ \s -> s { gameEntities = Entities newEntities }
+movePlayers :: (Member (State GameState) e) => Eff e ()
+movePlayers = do
+    InGamePlayers players <- gets inGamePlayers
+    let newPlayers = map movePlayer players
+    modify $ \s -> s { inGamePlayers = InGamePlayers newPlayers }
 
-moveEntity
-    :: Member (State GameState) e => Map Player Action -> Entity -> Eff e Entity
-moveEntity _ Npc = return Npc
-moveEntity actions (EntityPlayer (player@InGamePlayer {..})) =
-    let
-        movedPlayerMay = do -- maybe monad
-            Action a <- lookup playerDescription actions
-            Run {..} <- find isRunAction a
-            let v = runVelocityVector runDirection
-            return player
-                { playerLocation = moveLocation v playerLocation
-                , playerVelocity = v
-                }
-    in  return . EntityPlayer $ fromMaybe player movedPlayerMay
+movePlayer :: InGamePlayer -> InGamePlayer
+movePlayer (player@InGamePlayer {..}) =
+    player { playerLocation = moveLocation playerVelocity playerLocation }
+
+-- | Applies the actions given for each player to the player-obects
+applyActionsToPlayers
+    :: (Member (State GameState) e, Member (Reader (Map Player Action)) e)
+    => Eff e ()
+applyActionsToPlayers = do
+    perPlayer <- actionsPerPlayer
+    let modifiedPlayers = map modifyPlayerByAction perPlayer
+    modify $ \s -> s { inGamePlayers = InGamePlayers modifiedPlayers }
 
 
-data GameError = GameError deriving (Eq, Show)
+actionsPerPlayer
+    :: (Member (State GameState) e, Member (Reader (Map Player Action)) e)
+    => Eff e (Seq (InGamePlayer, Action))
+actionsPerPlayer = do
+    actions :: Map Player Action <- ask
+    InGamePlayers players        <- gets inGamePlayers
+    return $ map
+        (\p -> (p, fromMaybe mempty $ lookup (playerDescription p) actions))
+        players
 
-throwError' :: (Member (Exc e) r) => e -> Eff r ()
-throwError' = throwError
-{-# INLINE throwError' #-}
+-- | Function that includes the actions into a player-state
+-- TODO improve action type & implementation of this function
+modifyPlayerByAction :: (InGamePlayer, Action) -> InGamePlayer
+modifyPlayerByAction (player, Action action) = fromMaybe player $ do -- maybe monad
+    Run {..} <- find isRunAction action
+    let v = runVelocityVector runDirection
+    return player { playerVelocity = v }
 
+
+-- UTILITY FUNCTIONS
 
 gets :: Member (State s) r => (s -> a) -> Eff r a
 gets f = map f get

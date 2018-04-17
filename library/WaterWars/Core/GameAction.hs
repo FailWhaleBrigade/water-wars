@@ -1,11 +1,14 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
 module WaterWars.Core.GameAction where
 
 import ClassyPrelude
 import WaterWars.Core.GameState
 
+-- TODO: only allow an action of one type in here. Maybe Map?
 newtype Action = Action
     { rawActions :: Seq RawAction
-    } deriving (Show, Read, Eq)
+    } deriving (Show, Read, Eq, Monoid)
 
 data RawAction
     = Run { runDirection :: RunDirection }

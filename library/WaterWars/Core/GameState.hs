@@ -27,16 +27,12 @@ data Terrain = Terrain
 
 -- |Master-state of the whole game
 data GameState = GameState
-  { gameEntities :: Entities
+  { inGamePlayers :: InGamePlayers
   , gameProjectiles :: Projectiles
   } deriving (Show, Read, Eq)
 
-newtype Entities = Entities (Seq Entity)
+newtype InGamePlayers = InGamePlayers (Seq InGamePlayer)
   deriving (Read, Show, Eq)
-
-data Entity = EntityPlayer InGamePlayer | Npc
-  deriving (Show, Read, Eq)
-
 
 data InGamePlayer = InGamePlayer
   { playerDescription :: Player
