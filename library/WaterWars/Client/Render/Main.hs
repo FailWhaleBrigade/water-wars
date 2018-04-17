@@ -3,8 +3,6 @@ module WaterWars.Client.Render.Main(main) where
 import ClassyPrelude
 import Control.Monad.Except
 
-import Control.Concurrent
-
 import Graphics.Gloss
 import Graphics.Gloss.Interface.IO.Game
 

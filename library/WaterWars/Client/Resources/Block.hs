@@ -1,14 +1,14 @@
-module WaterWars.Client.Resources.Block (module WaterWars.Core.Entity.Block,BlockMap, placeSingleBlock, blocks, loadBlockMap) where
+module WaterWars.Client.Resources.Block (module WaterWars.Core.Terrain.Block, BlockMap, placeSingleBlock, blocks, loadBlockMap) where
 
 import ClassyPrelude
 import Control.Monad.Error.Class
 
 import qualified Graphics.Gloss as Gloss
-import WaterWars.Client.Render.Entity.Solid
+import WaterWars.Client.Render.Terrain.Solid
 import WaterWars.Client.Render.Config
 
 import WaterWars.Client.Codec.Resource
-import WaterWars.Core.Entity.Block
+import WaterWars.Core.Terrain.Block
 
 type BlockMap = Map BlockContent Gloss.Picture
 
@@ -47,3 +47,4 @@ blocks = fromList
     , {- Ceil -}
       "resources/textures/block/topblock32.png"
     ]
+

@@ -5,7 +5,7 @@ module WaterWars.Core.GameState where
 import ClassyPrelude
 import Data.Array.IArray
 
-import WaterWars.Core.Entity.Block
+import WaterWars.Core.Terrain.Block
 
 data GameInformation
   = Map GameMap

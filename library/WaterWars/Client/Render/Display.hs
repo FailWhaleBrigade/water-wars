@@ -5,7 +5,7 @@ import ClassyPrelude
 import Graphics.Gloss
 
 import WaterWars.Client.Render.State
-import WaterWars.Client.Render.Entity.Solid
+import WaterWars.Client.Render.Terrain.Solid
 
 -- convert a game state into a picture
 renderIO :: WorldSTM -> IO Picture

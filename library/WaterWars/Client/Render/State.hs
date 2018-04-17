@@ -6,7 +6,7 @@ import Data.Array.IArray
 
 import WaterWars.Core.GameState (Terrain(..), BlockLocation(..))
 
-import WaterWars.Client.Render.Entity.Solid
+import WaterWars.Client.Render.Terrain.Solid
 import WaterWars.Client.Render.Config
 import WaterWars.Client.Resources.Block
 

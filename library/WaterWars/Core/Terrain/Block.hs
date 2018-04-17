@@ -1,4 +1,4 @@
-module WaterWars.Core.Entity.Block where
+module WaterWars.Core.Terrain.Block where
 
 import ClassyPrelude
 
