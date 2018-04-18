@@ -25,6 +25,7 @@ script: stack --no-terminal --install-ghc test
 cache:
   directories:
   - $HOME/.stack
+  - $HOME/FailWhaleBrigade/water-wars/.stack-work
 
 notifications:
   slack: slacker-team-group:HcLP7VEc9wYDF8eMzNJ8ZeAY
