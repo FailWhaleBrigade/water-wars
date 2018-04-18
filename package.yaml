@@ -31,11 +31,7 @@ library:
   - extensible-effects
   source-dirs: library
   default-extensions:
-  - NamedFieldPuns
-  - OverloadedStrings
-  - NoImplicitPrelude
   - ScopedTypeVariables
-  - RecordWildCards
 
 executables:
   water-wars-server:
