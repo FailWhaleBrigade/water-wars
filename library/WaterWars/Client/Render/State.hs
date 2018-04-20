@@ -36,17 +36,17 @@ data Animation = Animation
     } deriving Show
 
 data World = World
-    { renderInfo  :: RenderInfo
-    , worldInfo   :: WorldInfo
+    { renderInfo :: RenderInfo
+    , worldInfo :: WorldInfo
     , networkInfo :: Maybe NetworkState.NetworkInfo
     }
 
 data RenderInfo = RenderInfo
     -- TODO: more render information, e.g. Player textures, animation textures, ...
-    { blockMap          :: BlockMap
+    { blockMap :: BlockMap
     , backgroundTexture :: Picture
     , projectileTexture :: Picture
-    , solids            :: Seq Solid
+    , solids :: Seq Solid
     , animation :: Animation
     } deriving Show
 
@@ -134,4 +134,3 @@ blockLocationToSolid mapWidthHalf mapHeightHalf size (BlockLocation (x, y)) pict
                          )
         , solidTexture = picture
         }
-        
