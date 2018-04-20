@@ -44,8 +44,3 @@ animateAnimation Animation {..} = translate x y img
     Location (x, y) = location
     img             = animationPictures `indexEx` picInd
 
-updateAnimation :: Animation -> Animation
-updateAnimation a@Animation {..} = if countDownTilNext == 0
-    then a { picInd = picInd + 1, location = Location (x + 1, y) }
-    else a { location = Location (x + 1, y) }
-    where Location (x, y) = location

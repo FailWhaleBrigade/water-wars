@@ -46,8 +46,17 @@ movePlayer seconds World {..} =
             , ..
             }
 
+updateAnimation :: Animation -> Animation
+updateAnimation a@Animation {..} = if countDownTilNext == 0
+    then a { picInd = picInd + 1, location = Location (x - 1, y), countDownTilNext = countDownMax }
+    else a { location = Location (x - 1, y), countDownTilNext = countDownTilNext - 1 }
+    where Location (x, y) = location
+
 update :: Float -> World -> World
-update = movePlayer
+update delta world = 
+    let World{..} = movePlayer delta world
+        worldAnimated = World { renderInfo = renderInfo { animation = updateAnimation (animation renderInfo)} ,..}
+    in worldAnimated
 
 updateIO :: Float -> WorldSTM -> IO WorldSTM
 updateIO diff world@(WorldSTM tvar) = do

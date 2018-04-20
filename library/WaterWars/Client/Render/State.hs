@@ -13,6 +13,8 @@ import ClassyPrelude
 import Graphics.Gloss
 import Data.Array.IArray
 
+import Data.List (cycle)
+
 import WaterWars.Client.Render.Terrain.Solid
 import WaterWars.Client.Render.Config
 
@@ -69,10 +71,10 @@ initializeState bmpBg bmpPrj bmpsMan blockMap' = WorldSTM <$> newTVarIO World
         , backgroundTexture = bmpBg
         , projectileTexture = bmpPrj
         , animation         = Animation
-            { location          = Location (-100, -100)
-            , countDownTilNext  = 60
-            , countDownMax      = 60
-            , animationPictures = bmpsMan
+            { location          = Location (100, -100)
+            , countDownTilNext  = 30
+            , countDownMax      = 30
+            , animationPictures = cycle bmpsMan
             , picInd            = 0
             }
         , solids            = empty

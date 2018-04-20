@@ -53,3 +53,4 @@ main = do
                    renderIO
                    handleKeysIO
                    updateIO
+            putStrLn "Goodbye, shuting down the Server!"

@@ -42,8 +42,13 @@ newtype GameSetupResponse = GameSetupResponse
     { setupResponse :: Either SetupError Bool 
     } deriving (Show, Read, Eq)
 
--- |Signals that an error has happened during game initiliazation
+-- |Signals that an error has happened during game initialization
 data SetupError 
     = InvalidAmountOfPlayers
     | UnknownMap
     deriving (Show, Read, Eq, Ord, Enum, Bounded)
+
+-- |If players are logging out, here for completeness, not neccessarily used.
+newtype Logout = Logout 
+    { logoutSessionId :: Text
+    } deriving (Show, Read, Eq)
