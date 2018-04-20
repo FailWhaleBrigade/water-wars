@@ -7,7 +7,7 @@ import Graphics.Gloss as Gloss
 import WaterWars.Client.Render.State
 import WaterWars.Client.Render.Terrain.Solid
 
--- convert a game state into a picture
+-- |Convert a game state into a picture
 renderIO :: WorldSTM -> IO Picture
 renderIO (WorldSTM tvar) = render <$> readTVarIO tvar
 
