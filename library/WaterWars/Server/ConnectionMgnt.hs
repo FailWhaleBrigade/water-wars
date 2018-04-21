@@ -8,42 +8,37 @@ import System.Log.Logger
 
 import Network.WebSockets
 
-import WaterWars.Core.GameState
 import WaterWars.Network.Protocol
+
+import WaterWars.Core.GameState
+import WaterWars.Core.GameAction
 
 import WaterWars.Server.Config
 
+data ServerState = ServerState
+    { connections :: Connections
+    , gameMap     :: GameMap
+    , gameState   :: GameState
+    , actions     :: Map Player Action
+    }
+
 data Connections = Connections
-    { players :: Map Text PlayerSession
+    { players :: Map Player Connection
     , gameSetup :: Maybe GameSetup
-    } deriving (Show, Eq)
-
-
-data PlayerSession = PlayerSession
-    { name :: Text
-    , conn :: Connection
-    } 
-
-instance Eq PlayerSession where
-    (==) p1 p2 = name p1 == name p2
-
-instance Show PlayerSession where
-    show = show . name
+    }
 
 broadcastGameState :: MonadIO m => Connections -> GameState -> m ()
-broadcastGameState Connections {..} state = forM_ players $ \player -> do
-    res <- runExceptT $ sendGameState state player
+broadcastGameState Connections {..} state = forM_ players $ \conn -> do
+    res <- runExceptT $ sendGameState state conn
     case res of
         Left msg ->
             liftIO
                 .  warningM networkLoggerName
-                $  "Could not new GameState: "
-                ++ show (name player)
-                ++ ": "
+                $  "Could not send GameState: "
                 ++ msg
         Right () -> return ()
 
 sendGameState
-    :: (MonadIO m, MonadError String m) => GameState -> PlayerSession -> m ()
-sendGameState state PlayerSession {..} =
+    :: (MonadIO m, MonadError String m) => GameState -> Connection -> m ()
+sendGameState state conn =
     liftIO $ sendTextData conn (tshow state)

@@ -33,3 +33,7 @@ cabal.project.local
 ### Ignore all bitmaps because they are too large
 
 *.bmp
+
+### Ignore logfiles
+
+*.log

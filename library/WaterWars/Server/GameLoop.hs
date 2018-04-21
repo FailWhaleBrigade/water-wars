@@ -6,6 +6,7 @@ import WaterWars.Core.GameAction
 import WaterWars.Server.ConnectionMgnt
 import WaterWars.Server.GameNg
 
+
 -- to be forked in own thread
 runGameLoop :: MonadIO m => TVar ServerState -> m ()
 runGameLoop serverStateStm = do
@@ -22,12 +23,4 @@ allGameTicks :: [Map Player Action] -> GameState -> [GameState]
 allGameTicks [] s = [s]
 allGameTicks (actions:rest) initialState =
     initialState : allGameTicks rest (runGameTick initialState actions)
-
-
-data ServerState = ServerState
-    { connections :: Connections
-    , gameMap     :: GameMap
-    , gameState   :: GameState
-    , actions     :: Map Player Action
-    }
 
