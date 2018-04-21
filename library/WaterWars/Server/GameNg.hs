@@ -67,14 +67,14 @@ actionsPerPlayer = do
     actions :: Map Player Action <- ask
     InGamePlayers players        <- gets inGamePlayers
     return $ map
-        (\p -> (p, fromMaybe mempty $ lookup (playerDescription p) actions))
+        (\p -> (p, fromMaybe noAction $ lookup (playerDescription p) actions))
         players
 
 -- | Function that includes the actions into a player-state
 -- TODO improve action type & implementation of this function
 modifyPlayerByAction :: (InGamePlayer, Action) -> InGamePlayer
-modifyPlayerByAction (player, Action action) = fromMaybe player $ do -- maybe monad
-    Run {..} <- find isRunAction action
+modifyPlayerByAction (player, action) = fromMaybe player $ do -- maybe monad
+    RunAction runDirection <- runAction action
     let v = runVelocityVector runDirection
     return player { playerVelocity = v }
 
