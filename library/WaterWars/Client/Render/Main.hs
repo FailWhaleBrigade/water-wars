@@ -3,6 +3,9 @@ module WaterWars.Client.Render.Main(main) where
 import ClassyPrelude
 import Control.Monad.Except
 
+import System.Log.Logger
+import System.Log.Handler.Syslog
+
 import Graphics.Gloss
 import Graphics.Gloss.Interface.IO.Game
 
@@ -34,7 +37,10 @@ setup = do
     return (bgTex, prjTex, toList mantaTexs, blockMap)
 
 main :: IO ()
-main = do
+main = do  
+    s <- liftIO $ openlog "water-wars-client" [PID] USER DEBUG
+    updateGlobalLogger rootLoggerName (addHandler s)
+    updateGlobalLogger rootLoggerName (setLevel DEBUG)
     resources <- runExceptT setup
     case resources of
         Left err -> putStrLn $ "Could not load texture. Cause: " ++ tshow err

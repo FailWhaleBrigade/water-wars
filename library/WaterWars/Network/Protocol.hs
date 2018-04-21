@@ -48,7 +48,7 @@ data SetupError
     | UnknownMap
     deriving (Show, Read, Eq, Ord, Enum, Bounded)
 
--- |If players are logging out, here for completeness, not neccessarily used.
+-- |If players are logging out, for completeness, not neccessarily used.
 newtype Logout = Logout 
     { logoutSessionId :: Text
     } deriving (Show, Read, Eq)
