@@ -4,7 +4,7 @@ import ClassyPrelude
 import Control.Monad.Except
 
 import System.Log.Logger
-import System.Log.Handler.Syslog
+import System.Log.Handler.Simple
 
 import Graphics.Gloss
 import Graphics.Gloss.Interface.IO.Game
@@ -28,22 +28,29 @@ fps = 60
 backgroundColor :: Color
 backgroundColor = white
 
-setup :: (MonadIO m, MonadError String m) => m (Picture, Picture, [Picture], BlockMap)
+setup
+    :: (MonadIO m, MonadError String m)
+    => m (Picture, Picture, [Picture], BlockMap)
 setup = do
-    bgTex    <- loadPngAsBmp "resources/textures/background/background.png"
-    prjTex <- loadPngAsBmp "resources/textures/decoration/bubble.png"
-    mantaTexs <- bulkLoad $ fromList ["resources/textures/manta_animation/manta1.png", "resources/textures/manta_animation/manta2.png", "resources/textures/manta_animation/manta3.png",  "resources/textures/manta_animation/manta4.png"]
+    bgTex     <- loadPngAsBmp "resources/textures/background/background.png"
+    prjTex    <- loadPngAsBmp "resources/textures/decoration/bubble.png"
+    mantaTexs <- bulkLoad $ fromList
+        [ "resources/textures/manta_animation/manta1.png"
+        , "resources/textures/manta_animation/manta2.png"
+        , "resources/textures/manta_animation/manta3.png"
+        , "resources/textures/manta_animation/manta4.png"
+        ]
     blockMap <- loadBlockMap
     return (bgTex, prjTex, toList mantaTexs, blockMap)
 
 main :: IO ()
-main = do  
-    s <- liftIO $ openlog "water-wars-client" [PID] USER DEBUG
+main = do
+    s <- liftIO $ fileHandler "water-wars-client.log" DEBUG
     updateGlobalLogger rootLoggerName (addHandler s)
     updateGlobalLogger rootLoggerName (setLevel DEBUG)
     resources <- runExceptT setup
     case resources of
-        Left err -> putStrLn $ "Could not load texture. Cause: " ++ tshow err
+        Left  err -> putStrLn $ "Could not load texture. Cause: " ++ tshow err
         Right (bgTex, prjTex, mantaTexs, blocks) -> do
             worldStm <- initializeState bgTex prjTex mantaTexs blocks
             _        <-
