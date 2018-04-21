@@ -51,10 +51,12 @@ executables:
     - base
     - water-wars
     - classy-prelude
-    # - warp
-    # - wai-websockets
     - array
+    - websockets  
+    - transformers
+    - mtl
     - websockets
+    - hslogger
     ghc-options:
     - -rtsopts
     - -threaded

@@ -2,8 +2,9 @@ module WaterWars.Client.Network.Connection (module WaterWars.Client.Network.Stat
 
 import ClassyPrelude
 import Network.WebSockets
-import System.Log.Logger
 
+import System.Log.Logger
+import System.Log.Handler.Syslog
 import Control.Concurrent
 
 import WaterWars.Client.Render.State
@@ -11,26 +12,33 @@ import WaterWars.Client.Network.State (NetworkConfig(..), NetworkInfo(..))
 import qualified WaterWars.Network.Protocol as Protocol
 import qualified WaterWars.Core.GameState as CoreState
 
+-- |Name of the component for the logger
+componentName :: String 
+componentName = "Client.Connection"
+
 connectionThread
     :: MonadIO m => Maybe NetworkInfo -> NetworkConfig -> WorldSTM -> m ()
-connectionThread _ NetworkConfig {..} world =
+connectionThread _ NetworkConfig {..} world = do
+    -- Copy everything to syslog from here on out.
+    s <- liftIO $ openlog "water-wars-client" [PID] USER DEBUG
+    liftIO $ updateGlobalLogger rootLoggerName (addHandler s)
     liftIO $ runClient hostName portId "" (receiveUpdates world)
 
 
 receiveUpdates :: MonadIO m => WorldSTM -> Connection -> m ()
 receiveUpdates (WorldSTM tvar) conn = forever $ do
-    liftIO $ warningM "Server Connection" "Wait for Game Update"
+    liftIO $ warningM componentName "Wait for Game Update"
     bs :: Text <- liftIO $ receiveData conn
     let maybeGameInfo = readMay bs :: Maybe Protocol.GameInformation
     case maybeGameInfo of
         Nothing ->
             liftIO
-                .  warningM "Server Connection"
+                .  infoM componentName
                 $  "Could not parse the gameInfo: "
                 ++ show bs
 
         Just info -> do
-            liftIO $ warningM "Server Connection" "Received a game update"
+            liftIO $ debugM componentName "Received a game update"
             world <- readTVarIO tvar
             let world' = updateWorld info world
             atomically $ writeTVar tvar world'
@@ -47,7 +55,7 @@ sendUpdates :: MonadIO m => WorldSTM -> Handle -> m ()
 sendUpdates (WorldSTM tvar) h = forever $ do
     -- TODO: move this to bottom
     liftIO $ threadDelay (seconds 5.0)
-    liftIO $ warningM "Server Connection" "Send an update to the Server"
+    liftIO $ debugM componentName "Send an update to the Server"
     world <- readTVarIO tvar
     let action = extractGameAction world
     hPut h . encodeUtf8 $ tshow action

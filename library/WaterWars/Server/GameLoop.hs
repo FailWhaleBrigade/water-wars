@@ -3,6 +3,7 @@ module WaterWars.Server.GameLoop where
 import ClassyPrelude
 import WaterWars.Core.GameState
 import WaterWars.Core.GameAction
+import WaterWars.Server.ConnectionMgnt
 import WaterWars.Server.GameNg
 
 -- to be forked in own thread
@@ -30,9 +31,3 @@ data ServerState = ServerState
     , actions     :: Map Player Action
     }
 
--- TODO: move this data-definition to connections-management
-data Connections = SomeConnections
-
--- TODO: move this function
-broadcastGameState :: MonadIO m => Connections -> GameState -> m ()
-broadcastGameState = undefined
