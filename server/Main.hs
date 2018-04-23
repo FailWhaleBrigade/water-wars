@@ -7,8 +7,9 @@ import System.Log.Logger
 import System.Log.Handler.Simple
 
 import WaterWars.Core.DefaultGame
-import WaterWars.Core.GameState
 import WaterWars.Server.Config
+import WaterWars.Network.Protocol
+
 
 main :: IO ()
 main = do
@@ -16,6 +17,7 @@ main = do
   s <- liftIO $ fileHandler "water-wars-server.log" DEBUG
   updateGlobalLogger rootLoggerName (addHandler s)
   updateGlobalLogger rootLoggerName (setLevel DEBUG)
+  broadcastChan <- atomically newBroadcastTChan
   runServer "localhost" 1234 $ \conn -> do
     connHandle <- acceptRequest conn
     debugM networkLoggerName "Client connected"

@@ -23,4 +23,3 @@ allGameTicks :: [Map Player Action] -> GameState -> [GameState]
 allGameTicks [] s = [s]
 allGameTicks (actions:rest) initialState =
     initialState : allGameTicks rest (runGameTick initialState actions)
-

@@ -7,10 +7,6 @@ import Data.Array.IArray
 
 import WaterWars.Core.Terrain.Block
 
-data GameInformation
-  = Map GameMap
-  | State GameState
-  deriving (Show, Read, Eq)
 
 data GameMap = GameMap
   { gameTerrain :: Terrain
