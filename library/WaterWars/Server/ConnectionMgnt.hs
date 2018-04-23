@@ -21,22 +21,23 @@ data ServerState = ServerState
     , gameState   :: GameState
     , actions     :: Map Player Action
     }
-
+    
 data Connections = Connections
     { players :: Seq (TChan GameInformation)
     , gameSetup :: Maybe GameSetup
     }
 
+addChannel :: ServerState -> TChan GameInformation -> ServerState
+addChannel ServerState {..} chan =
+    let Connections {..} = connections
+    in  ServerState
+            { connections = connections { players = chan `cons` players }
+            , ..
+            }
+
 broadcastGameState :: MonadIO m => Connections -> GameState -> m ()
 broadcastGameState Connections {..} state =
     forM_ players $ \chan -> atomically $ writeTChan chan (State state)
-
-sendGameState
-    :: (MonadIO m, MonadError String m)
-    => GameState -- ^Hello World Parameter 
-    -> Connection -- ^Connections that we write the message to
-    -> m ()
-sendGameState state conn = liftIO $ sendTextData conn (tshow state)
 
 clientGameThread
     :: MonadIO m
@@ -45,7 +46,7 @@ clientGameThread
     -> TChan GameInformation -- ^Information channel that sends messages to client
     -> m ()
 clientGameThread conn broadcastChan receiveChan = liftIO
-    $ race_ -- If any of these threads die, kill the thread, be careful for this swallows exceptions 
+    $ race_ -- If any of these threads die, kill both threads and return, be careful for this swallows exceptions 
             (clientReceive conn broadcastChan) (clientSend conn receiveChan)
 
 
@@ -57,7 +58,9 @@ clientReceive
 clientReceive conn broadcastChan = forever $ do
     msg :: Text <- liftIO $ receiveData conn
     case readMay msg of
-        Nothing           -> return ()
+        Nothing           -> do 
+            liftIO $ infoM networkLoggerName "Could not read message"
+            liftIO $ debugM networkLoggerName (show $ "Could not read message: " ++ msg)  
         Just playerAction -> atomically $ writeTChan broadcastChan playerAction
     -- TODO: should i sleep here for some time to avoid DOS-attack?
     return ()
