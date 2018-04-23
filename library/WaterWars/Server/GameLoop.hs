@@ -2,6 +2,8 @@ module WaterWars.Server.GameLoop where
 
 import ClassyPrelude
 
+import System.Log.Logger
+
 import Control.Concurrent
 
 import WaterWars.Core.GameState
@@ -15,7 +17,8 @@ import WaterWars.Network.Protocol
 
 -- to be forked in own thread
 runGameLoop :: MonadIO m => TVar ServerState -> TChan PlayerAction -> m ()
-runGameLoop serverStateStm readChan = do
+runGameLoop serverStateStm broadcastReadSide = forever $ do
+    liftIO $ debugM "Server.Connection" "Start the game loop"
     ServerState {..} <- atomically $ do
         serverState@ServerState {..} <- readTVar serverStateStm
         let newState = runGameTick gameState actions
@@ -23,7 +26,7 @@ runGameLoop serverStateStm readChan = do
         writeTVar serverStateStm newServerState
         return newServerState
     broadcastGameState connections gameState
-    liftIO $ threadDelay 900 -- TODO: this sleep is necessary
+    liftIO $ threadDelay 10000 -- TODO: this sleep is necessary
 
 
 allGameTicks :: [Map Player Action] -> GameState -> [GameState]

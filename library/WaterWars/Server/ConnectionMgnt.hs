@@ -56,6 +56,7 @@ clientReceive
     -> TChan PlayerAction  -- ^Broadcast channel to send all messages to
     -> m ()
 clientReceive conn broadcastChan = forever $ do
+    liftIO $ debugM "Server.Connection" "Wait for data message"
     msg :: Text <- liftIO $ receiveData conn
     case readMay msg of
         Nothing           -> do 
@@ -71,6 +72,7 @@ clientSend
     -> TChan GameInformation -- ^Information channel that sends messages to client
     -> m ()
 clientSend conn sendChan = forever $ do
+    liftIO $ debugM "Server.Connection" "Wait for message"
     cmd <- liftIO . atomically $ readTChan sendChan
     liftIO $ sendTextData conn $ tshow cmd
     -- TODO: sleep for fun?

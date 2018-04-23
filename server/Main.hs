@@ -34,7 +34,7 @@ defaultGameSetup =
 main :: IO ()
 main = do
   -- Copy everything to syslog from here on out.
-    s <- liftIO $ fileHandler "water-wars-server.log" DEBUG
+    s <- fileHandler "water-wars-server.log" DEBUG
     updateGlobalLogger rootLoggerName (addHandler s)
     updateGlobalLogger rootLoggerName (setLevel DEBUG)
 
@@ -43,8 +43,8 @@ main = do
     serverStateTvar <- newTVarIO defaultState
 
     -- start to accept connections
-    race_ (websocketServer serverStateTvar broadcastChan) (gameLoopServer serverStateTvar broadcastChan)
-
+    _ <- async (websocketServer serverStateTvar broadcastChan)
+    _ <- forever (gameLoopServer serverStateTvar broadcastChan)
     return ()
 
 
@@ -53,7 +53,7 @@ websocketServer serverStateTvar broadcastChan = liftIO $ runServer "localhost" 1
     connHandle <- acceptRequest conn
     debugM networkLoggerName "Client connected"
     commChan <- newTChanIO
-
+    sendTextData connHandle (tshow $ Map defaultGameMap)
     atomically $ do
         serverState <- readTVar serverStateTvar
         writeTVar serverStateTvar (addChannel serverState commChan)
@@ -64,7 +64,9 @@ websocketServer serverStateTvar broadcastChan = liftIO $ runServer "localhost" 1
 
 gameLoopServer :: MonadIO m => TVar ServerState -> TChan PlayerAction -> m ()
 gameLoopServer serverStateTvar broadcastChan = do
+    liftIO $ debugM networkLoggerName "Start listening on Gameloop"
     readBroadcastChan <- atomically $ dupTChan broadcastChan
+    liftIO $ debugM networkLoggerName "Start game loop"
     runGameLoop serverStateTvar readBroadcastChan
 
 
