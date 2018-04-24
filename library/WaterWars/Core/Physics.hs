@@ -7,3 +7,6 @@ import WaterWars.Core.GameState
 moveLocation :: VelocityVector -> Location -> Location
 moveLocation (VelocityVector dx dy) (Location (x, y)) = Location
     (x + dx, y + dy)
+
+jumpVector :: VelocityVector
+jumpVector = VelocityVector 

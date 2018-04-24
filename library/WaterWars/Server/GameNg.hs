@@ -2,7 +2,7 @@
 {-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module WaterWars.Server.GameNg where
+module WaterWars.Server.GameNg (runGameTick, gameTick) where
 
 import ClassyPrelude hiding (Reader, ask) -- hide MTL functions reexported by prelude
 import WaterWars.Core.GameState
@@ -11,7 +11,7 @@ import WaterWars.Core.Physics
 import Control.Eff.State.Strict
 import Control.Eff.Reader.Strict
 import Control.Eff
-
+import WaterWars.Core.PhysicsConstants
 
 runGameTick :: GameState -> Map Player Action -> GameState
 runGameTick gameState gameAction =
@@ -27,8 +27,8 @@ gameTick = do
     movePlayers
     return ()
 
--- |Moves all projectiles in the game. This is effectful since the movement
--- depends on the whole state
+-- | Moves all projectiles in the game. This is effectful since the movement
+--   depends on the whole state
 moveProjectiles :: (Member (State GameState) e) => Eff e ()
 moveProjectiles = do
     Projectiles projectiles <- gets gameProjectiles
@@ -59,7 +59,32 @@ applyActionsToPlayers = do
     let modifiedPlayers = map modifyPlayerByAction perPlayer
     modify $ \s -> s { inGamePlayers = InGamePlayers modifiedPlayers }
 
+gravityToPlayer :: InGamePlayer -> InGamePlayer
+gravityToPlayer p@InGamePlayer {..} = p
+    { playerVelocity = VelocityVector (vx - gravityForce) vy
+    }
+    where VelocityVector vx vy = playerVelocity
 
+-- | Function that includes the actions into a player-state
+-- TODO improve action type & implementation of this function
+modifyPlayerByAction :: Action -> InGamePlayer -> InGamePlayer
+modifyPlayerByAction action =
+    modifyPlayerByRunAction action . modifyPlayerByJumpAction action
+
+modifyPlayerByJumpAction :: Action -> InGamePlayer -> InGamePlayer
+modifyPlayerByJumpAction action player = fromMaybe player $ do -- maybe monad
+    JumpAction jumpDirection <- jumpAction action
+    return player { playerVelocity = jumpVector ++ playerVelocity player }
+
+modifyPlayerByRunAction :: Action -> InGamePlayer -> InGamePlayer
+modifyPlayerByRunAction action player = fromMaybe player $ do -- maybe monad
+    RunAction runDirection <- runAction action
+    return player
+        { playerVelocity = runVelocityVector runDirection
+            ++ playerVelocity player
+        }
+
+-- get action / player tuples
 actionsPerPlayer
     :: (Member (State GameState) e, Member (Reader (Map Player Action)) e)
     => Eff e (Seq (InGamePlayer, Action))
@@ -69,15 +94,6 @@ actionsPerPlayer = do
     return $ map
         (\p -> (p, fromMaybe noAction $ lookup (playerDescription p) actions))
         players
-
--- | Function that includes the actions into a player-state
--- TODO improve action type & implementation of this function
-modifyPlayerByAction :: (InGamePlayer, Action) -> InGamePlayer
-modifyPlayerByAction (player, action) = fromMaybe player $ do -- maybe monad
-    RunAction runDirection <- runAction action
-    let v = runVelocityVector runDirection
-    return player { playerVelocity = v }
-
 
 -- UTILITY FUNCTIONS
 

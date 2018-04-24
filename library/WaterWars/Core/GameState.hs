@@ -70,6 +70,14 @@ newtype BlockLocation = BlockLocation (Int, Int)
 data VelocityVector = VelocityVector Float Float
     deriving (Show, Read, Eq)
 
+instance Semigroup VelocityVector where
+    VelocityVector vx1 vy1 <> VelocityVector vx2 vy2 =
+        VelocityVector (vx1 + vx2) (vy1 + vy2)
+
+instance Monoid VelocityVector where
+    mempty = VelocityVector 0 0
+    mappend = (<>)
+
 newtype Angle = Angle Float
   deriving (Show, Read, Num, Eq, Floating, Fractional)
 
