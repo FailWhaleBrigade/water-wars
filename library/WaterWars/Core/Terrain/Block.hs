@@ -16,7 +16,11 @@ data BlockContent
     | Ceil
     deriving (Show, Enum, Bounded, Eq, Ord, Read)
 
-data Block 
+data Block
     = SolidBlock BlockContent
-    | NoBlock 
+    | NoBlock
     deriving (Show, Eq, Ord, Read)
+
+isSolid :: Block -> Bool
+isSolid (SolidBlock _) = True
+isSolid NoBlock        = False

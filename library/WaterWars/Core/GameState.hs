@@ -1,4 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module WaterWars.Core.GameState where
 
@@ -32,7 +33,10 @@ data GameState = GameState
   } deriving (Show, Read, Eq)
 
 newtype InGamePlayers = InGamePlayers (Seq InGamePlayer)
-  deriving (Read, Show, Eq)
+  deriving (Read, Show, Eq, MonoFunctor)
+
+-- TODO: remove if using lenses
+type instance Element InGamePlayers = InGamePlayer
 
 data InGamePlayer = InGamePlayer
   { playerDescription :: Player
