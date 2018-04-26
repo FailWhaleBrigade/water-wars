@@ -10,17 +10,17 @@ runGameLoop :: MonadIO m => TVar ServerState -> m ()
 runGameLoop serverStateStm = do
     ServerState {..} <- atomically $ do
         serverState@ServerState {..} <- readTVar serverStateStm
-        let newState = runGameTick gameState actions
+        let newState = runGameTick gameMap gameState actions
         let newServerState = serverState { gameState = newState }
         writeTVar serverStateStm newServerState
         return newServerState
     broadcastGameState connections gameState
 
 
-allGameTicks :: [Map Player Action] -> GameState -> [GameState]
-allGameTicks [] s = [s]
-allGameTicks (actions:rest) initialState =
-    initialState : allGameTicks rest (runGameTick initialState actions)
+allGameTicks :: GameMap -> [Map Player Action] -> GameState -> [GameState]
+allGameTicks _ [] s = [s]
+allGameTicks gameMap (actions:rest) initialState =
+    initialState : allGameTicks gameMap rest (runGameTick gameMap initialState actions)
 
 
 data ServerState = ServerState
