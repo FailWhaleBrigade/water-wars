@@ -19,12 +19,11 @@ defaultState = ServerState
     { connections = defaultConnections
     , gameMap     = defaultGameMap
     , gameState   = defaultGameState
-    , actions     = mapFromList empty
     }
 
 defaultConnections :: Connections
 defaultConnections =
-    Connections {players = empty, gameSetup = Just defaultGameSetup}
+    Connections {players = mapFromList empty, gameSetup = Just defaultGameSetup}
 
 defaultGameSetup :: GameSetup
 defaultGameSetup =

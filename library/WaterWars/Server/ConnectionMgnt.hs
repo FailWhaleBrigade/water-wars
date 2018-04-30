@@ -11,7 +11,6 @@ import Network.WebSockets
 import WaterWars.Network.Protocol
 
 import WaterWars.Core.GameState
-import WaterWars.Core.GameAction
 
 import WaterWars.Server.Config
 
@@ -19,21 +18,23 @@ data ServerState = ServerState
     { connections :: Connections
     , gameMap     :: GameMap
     , gameState   :: GameState
-    , actions     :: Map Player Action
     }
-    
+
 data Connections = Connections
-    { players :: Seq (TChan GameInformation)
+    { players :: Map Player (TChan GameInformation)
     , gameSetup :: Maybe GameSetup
     }
 
 addChannel :: ServerState -> TChan GameInformation -> ServerState
 addChannel ServerState {..} chan =
     let Connections {..} = connections
+        newPlayer        = Player $ tshow $ length players
     in  ServerState
-            { connections = connections { players = chan `cons` players }
+            { connections = connections
+                { players = insertMap newPlayer chan players
+                }
             , ..
-            }
+            } -- TODO: temporary solution, please fix!
 
 broadcastGameState :: MonadIO m => Connections -> GameState -> m ()
 broadcastGameState Connections {..} state =
@@ -45,9 +46,10 @@ clientGameThread
     -> TChan PlayerAction -- ^Broadcast channel to send all messages to
     -> TChan GameInformation -- ^Information channel that sends messages to client
     -> m ()
-clientGameThread conn broadcastChan receiveChan = liftIO
-    $ race_ -- If any of these threads die, kill both threads and return, be careful for this swallows exceptions 
-            (clientReceive conn broadcastChan) (clientSend conn receiveChan)
+clientGameThread conn broadcastChan receiveChan = liftIO $ do
+    -- If any of these threads die, kill both threads and return, be careful for this swallows exceptions 
+    _ <- async (clientReceive conn broadcastChan)
+    clientSend conn receiveChan
 
 
 clientReceive
@@ -59,11 +61,12 @@ clientReceive conn broadcastChan = forever $ do
     liftIO $ debugM "Server.Connection" "Wait for data message"
     msg :: Text <- liftIO $ receiveData conn
     case readMay msg of
-        Nothing           -> do 
+        Nothing -> do
             liftIO $ infoM networkLoggerName "Could not read message"
-            liftIO $ debugM networkLoggerName (show $ "Could not read message: " ++ msg)  
+            liftIO $ debugM networkLoggerName
+                            (show $ "Could not read message: " ++ msg)
         Just playerAction -> atomically $ writeTChan broadcastChan playerAction
-    -- TODO: should i sleep here for some time to avoid DOS-attack?
+    -- TODO: should i sleep here for some time to avoid DOS-attack? yes
     return ()
 
 clientSend

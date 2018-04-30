@@ -11,6 +11,7 @@ import WaterWars.Client.Render.State
 import WaterWars.Client.Network.State (NetworkConfig(..), NetworkInfo(..))
 import qualified WaterWars.Network.Protocol as Protocol
 import qualified WaterWars.Core.GameState as CoreState
+import qualified WaterWars.Core.GameAction as CoreState
 
 -- |Name of the component for the logger
 networkLoggerName :: String
@@ -18,8 +19,14 @@ networkLoggerName = "Client.Connection"
 
 connectionThread
     :: MonadIO m => Maybe NetworkInfo -> NetworkConfig -> WorldSTM -> m ()
-connectionThread _ NetworkConfig {..} world =
-    liftIO $ runClient hostName portId "" (receiveUpdates world)
+connectionThread _ NetworkConfig {..} world = liftIO $ runClient
+    hostName
+    portId
+    ""
+    (\conn -> do
+        _ <- async $ receiveUpdates world conn
+        sendUpdates world conn
+    )
 
 
 receiveUpdates :: MonadIO m => WorldSTM -> Connection -> m ()
@@ -45,21 +52,39 @@ updateWorld :: Protocol.GameInformation -> World -> World
 updateWorld (Protocol.Map gameMap) world@World {..} =
     setTerrain (blockMap renderInfo) (CoreState.gameTerrain gameMap) world
 
-updateWorld (Protocol.State _) world@World {..} = world
+updateWorld (Protocol.State gameState) World {..} = 
+    let WorldInfo {..} = worldInfo
+        newPlayer = fromMaybe player (headMay $ filter (== player) (CoreState.getInGamePlayers $ CoreState.inGamePlayers gameState))
+        newOtherPlayers = filter (/= player) (CoreState.getInGamePlayers $ CoreState.inGamePlayers gameState)
+        newProjectiles = CoreState.getProjectiles $ CoreState.gameProjectiles gameState
+        worldInfo_ = WorldInfo { player = newPlayer, otherPlayers = newOtherPlayers, projectiles = newProjectiles ,..}
+    in
+        World { worldInfo = worldInfo_, ..}
 
--- TODO: send updates should issued by update loop
-sendUpdates :: MonadIO m => WorldSTM -> Handle -> m ()
-sendUpdates (WorldSTM tvar) h = forever $ do
+sendUpdates :: MonadIO m => WorldSTM -> Connection -> m ()
+sendUpdates (WorldSTM tvar) conn = forever $ do
     -- TODO: move this to bottom
-    liftIO $ threadDelay (seconds 5.0)
+    liftIO $ threadDelay 1000000
     liftIO $ debugM networkLoggerName "Send an update to the Server"
     world <- readTVarIO tvar
     let action = extractGameAction world
-    hPut h . encodeUtf8 $ tshow action
+    liftIO . sendTextData conn $ tshow action
     return ()
 
 extractGameAction :: World -> Protocol.PlayerAction
-extractGameAction _ = undefined -- TODO: convert world information to action
-
-seconds :: Float -> Int
-seconds = floor . (* 1000000)
+extractGameAction world =
+    let WorldInfo {..} = worldInfo world
+        runCmd | walkLeft  = Just (CoreState.RunAction CoreState.RunLeft)
+               | walkRight = Just (CoreState.RunAction CoreState.RunRight)
+               | otherwise = Nothing
+        jmpCmd       = if jump then Just CoreState.JumpAction else Nothing
+        shootCmd     = if shoot then Just (CoreState.Angle 0) else Nothing
+        playerAction = CoreState.Action
+            { runAction   = runCmd
+            , jumpAction  = jmpCmd
+            , shootAction = shootCmd
+            }
+    in  Protocol.PlayerAction
+            { action = playerAction
+            , player = CoreState.playerDescription player
+            }

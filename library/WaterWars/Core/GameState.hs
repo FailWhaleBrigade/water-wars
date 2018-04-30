@@ -1,4 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module WaterWars.Core.GameState where
 
@@ -27,8 +28,11 @@ data GameState = GameState
   , gameProjectiles :: Projectiles
   } deriving (Show, Read, Eq)
 
-newtype InGamePlayers = InGamePlayers (Seq InGamePlayer)
-  deriving (Read, Show, Eq)
+newtype InGamePlayers = InGamePlayers { getInGamePlayers :: Seq InGamePlayer }
+  deriving (Read, Show, Eq, MonoFunctor)
+
+-- TODO: remove if using lenses
+type instance Element InGamePlayers = InGamePlayer
 
 data InGamePlayer = InGamePlayer
   { playerDescription :: Player
@@ -45,7 +49,7 @@ newtype Player = Player
   }
   deriving (Show, Read, Eq, Ord)
 
-newtype Projectiles = Projectiles (Seq Projectile) deriving (Show, Eq, Read)
+newtype Projectiles = Projectiles { getProjectiles :: Seq Projectile } deriving (Show, Eq, Read)
 
 data Projectile = Projectile
   { projectileLocation :: Location
@@ -65,6 +69,14 @@ newtype BlockLocation = BlockLocation (Int, Int)
 
 data VelocityVector = VelocityVector Float Float
     deriving (Show, Read, Eq)
+
+instance Semigroup VelocityVector where
+    VelocityVector vx1 vy1 <> VelocityVector vx2 vy2 =
+        VelocityVector (vx1 + vx2) (vy1 + vy2)
+
+instance Monoid VelocityVector where
+    mempty = VelocityVector 0 0
+    mappend = (<>)
 
 newtype Angle = Angle Float
   deriving (Show, Read, Num, Eq, Floating, Fractional)
