@@ -26,25 +26,25 @@ handleKeysIO e world@(WorldSTM tvar) = atomically $ do
     writeTVar tvar newState
     return world
 
-movePlayer :: Float -> World -> World
-movePlayer seconds World {..} =
-    let v                 = 50
-        WorldInfo {..}    = worldInfo
-        Location (dx, dy) = concatMap snd $ filter
-            fst
-            [ (walkLeft , Location (-v, 0))
-            , (jump     , Location (0, v))
-            , (walkRight, Location (v, 0))
-            , (duck     , Location (0, -v))
-            ]
-        diffs       = Location (dx * seconds, dy * seconds)
-        oldLocation = playerLocation player
-    in  World
-            { worldInfo = worldInfo
-                { player = player { playerLocation = oldLocation ++ diffs }
-                }
-            , ..
-            }
+-- movePlayer :: Float -> World -> World
+-- movePlayer seconds World {..} =
+--     let v                 = 50
+--         WorldInfo {..}    = worldInfo
+--         Location (dx, dy) = concatMap snd $ filter
+--             fst
+--             [ (walkLeft , Location (-v, 0))
+--             , (jump     , Location (0, v))
+--             , (walkRight, Location (v, 0))
+--             , (duck     , Location (0, -v))
+--             ]
+--         diffs       = Location (dx * seconds, dy * seconds)
+--         oldLocation = playerLocation player
+--     in  World
+--             { worldInfo = worldInfo
+--                 { player = player { playerLocation = oldLocation ++ diffs }
+--                 }
+--             , ..
+--             }
 
 updateAnimation :: Animation -> Animation
 updateAnimation a@Animation {..} = if countDownTilNext == 0
@@ -53,9 +53,8 @@ updateAnimation a@Animation {..} = if countDownTilNext == 0
     where Location (x, y) = location
 
 update :: Float -> World -> World
-update delta world = 
-    let World{..} = movePlayer delta world
-        worldAnimated = World { renderInfo = renderInfo { animation = updateAnimation (animation renderInfo)} ,..}
+update _ World{..} = 
+    let worldAnimated = World { renderInfo = renderInfo { animation = updateAnimation (animation renderInfo)} ,..}
     in worldAnimated
 
 updateIO :: Float -> WorldSTM -> IO WorldSTM

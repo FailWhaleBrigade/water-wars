@@ -29,7 +29,7 @@ runGameLoop serverStateStm writeSide readSide = forever $ do
         return newServerState
     liftIO $ debugM "Server.Connection" $ "Broadcast new State: " ++ show gameState
     broadcastGameState connections gameState
-    liftIO $ threadDelay 1000000 -- TODO: this sleep is necessary
+    liftIO $ threadDelay (1000000 `div` 60) -- TODO: this sleep is necessary
 
 readAllActions :: TChan (Maybe PlayerAction) -> STM (Map Player Action)
 readAllActions readSide = readAllActions_ (mapFromList empty)

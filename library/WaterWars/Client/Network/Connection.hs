@@ -42,33 +42,51 @@ receiveUpdates (WorldSTM tvar) conn = forever $ do
                 ++ show bs
 
         Just info -> do
-            liftIO $ debugM networkLoggerName $ "Received a game update: " ++ show info
-            world <- readTVarIO tvar
-            let world' = updateWorld info world
-            atomically $ writeTVar tvar world'
+            liftIO
+                $  debugM networkLoggerName
+                $  "Received a game update: "
+                ++ show info
+            atomically $ do 
+                world <- readTVar tvar
+                let world' = updateWorld info world
+                writeTVar tvar world'
     return ()
 
 updateWorld :: Protocol.GameInformation -> World -> World
 updateWorld (Protocol.Map gameMap) world@World {..} =
     setTerrain (blockMap renderInfo) (CoreState.gameTerrain gameMap) world
 
-updateWorld (Protocol.State gameState) World {..} = 
-    let WorldInfo {..} = worldInfo
-        newPlayer = fromMaybe player (headMay $ filter (== player) (CoreState.getInGamePlayers $ CoreState.inGamePlayers gameState))
-        newOtherPlayers = filter (/= player) (CoreState.getInGamePlayers $ CoreState.inGamePlayers gameState)
-        newProjectiles = CoreState.getProjectiles $ CoreState.gameProjectiles gameState
-        worldInfo_ = WorldInfo { player = newPlayer, otherPlayers = newOtherPlayers, projectiles = newProjectiles ,..}
+updateWorld (Protocol.State gameState) World {..} =
+    let
+        WorldInfo {..} = worldInfo
+        newPlayer      = fromMaybe
+            player
+            (headMay $ filter
+                ((== CoreState.playerDescription player) . CoreState.playerDescription)
+                (CoreState.getInGamePlayers $ CoreState.inGamePlayers gameState)
+            )
+        newOtherPlayers = filter
+            (/= player)
+            (CoreState.getInGamePlayers $ CoreState.inGamePlayers gameState)
+        newProjectiles =
+            CoreState.getProjectiles $ CoreState.gameProjectiles gameState
+        worldInfo_ = WorldInfo
+            { player       = newPlayer
+            , otherPlayers = newOtherPlayers
+            , projectiles  = newProjectiles
+            , ..
+            }
     in
-        World { worldInfo = worldInfo_, ..}
+        World {worldInfo = worldInfo_, ..}
 
 sendUpdates :: MonadIO m => WorldSTM -> Connection -> m ()
 sendUpdates (WorldSTM tvar) conn = forever $ do
-    -- TODO: move this to bottom
-    liftIO $ threadDelay 1000000
     liftIO $ debugM networkLoggerName "Send an update to the Server"
     world <- readTVarIO tvar
     let action = extractGameAction world
     liftIO . sendTextData conn $ tshow action
+    -- TODO: move this to bottom
+    liftIO $ threadDelay (1000000 `div` 60)
     return ()
 
 extractGameAction :: World -> Protocol.PlayerAction
