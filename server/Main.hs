@@ -47,7 +47,7 @@ main = do
     return ()
 
 
-websocketServer :: MonadIO m => TVar ServerState -> TChan PlayerAction -> m ()
+websocketServer :: MonadIO m => TVar ServerState -> TChan (Maybe PlayerAction) -> m ()
 websocketServer serverStateTvar broadcastChan = liftIO $ runServer "localhost" 1234 $ \conn -> do
     connHandle <- acceptRequest conn
     debugM networkLoggerName "Client connected"
@@ -61,11 +61,11 @@ websocketServer serverStateTvar broadcastChan = liftIO $ runServer "localhost" 1
     -- ! Should be used for cleanup code
     return ()
 
-gameLoopServer :: MonadIO m => TVar ServerState -> TChan PlayerAction -> m ()
+gameLoopServer :: MonadIO m => TVar ServerState -> TChan (Maybe PlayerAction) -> m ()
 gameLoopServer serverStateTvar broadcastChan = do
     liftIO $ debugM networkLoggerName "Start listening on Gameloop"
     readBroadcastChan <- atomically $ dupTChan broadcastChan
     liftIO $ debugM networkLoggerName "Start game loop"
-    runGameLoop serverStateTvar readBroadcastChan
+    runGameLoop serverStateTvar broadcastChan readBroadcastChan
 
 

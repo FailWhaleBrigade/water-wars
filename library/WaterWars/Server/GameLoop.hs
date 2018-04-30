@@ -16,12 +16,13 @@ import WaterWars.Network.Protocol
 
 
 -- to be forked in own thread
-runGameLoop :: MonadIO m => TVar ServerState -> TChan PlayerAction -> m ()
-runGameLoop serverStateStm broadcastReadSide = forever $ do
+runGameLoop :: MonadIO m => TVar ServerState -> TChan (Maybe PlayerAction) -> TChan (Maybe PlayerAction) -> m ()
+runGameLoop serverStateStm writeSide readSide = forever $ do
     liftIO $ debugM "Server.Connection" "Exec Game Loop tick"
     ServerState {..} <- atomically $ do
         serverState@ServerState {..} <- readTVar serverStateStm
-        actions <- readAllActions broadcastReadSide
+        writeTChan writeSide Nothing
+        actions <- readAllActions readSide
         let newState       = runGameTick gameMap gameState actions
         let newServerState = serverState { gameState = newState }
         writeTVar serverStateStm newServerState
@@ -29,12 +30,12 @@ runGameLoop serverStateStm broadcastReadSide = forever $ do
     broadcastGameState connections gameState
     liftIO $ threadDelay 1000000 -- TODO: this sleep is necessary
 
-readAllActions :: TChan PlayerAction -> STM (Map Player Action)
+readAllActions :: TChan (Maybe PlayerAction) -> STM (Map Player Action)
 readAllActions readSide = readAllActions_ (mapFromList empty)
     where
         readAllActions_ :: Map Player Action -> STM (Map Player Action)
         readAllActions_ m = do 
-            maybeAction <- tryPeekTChan readSide
+            maybeAction <- readTChan readSide
             case maybeAction of 
                 Nothing -> return m
                 Just PlayerAction { .. } -> do 
