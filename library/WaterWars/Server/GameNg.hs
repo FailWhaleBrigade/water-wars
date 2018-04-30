@@ -13,16 +13,15 @@ import WaterWars.Core.Physics
 import Control.Eff.State.Strict
 import Control.Eff.Reader.Strict
 import Control.Eff
-import WaterWars.Core.PhysicsConstants
 import Data.Array.IArray
 import WaterWars.Core.Terrain.Block
 
 runGameTick :: GameMap -> GameState -> Map Player Action -> GameState
 runGameTick gameMap gameState gameAction =
     run
-        . flip execState gameState
-        . flip runReader gameMap
-        . flip runReader gameAction
+        . execState gameState
+        . runReader gameMap
+        . runReader gameAction
         $ gameTick
 
 gameTick
@@ -32,9 +31,10 @@ gameTick
        )
     => Eff e ()
 gameTick = do
-    applyActionsToPlayers
+    mapMOverPlayers modifyPlayerByAction
     moveProjectiles
-    movePlayers
+    mapMOverPlayers modifyPlayerByEnvironment
+    mapMOverPlayers movePlayer
     return ()
 
 -- | Moves all projectiles in the game. This is effectful since the movement
@@ -50,13 +50,7 @@ moveProjectile (projectile@Projectile {..}) = projectile
     { projectileLocation = moveLocation projectileVelocity projectileLocation
     }
 
-movePlayers
-    :: (Member (State GameState) e, Member (Reader GameMap) e) => Eff e ()
-movePlayers = do
-    InGamePlayers players <- gets inGamePlayers
-    newPlayers            <- mapM movePlayer players
-    modify $ \s -> s { inGamePlayers = InGamePlayers newPlayers }
-
+-- move player according to its velociy, but also bound it.
 movePlayer :: Member (Reader GameMap) e => InGamePlayer -> Eff e InGamePlayer
 movePlayer player@InGamePlayer {..} = do
     blocks <- asks $ terrainBlocks . gameTerrain
@@ -71,20 +65,19 @@ movePlayer player@InGamePlayer {..} = do
             else targetLocation
     return player { playerLocation = realTargetLocation }
 
--- | Applies the actions given for each player to the player-obects
-applyActionsToPlayers
-    :: (Member (State GameState) e, Member (Reader (Map Player Action)) e)
-    => Eff e ()
-applyActionsToPlayers = do
-    perPlayer <- actionsPerPlayer
-    let modifiedPlayers = map (uncurry modifyPlayerByAction) perPlayer
-    modify $ \s -> s { inGamePlayers = InGamePlayers modifiedPlayers }
-
 -- | Function that includes the actions into a player-state
--- TODO improve action type & implementation of this function
-modifyPlayerByAction :: Action -> InGamePlayer -> InGamePlayer
-modifyPlayerByAction action =
-    modifyPlayerByRunAction action . modifyPlayerByJumpAction action
+modifyPlayerByAction
+    :: Member (Reader (Map Player Action)) e
+    => InGamePlayer
+    -> Eff e InGamePlayer
+modifyPlayerByAction player = do
+    actionMap :: Map Player Action <- ask
+    let action =
+            fromMaybe noAction $ lookup (playerDescription player) actionMap
+    return
+        . modifyPlayerByRunAction action
+        . modifyPlayerByJumpAction action
+        $ player
 
 modifyPlayerByJumpAction :: Action -> InGamePlayer -> InGamePlayer
 modifyPlayerByJumpAction action player = fromMaybe player $ do -- maybe monad
@@ -96,18 +89,39 @@ modifyPlayerByRunAction action player = fromMaybe player $ do -- maybe monad
     RunAction runDirection <- runAction action
     return $ acceleratePlayer (runVelocityVector runDirection) player
 
--- get action / player tuples
-actionsPerPlayer
-    :: (Member (State GameState) e, Member (Reader (Map Player Action)) e)
-    => Eff e (Seq (Action, InGamePlayer))
-actionsPerPlayer = do
-    actions :: Map Player Action <- ask
-    InGamePlayers players        <- gets inGamePlayers
-    return $ map
-        (\p -> (fromMaybe noAction $ lookup (playerDescription p) actions, p))
-        players
+-- do gravity, bounding, ...
+modifyPlayerByEnvironment :: InGamePlayer -> Eff r InGamePlayer
+modifyPlayerByEnvironment =
+    return . truncatePlayerVelocity
 
--- UTILITY FUNCTIONS
+truncatePlayerVelocity :: InGamePlayer -> InGamePlayer
+truncatePlayerVelocity player@InGamePlayer {..} =
+    player { playerVelocity = boundVelocityVector playerVelocity }
+
+-- bound velocity vector to be max 0.5 in both directions
+boundVelocityVector :: VelocityVector -> VelocityVector
+boundVelocityVector v@(VelocityVector vx vy) = if abs vx < 0.5 && abs vy < 0.5
+    then v
+    else VelocityVector (boundedBy (-0.5, 0.5) vx) (boundedBy (-0.5, 0.5) vy)
+
+boundedBy :: Ord a => (a, a) -> a -> a
+boundedBy (l, u) x | x < l     = l
+                   | x > u     = u
+                   | otherwise = x
+
+-- CUSTOM UTILITY FUNCTIONS
+
+mapMOverPlayers
+    :: (Member (State GameState) e, Member (Reader GameMap) e)
+    => (InGamePlayer -> Eff e InGamePlayer)
+    -> Eff e ()
+mapMOverPlayers mapping = do
+    InGamePlayers players <- gets inGamePlayers
+    newPlayers            <- mapM mapping players
+    modify $ \s -> s { inGamePlayers = InGamePlayers newPlayers }
+
+
+-- GENERAL UTILITY FUNCTIONS
 
 asks :: Member (Reader s) r => (s -> a) -> Eff r a
 asks f = map f ask

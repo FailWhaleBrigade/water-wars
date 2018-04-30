@@ -3,13 +3,15 @@ resolver: lts-11.3
 packages:
 - .
 
+extra-deps:
+- extensible-effects-2.6.0.1
 
 nix:
   pure: false
-  packages: 
+  packages:
   - mesa
   - freeglut
   - pkgconfig
-  - zlib 
-  - pcre 
+  - zlib
+  - pcre
   - gmp
