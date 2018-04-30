@@ -3,6 +3,7 @@ module WaterWars.Network.Protocol where
 import ClassyPrelude
 
 import qualified WaterWars.Core.GameState as CoreState
+import qualified WaterWars.Core.GameMap as CoreState
 import qualified WaterWars.Core.GameAction as CoreAction
 
 -- |Information about game that is being played.
@@ -13,7 +14,7 @@ data GameInformation
     | State CoreState.GameState
     deriving (Show, Read, Eq)
 
--- |Datatype to login to a game server. 
+-- |Datatype to login to a game server.
 -- So far, only a reconnect options is supported.
 newtype Login = Login
     { sessionId :: Maybe Text
@@ -35,7 +36,7 @@ data PlayerAction = PlayerAction
 -- |Sets up a game for a single round.
 data GameSetup = GameSetup
     { numberOfPlayers :: Int
-    , terrainMap :: Text -- TODO: currently ignored 
+    , terrainMap :: Text -- TODO: currently ignored
     } deriving (Show, Read, Eq)
 
 -- |Response record for a GameSetup request.

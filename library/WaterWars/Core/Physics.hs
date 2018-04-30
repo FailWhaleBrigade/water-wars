@@ -2,6 +2,7 @@ module WaterWars.Core.Physics where
 
 import ClassyPrelude
 import WaterWars.Core.GameState
+import WaterWars.Core.GameMap
 import WaterWars.Core.PhysicsConstants
 import WaterWars.Core.GameAction
 

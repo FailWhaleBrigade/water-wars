@@ -23,9 +23,11 @@ import WaterWars.Client.Resources.Block
 import qualified WaterWars.Client.Network.State as NetworkState
 
 import qualified WaterWars.Core.GameState as CoreState
+import qualified WaterWars.Core.GameMap as CoreState
 import qualified WaterWars.Core.DefaultGame as DefaultGame
 
 import WaterWars.Core.GameState
+import WaterWars.Core.GameMap
 
 newtype WorldSTM = WorldSTM (TVar World)
 

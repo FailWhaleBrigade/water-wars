@@ -7,6 +7,7 @@ import System.Log.Logger
 import Control.Concurrent
 
 import WaterWars.Core.GameState
+import WaterWars.Core.GameMap
 import WaterWars.Core.GameAction
 
 import WaterWars.Server.ConnectionMgnt
@@ -35,11 +36,11 @@ readAllActions :: TChan (Maybe PlayerAction) -> STM (Map Player Action)
 readAllActions readSide = readAllActions_ (mapFromList empty)
     where
         readAllActions_ :: Map Player Action -> STM (Map Player Action)
-        readAllActions_ m = do 
+        readAllActions_ m = do
             maybeAction <- readTChan readSide
-            case maybeAction of 
+            case maybeAction of
                 Nothing -> return m
-                Just PlayerAction { .. } -> do 
+                Just PlayerAction { .. } -> do
                     let m_ = insertWith (++) player action m
                     readAllActions_ m_
 

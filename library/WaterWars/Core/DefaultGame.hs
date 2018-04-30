@@ -2,6 +2,7 @@ module WaterWars.Core.DefaultGame where
 
 import ClassyPrelude
 import WaterWars.Core.GameState
+import WaterWars.Core.GameMap
 import WaterWars.Core.Terrain.Block
 import Data.Array.IArray
 

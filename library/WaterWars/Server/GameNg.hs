@@ -8,6 +8,7 @@ module WaterWars.Server.GameNg (runGameTick, gameTick) where
 
 import ClassyPrelude hiding (Reader, ask, asks) -- hide MTL functions reexported by prelude
 import WaterWars.Core.GameState
+import WaterWars.Core.GameMap
 import WaterWars.Core.GameAction
 import WaterWars.Core.Physics
 import WaterWars.Core.PhysicsConstants
@@ -89,7 +90,7 @@ modifyPlayerByAction player = do
     actionMap :: Map Player Action <- ask
     let action =
             fromMaybe noAction $ lookup (playerDescription player) actionMap
-    isOnGround <- isPlayerOnGround player -- TODO: deduplicate maybe
+    isOnGround <- isPlayerOnGround player -- TODO: deduplicate
     return
         . modifyPlayerByRunAction action
         . modifyPlayerByJumpAction isOnGround action

@@ -11,6 +11,7 @@ import Network.WebSockets
 import WaterWars.Network.Protocol
 
 import WaterWars.Core.GameState
+import WaterWars.Core.GameMap
 
 import WaterWars.Server.Config
 
@@ -47,7 +48,7 @@ clientGameThread
     -> TChan GameInformation -- ^Information channel that sends messages to client
     -> m ()
 clientGameThread conn broadcastChan receiveChan = liftIO $ do
-    -- If any of these threads die, kill both threads and return, be careful for this swallows exceptions 
+    -- If any of these threads die, kill both threads and return, be careful for this swallows exceptions
     _ <- async (clientReceive conn broadcastChan)
     clientSend conn receiveChan
 
@@ -73,7 +74,7 @@ clientReceive conn broadcastChan = forever $ do
 
 clientSend
     :: MonadIO m
-    => Connection  --  ^Connection of the client 
+    => Connection  --  ^Connection of the client
     -> TChan GameInformation -- ^Information channel that sends messages to client
     -> m ()
 clientSend conn sendChan = forever $ do

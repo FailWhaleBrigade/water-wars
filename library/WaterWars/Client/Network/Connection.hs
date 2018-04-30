@@ -11,6 +11,7 @@ import WaterWars.Client.Render.State
 import WaterWars.Client.Network.State (NetworkConfig(..), NetworkInfo(..))
 import qualified WaterWars.Network.Protocol as Protocol
 import qualified WaterWars.Core.GameState as CoreState
+import qualified WaterWars.Core.GameMap as CoreState
 import qualified WaterWars.Core.GameAction as CoreState
 
 -- |Name of the component for the logger
@@ -46,7 +47,7 @@ receiveUpdates (WorldSTM tvar) conn = forever $ do
                 $  debugM networkLoggerName
                 $  "Received a game update: "
                 ++ show info
-            atomically $ do 
+            atomically $ do
                 world <- readTVar tvar
                 let world' = updateWorld info world
                 writeTVar tvar world'
