@@ -27,6 +27,7 @@ runGameLoop serverStateStm writeSide readSide = forever $ do
         let newServerState = serverState { gameState = newState }
         writeTVar serverStateStm newServerState
         return newServerState
+    liftIO $ debugM "Server.Connection" $ "Broadcast new State: " ++ show gameState
     broadcastGameState connections gameState
     liftIO $ threadDelay 1000000 -- TODO: this sleep is necessary
 

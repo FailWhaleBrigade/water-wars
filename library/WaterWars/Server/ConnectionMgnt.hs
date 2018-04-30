@@ -28,7 +28,7 @@ data Connections = Connections
 addChannel :: ServerState -> TChan GameInformation -> ServerState
 addChannel ServerState {..} chan =
     let Connections {..} = connections
-        newPlayer        = Player "unknown"
+        newPlayer        = Player "Player One"
     in  ServerState
             { connections = connections
                 { players = insertMap newPlayer chan players

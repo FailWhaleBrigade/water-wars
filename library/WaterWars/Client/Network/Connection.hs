@@ -42,7 +42,7 @@ receiveUpdates (WorldSTM tvar) conn = forever $ do
                 ++ show bs
 
         Just info -> do
-            liftIO $ debugM networkLoggerName "Received a game update"
+            liftIO $ debugM networkLoggerName $ "Received a game update: " ++ show info
             world <- readTVarIO tvar
             let world' = updateWorld info world
             atomically $ writeTVar tvar world'

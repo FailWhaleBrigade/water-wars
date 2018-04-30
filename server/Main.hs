@@ -27,7 +27,7 @@ defaultConnections =
 
 defaultGameSetup :: GameSetup
 defaultGameSetup =
-    GameSetup {numberOfPlayers = 4, terrainMap = "default" -- TODO: not used for now
+    GameSetup {numberOfPlayers = 4, terrainMap = "default" 
                                                           }
 
 main :: IO ()
