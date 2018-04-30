@@ -82,21 +82,23 @@ isPlayerOnGround InGamePlayer {..} = do
 
 -- | Function that includes the actions into a player-state
 modifyPlayerByAction
-    :: Member (Reader (Map Player Action)) e
+    :: (Member (Reader (Map Player Action)) e, Member (Reader GameMap) e)
     => InGamePlayer
     -> Eff e InGamePlayer
 modifyPlayerByAction player = do
     actionMap :: Map Player Action <- ask
     let action =
             fromMaybe noAction $ lookup (playerDescription player) actionMap
+    isOnGround <- isPlayerOnGround player -- TODO: deduplicate maybe
     return
         . modifyPlayerByRunAction action
-        . modifyPlayerByJumpAction action
+        . modifyPlayerByJumpAction isOnGround action
         $ player
 
-modifyPlayerByJumpAction :: Action -> InGamePlayer -> InGamePlayer
-modifyPlayerByJumpAction action player@InGamePlayer {..} =
+modifyPlayerByJumpAction :: Bool -> Action -> InGamePlayer -> InGamePlayer
+modifyPlayerByJumpAction onGround action player@InGamePlayer {..} =
     fromMaybe player $ do -- maybe monad
+        unless onGround Nothing
         JumpAction <- jumpAction action
         return $ player { playerVelocity = jumpVector playerVelocity }
 
