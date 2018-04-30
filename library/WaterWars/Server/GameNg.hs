@@ -64,7 +64,7 @@ movePlayer player@InGamePlayer {..} = do
     --             in  Location (fromIntegral x + 0.5, y)
     --         else targetLocation
     -- return player { playerLocation = realTargetLocation }
-    return $ player { playerLocation = realTargetLocation }
+    return $ player { playerLocation = targetLocation }
 
 -- | Function that includes the actions into a player-state
 modifyPlayerByAction
