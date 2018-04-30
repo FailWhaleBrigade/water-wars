@@ -10,6 +10,7 @@ import ClassyPrelude hiding (Reader, ask, asks) -- hide MTL functions reexported
 import WaterWars.Core.GameState
 import WaterWars.Core.GameAction
 import WaterWars.Core.Physics
+import WaterWars.Core.PhysicsConstants
 import Control.Eff.State.Strict
 import Control.Eff.Reader.Strict
 import Control.Eff
@@ -53,18 +54,31 @@ moveProjectile (projectile@Projectile {..}) = projectile
 -- move player according to its velociy, but also bound it.
 movePlayer :: Member (Reader GameMap) e => InGamePlayer -> Eff e InGamePlayer
 movePlayer player@InGamePlayer {..} = do
-    -- blocks <- asks $ terrainBlocks . gameTerrain
-    let targetLocation     = moveLocation playerVelocity playerLocation
-    -- let targetBlock        = getBlock targetLocation
-    -- let isTargetBlockSolid = isSolid $ blocks ! targetBlock
-    -- let realTargetLocation = if isTargetBlockSolid
-    --         then
-    --             let Location      (_, y) = targetLocation
-    --                 BlockLocation (x, _) = targetBlock
-    --             in  Location (fromIntegral x + 0.5, y)
-    --         else targetLocation
-    -- return player { playerLocation = realTargetLocation }
-    return $ player { playerLocation = targetLocation }
+    blocks <- asks $ terrainBlocks . gameTerrain
+    let targetLocation = moveLocation playerVelocity playerLocation
+    let targetBlock    = getBlock targetLocation
+    let isTargetBlockSolid = inRange (bounds blocks) targetBlock
+            && isSolid (blocks ! targetBlock)
+    let realTargetLocation = if isTargetBlockSolid
+            then
+                let Location      (x, _) = targetLocation
+                    BlockLocation (_, y) = targetBlock
+                in  Location (x, fromIntegral y + 0.5)
+            else targetLocation
+    let realPlayerVelocity = if isTargetBlockSolid
+            then velocityOnGround playerVelocity
+            else playerVelocity
+    return player { playerLocation = realTargetLocation
+                  , playerVelocity = realPlayerVelocity
+                  }
+
+isPlayerOnGround :: Member (Reader GameMap) e => InGamePlayer -> Eff e Bool
+isPlayerOnGround InGamePlayer {..} = do
+    blocks <- asks $ terrainBlocks . gameTerrain
+    let Location (x, y) = playerLocation
+    let blockBelowFeet  = BlockLocation (round x, round $ y - 0.001)
+    return $ inRange (bounds blocks) blockBelowFeet && isSolid
+        (blocks ! blockBelowFeet)
 
 -- | Function that includes the actions into a player-state
 modifyPlayerByAction
@@ -81,22 +95,38 @@ modifyPlayerByAction player = do
         $ player
 
 modifyPlayerByJumpAction :: Action -> InGamePlayer -> InGamePlayer
-modifyPlayerByJumpAction action player = fromMaybe player $ do -- maybe monad
-    JumpAction <- jumpAction action
-    return $ acceleratePlayer jumpVector player
+modifyPlayerByJumpAction action player@InGamePlayer {..} =
+    fromMaybe player $ do -- maybe monad
+        JumpAction <- jumpAction action
+        return $ player { playerVelocity = jumpVector playerVelocity }
 
 modifyPlayerByRunAction :: Action -> InGamePlayer -> InGamePlayer
-modifyPlayerByRunAction action player = fromMaybe player $ do -- maybe monad
+modifyPlayerByRunAction action player@InGamePlayer {..} = fromMaybe player $ do -- maybe monad
     RunAction runDirection <- runAction action
-    return $ acceleratePlayer (runVelocityVector runDirection) player
+    return $ setPlayerVelocity
+        (runVelocityVector runDirection playerVelocity)
+        player
 
 -- do gravity, bounding, ...
-modifyPlayerByEnvironment :: InGamePlayer -> Eff r InGamePlayer
-modifyPlayerByEnvironment =
-    return . truncatePlayerVelocity . gravityPlayer
+modifyPlayerByEnvironment
+    :: Member (Reader GameMap) r => InGamePlayer -> Eff r InGamePlayer
+modifyPlayerByEnvironment p = do
+    isOnGround <- isPlayerOnGround p
+    return
+        . truncatePlayerVelocity
+        . verticalDragPlayer isOnGround
+        . gravityPlayer
+        $ p
 
 gravityPlayer :: InGamePlayer -> InGamePlayer
 gravityPlayer = acceleratePlayer gravityVector
+
+-- TODO: better drag with polar coordinates
+verticalDragPlayer :: Bool -> InGamePlayer -> InGamePlayer
+verticalDragPlayer onGround player@InGamePlayer {..} =
+    let VelocityVector vx vy = playerVelocity
+        dragFactor = if onGround then verticalDragGround else verticalDragAir
+    in  setPlayerVelocity (VelocityVector (vx * dragFactor) vy) player
 
 truncatePlayerVelocity :: InGamePlayer -> InGamePlayer
 truncatePlayerVelocity player@InGamePlayer {..} =
@@ -106,7 +136,7 @@ truncatePlayerVelocity player@InGamePlayer {..} =
 boundVelocityVector :: VelocityVector -> VelocityVector
 boundVelocityVector v@(VelocityVector vx vy) = if abs vx < 0.5 && abs vy < 0.5
     then v
-    else VelocityVector (boundedBy (-0.5, 0.5) vx) (boundedBy (-0.5, 0.5) vy)
+    else VelocityVector (boundedBy (-0.25, 0.25) vx) (boundedBy (-0.5, 0.5) vy)
 
 boundedBy :: Ord a => (a, a) -> a -> a
 boundedBy (l, u) x | x < l     = l

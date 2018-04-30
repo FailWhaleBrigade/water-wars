@@ -6,6 +6,7 @@ import Graphics.Gloss as Gloss
 
 import WaterWars.Client.Render.State
 import WaterWars.Client.Render.Terrain.Solid
+import WaterWars.Client.Render.Config
 
 -- |Convert a game state into a picture
 renderIO :: WorldSTM -> IO Picture
@@ -22,7 +23,10 @@ render World {..} = Gloss.pictures
     )
   where
     Location (x, y) = playerLocation $ player worldInfo
-    playerPicture   = translate x y $ color playerColor $ circleSolid 20
+    playerPicture =
+        translate (blockSize * x) (blockSize * y)
+            $ color playerColor
+            $ circleSolid 20
     projectilePictures =
         map (\p -> projectileToPicture p $ projectileTexture renderInfo)
             (projectiles worldInfo) :: Seq Picture
@@ -43,4 +47,3 @@ animateAnimation Animation {..} = translate x y img
   where
     Location (x, y) = location
     img             = animationPictures `indexEx` picInd
-

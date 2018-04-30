@@ -31,7 +31,6 @@ data GameState = GameState
 newtype InGamePlayers = InGamePlayers { getInGamePlayers :: Seq InGamePlayer }
   deriving (Read, Show, Eq, MonoFunctor)
 
--- TODO: remove if using lenses
 type instance Element InGamePlayers = InGamePlayer
 
 data InGamePlayer = InGamePlayer

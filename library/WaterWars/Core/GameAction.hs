@@ -35,7 +35,3 @@ newtype ShootAction = ShootAction Angle
 
 noAction :: Action
 noAction = Action Nothing Nothing Nothing
-
-runVelocityVector :: RunDirection -> VelocityVector
-runVelocityVector RunLeft  = VelocityVector (-0.5) 0
-runVelocityVector RunRight = VelocityVector 0.5 0
