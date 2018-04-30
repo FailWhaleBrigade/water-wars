@@ -54,7 +54,7 @@ moveProjectile (projectile@Projectile {..}) = projectile
 movePlayer :: Member (Reader GameMap) e => InGamePlayer -> Eff e InGamePlayer
 movePlayer player@InGamePlayer {..} = do
     -- blocks <- asks $ terrainBlocks . gameTerrain
-    -- let targetLocation     = moveLocation playerVelocity playerLocation
+    let targetLocation     = moveLocation playerVelocity playerLocation
     -- let targetBlock        = getBlock targetLocation
     -- let isTargetBlockSolid = isSolid $ blocks ! targetBlock
     -- let realTargetLocation = if isTargetBlockSolid
@@ -64,7 +64,7 @@ movePlayer player@InGamePlayer {..} = do
     --             in  Location (fromIntegral x + 0.5, y)
     --         else targetLocation
     -- return player { playerLocation = realTargetLocation }
-    return $ movePlayer playerVelocity
+    return $ player { playerLocation = realTargetLocation }
 
 -- | Function that includes the actions into a player-state
 modifyPlayerByAction
