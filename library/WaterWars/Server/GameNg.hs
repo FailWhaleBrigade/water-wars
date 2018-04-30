@@ -92,7 +92,10 @@ modifyPlayerByRunAction action player = fromMaybe player $ do -- maybe monad
 -- do gravity, bounding, ...
 modifyPlayerByEnvironment :: InGamePlayer -> Eff r InGamePlayer
 modifyPlayerByEnvironment =
-    return . truncatePlayerVelocity
+    return . truncatePlayerVelocity . gravityPlayer
+
+gravityPlayer :: InGamePlayer -> InGamePlayer
+gravityPlayer = acceleratePlayer gravityVector
 
 truncatePlayerVelocity :: InGamePlayer -> InGamePlayer
 truncatePlayerVelocity player@InGamePlayer {..} =
