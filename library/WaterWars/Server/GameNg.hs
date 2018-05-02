@@ -92,7 +92,7 @@ modifyPlayerByAction player = do
             fromMaybe noAction $ lookup (playerDescription player) actionMap
     isOnGround <- isPlayerOnGround player -- TODO: deduplicate
     return
-        . modifyPlayerByRunAction action
+        . modifyPlayerByRunAction isOnGround action
         . modifyPlayerByJumpAction isOnGround action
         $ player
 
@@ -101,14 +101,15 @@ modifyPlayerByJumpAction onGround action player@InGamePlayer {..} =
     fromMaybe player $ do -- maybe monad
         unless onGround Nothing
         JumpAction <- jumpAction action
-        return $ player { playerVelocity = jumpVector playerVelocity }
+        return $ setPlayerVelocity (jumpVector playerVelocity) player
 
-modifyPlayerByRunAction :: Action -> InGamePlayer -> InGamePlayer
-modifyPlayerByRunAction action player@InGamePlayer {..} = fromMaybe player $ do -- maybe monad
-    RunAction runDirection <- runAction action
-    return $ setPlayerVelocity
-        (runVelocityVector runDirection playerVelocity)
-        player
+modifyPlayerByRunAction :: Bool -> Action -> InGamePlayer -> InGamePlayer
+modifyPlayerByRunAction onGround action player@InGamePlayer {..} =
+    fromMaybe player $ do -- maybe monad
+        RunAction runDirection <- runAction action
+        return $ setPlayerVelocity
+            (velocityBoundX runSpeed $ runVector onGround runDirection ++ playerVelocity)
+            player
 
 -- do gravity, bounding, ...
 modifyPlayerByEnvironment
@@ -116,7 +117,7 @@ modifyPlayerByEnvironment
 modifyPlayerByEnvironment p = do
     isOnGround <- isPlayerOnGround p
     return
-        . truncatePlayerVelocity
+        . modifyPlayerVelocity (boundVelocityVector maxVelocity)
         . verticalDragPlayer isOnGround
         . gravityPlayer
         $ p
@@ -130,21 +131,6 @@ verticalDragPlayer onGround player@InGamePlayer {..} =
     let VelocityVector vx vy = playerVelocity
         dragFactor = if onGround then verticalDragGround else verticalDragAir
     in  setPlayerVelocity (VelocityVector (vx * dragFactor) vy) player
-
-truncatePlayerVelocity :: InGamePlayer -> InGamePlayer
-truncatePlayerVelocity player@InGamePlayer {..} =
-    player { playerVelocity = boundVelocityVector playerVelocity }
-
--- bound velocity vector to be max 0.5 in both directions
-boundVelocityVector :: VelocityVector -> VelocityVector
-boundVelocityVector v@(VelocityVector vx vy) = if abs vx < 0.5 && abs vy < 0.5
-    then v
-    else VelocityVector (boundedBy (-0.25, 0.25) vx) (boundedBy (-0.5, 0.5) vy)
-
-boundedBy :: Ord a => (a, a) -> a -> a
-boundedBy (l, u) x | x < l     = l
-                   | x > u     = u
-                   | otherwise = x
 
 -- CUSTOM UTILITY FUNCTIONS
 
