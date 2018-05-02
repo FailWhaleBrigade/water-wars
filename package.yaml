@@ -31,7 +31,7 @@ library:
   - transformers
   - mtl
   - websockets
-  - extensible-effects
+  - extensible-effects >= 2.6.0.1
   - hslogger
   - stm
   source-dirs: library
