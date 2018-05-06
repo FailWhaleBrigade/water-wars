@@ -21,7 +21,7 @@ runGameLoop serverStateStm playerActions = forever $ do
     liftIO $ debugM "Server.Connection" "Exec Game Loop tick"
     ServerState {..} <- atomically $ do
         serverState@ServerState {..} <- readTVar serverStateStm
-        actions <- getPlayerActions <$> swapTMVar playerActions (PlayerActions (mapFromList [])) 
+        actions                      <- emptyPlayerActions playerActions
         let newState       = runGameTick gameMap gameState actions
         let newServerState = serverState { gameState = newState }
         writeTVar serverStateStm newServerState
@@ -36,3 +36,7 @@ allGameTicks gameMap (actions : rest) initialState =
     initialState : allGameTicks gameMap
                                 rest
                                 (runGameTick gameMap initialState actions)
+
+emptyPlayerActions :: TMVar PlayerActions -> STM (Map Player Action)
+emptyPlayerActions playerActions = getPlayerActions
+    <$> swapTMVar playerActions (PlayerActions (mapFromList []))

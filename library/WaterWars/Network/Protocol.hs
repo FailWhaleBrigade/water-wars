@@ -16,8 +16,9 @@ newtype Login = Login
 
 -- |Response to a Login request.
 -- Either fails with an error message or succeeds with the session id
-newtype LoginResponse = LoginResponse
-    { success :: Either String String
+data LoginResponse = LoginResponse
+    { successSessionId :: Text
+    , successPlayer    :: CoreState.InGamePlayer
     } deriving (Show, Read, Eq)
 
 -- |Player action that can be sent to a server.
@@ -35,7 +36,7 @@ data GameSetup = GameSetup
 -- |Response record for a GameSetup request.
 -- May fail if the game has already been set up, or the GameSetup request was invalid.
 newtype GameSetupResponse = GameSetupResponse
-    { setupResponse :: Either SetupError Bool
+    { getSetupResponse :: Either SetupError Bool
     } deriving (Show, Read, Eq)
 
 -- |Signals that an error has happened during game initialization
@@ -46,7 +47,7 @@ data SetupError
 
 -- |If players are logging out, for completeness, not neccessarily used.
 newtype Logout = Logout
-    { logoutSessionId :: Text
+    { getLogoutSessionId :: Text
     } deriving (Show, Read, Eq)
 
 data ServerMessage
@@ -72,3 +73,4 @@ instance Serializable ClientMessage where
     serialize = tshow
 instance Deserializable ClientMessage where
     deserialize = readMay
+

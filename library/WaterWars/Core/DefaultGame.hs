@@ -11,7 +11,7 @@ import Data.List (transpose)
 defaultGameMap :: GameMap
 defaultGameMap = GameMap
   { gameTerrain = defaultTerrain
-  , gamePlayers = singleton defaultPlayer
+  , gamePlayers = empty
   }
 
 defaultTerrain :: Terrain
@@ -47,8 +47,9 @@ defaultGameState = GameState
     }
 
 defaultInGamePlayers :: InGamePlayers
-defaultInGamePlayers = InGamePlayers $ fromList [ defaultInGamePlayer ]
+defaultInGamePlayers = InGamePlayers $ empty -- fromList [ defaultInGamePlayer ]
 
+{-
 defaultInGamePlayer :: InGamePlayer
 defaultInGamePlayer = InGamePlayer
     { playerDescription = defaultPlayer
@@ -61,7 +62,7 @@ defaultInGamePlayer = InGamePlayer
 
 defaultPlayer :: Player
 defaultPlayer = Player "Player One"
-
+-}
 defaultProjectiles :: Projectiles
 defaultProjectiles = Projectiles $ singleton defaultProjectile
 

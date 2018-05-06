@@ -17,7 +17,6 @@ import Data.List (cycle)
 
 import WaterWars.Client.Render.Terrain.Solid
 import WaterWars.Client.Render.Config
-
 import WaterWars.Client.Resources.Block
 
 import qualified WaterWars.Client.Network.State as NetworkState
@@ -61,7 +60,7 @@ data WorldInfo = WorldInfo
     , shoot     :: Bool
     , duck      :: Bool
     , exitGame  :: Bool
-    , player    :: CoreState.InGamePlayer
+    , player    :: Maybe CoreState.InGamePlayer
     , otherPlayers :: Seq CoreState.InGamePlayer
     , projectiles  :: Seq CoreState.Projectile
     } deriving Show
@@ -88,14 +87,7 @@ initializeState bmpBg bmpPrj bmpsMan blockMap' = WorldSTM <$> newTVarIO World
         , duck         = False
         , shoot        = False
         , exitGame     = False
-        , player       = CoreState.InGamePlayer
-            { CoreState.playerDescription   = CoreState.Player "Player One"
-            , CoreState.playerLocation      = CoreState.Location (0, 0)
-            , CoreState.playerMaxHealth     = 100
-            , CoreState.playerHealth        = 100
-            , CoreState.playerViewDirection = CoreState.Angle 0.0
-            , CoreState.playerVelocity      = CoreState.VelocityVector 0.0 0.0
-            }
+        , player       = Nothing
         , otherPlayers = empty
         , projectiles  = fromList
             [DefaultGame.defaultProjectile, DefaultGame.defaultProjectile]

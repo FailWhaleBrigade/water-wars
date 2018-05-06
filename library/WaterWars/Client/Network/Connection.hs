@@ -1,18 +1,24 @@
 module WaterWars.Client.Network.Connection (module WaterWars.Client.Network.State, connectionThread) where
 
 import ClassyPrelude
-import Network.WebSockets
+
+import qualified Network.WebSockets as WS
 
 import System.Log.Logger
 
 import Control.Concurrent
 
 import WaterWars.Client.Render.State
-import WaterWars.Client.Network.State (NetworkConfig(..), NetworkInfo(..))
+
+import WaterWars.Client.Network.State (NetworkConfig(..), NetworkInfo(..), Connection, newConnection)
+
 import WaterWars.Network.Protocol as Protocol
+import WaterWars.Network.Connection
+
 import WaterWars.Core.GameState ()
 import WaterWars.Core.GameMap as CoreState
 import WaterWars.Core.GameAction as CoreState
+
 
 -- |Name of the component for the logger
 networkLoggerName :: String
@@ -20,70 +26,86 @@ networkLoggerName = "Client.Connection"
 
 connectionThread
     :: MonadIO m => Maybe NetworkInfo -> NetworkConfig -> WorldSTM -> m ()
-connectionThread _ NetworkConfig {..} world = liftIO $ runClient
+connectionThread _ NetworkConfig {..} world = liftIO $ WS.runClient
     hostName
     portId
     ""
     (\conn -> do
-        _ <- async $ receiveUpdates world conn
-        sendUpdates world conn
+        let connection = newConnection conn
+        -- TODO: this setup code should be refactored soon-ish
+        send connection (LoginMessage (Login Nothing))
+        _ <- async $ receiveUpdates world connection
+        sendUpdates world connection
     )
 
 
 receiveUpdates :: MonadIO m => WorldSTM -> Connection -> m ()
 receiveUpdates (WorldSTM tvar) conn = forever $ do
     liftIO $ warningM networkLoggerName "Wait for Game Update"
-    bs :: Text <- liftIO $ receiveData conn
-    let maybeGameInfo = readMay bs :: Maybe Protocol.ServerMessage
-    case maybeGameInfo of
-        Nothing ->
+    serverMsg <- receive conn
+    case serverMsg of
+        Left msg ->
             liftIO
-                .  infoM networkLoggerName
-                $  "Could not parse the gameInfo: "
-                ++ show bs
+                .  debugM networkLoggerName
+                $  "Could not read message: "
+                ++ show msg
+        Right msg -> atomically $ do
+            world <- readTVar tvar
+            let world' = updateWorld msg world
+            writeTVar tvar world'
 
-        Just info -> do
-            liftIO
-                $  debugM networkLoggerName
-                $  "Received a game update: "
-                ++ show info
-            atomically $ do
-                world <- readTVar tvar
-                let world' = updateWorld info world
-                writeTVar tvar world'
     return ()
 
 updateWorld :: Protocol.ServerMessage -> World -> World
-updateWorld (GameMapMessage gameMap) world@World {..} =
-    setTerrain (blockMap renderInfo) (gameTerrain gameMap) world
+updateWorld serverMsg world@World {..} =  
+    case serverMsg of
+        GameMapMessage gameMap -> 
+            setTerrain (blockMap renderInfo) (gameTerrain gameMap) world
 
-updateWorld (GameStateMessage gameState) World {..} =
-    let WorldInfo {..} = worldInfo
-        newPlayer      = fromMaybe
-            player
-            (headMay $ filter
-                ((== playerDescription player) . playerDescription)
-                (getInGamePlayers $ inGamePlayers gameState)
-            )
-        newOtherPlayers =
-            filter (/= player) (getInGamePlayers $ inGamePlayers gameState)
-        newProjectiles = getProjectiles $ gameProjectiles gameState
-        worldInfo_     = WorldInfo
-            { player       = newPlayer
-            , otherPlayers = newOtherPlayers
-            , projectiles  = newProjectiles
-            , ..
-            }
-    in  World {worldInfo = worldInfo_, ..}
-updateWorld _ w = w -- TODO: this is not a valid message handling
+        GameStateMessage gameState ->
+            let
+                WorldInfo {..} = worldInfo
+                inGamePlayers_ = getInGamePlayers $ inGamePlayers gameState
+                newPlayer =
+                    (\currentPlayer -> headMay $ filter
+                            ((== playerDescription currentPlayer) . playerDescription)
+                            inGamePlayers_
+                        )
+                        <$> player
+        
+                newOtherPlayers = maybe
+                    inGamePlayers_
+                    (flip filter inGamePlayers_ . (/=))
+                    player
+        
+                newProjectiles = getProjectiles $ gameProjectiles gameState
+        
+                worldInfo_     = WorldInfo
+                    { player       = join newPlayer -- TODO: can we express this better? 
+                    , otherPlayers = newOtherPlayers
+                    , projectiles  = newProjectiles
+                    , ..
+                    }
+            in
+                World {worldInfo = worldInfo_, ..}
+
+        GameSetupResponseMessage _ -> 
+            world
+
+        LoginResponseMessage loginResponse -> 
+            let
+                WorldInfo {..} = worldInfo
+                newPlayer = Just (successPlayer loginResponse)
+                worldInfo_ = WorldInfo { player = newPlayer, ..}
+            in
+                World {worldInfo = worldInfo_, ..}
 
 sendUpdates :: MonadIO m => WorldSTM -> Connection -> m ()
 sendUpdates (WorldSTM tvar) conn = forever $ do
     liftIO $ debugM networkLoggerName "Send an update to the Server"
     world <- readTVarIO tvar
     let action = extractGameAction world
-    let msg = PlayerActionMessage action
-    liftIO . sendTextData conn $ tshow msg
+    send conn (PlayerActionMessage action)
     liftIO $ threadDelay (1000000 `div` 60)
     return ()
 

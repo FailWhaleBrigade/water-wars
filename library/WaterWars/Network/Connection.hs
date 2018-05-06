@@ -31,6 +31,7 @@ class IPC c where
     type ReadFrom c :: * -- ^Type that is received from the server loop
 
     writeTo :: MonadIO m => c -> WriteTo c -> m ()
+    sendTo :: MonadIO m => c -> ReadFrom c -> m ()
     readFrom :: MonadIO m => c -> m (ReadFrom c)
 
 -- |Type class that combines a network communication with a IPC connection

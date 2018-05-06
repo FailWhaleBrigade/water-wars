@@ -57,6 +57,7 @@ executables:
     - mtl
     - websockets
     - hslogger
+    - uuid
     ghc-options:
     - -rtsopts
     - -threaded

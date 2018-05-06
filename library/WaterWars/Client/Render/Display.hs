@@ -17,16 +17,22 @@ render :: World -> Picture
 render World {..} = Gloss.pictures
     (  [backgroundTexture renderInfo]
     ++ toList solidPictures
-    ++ [playerPicture]
+    ++ playerPictures
     ++ toList projectilePictures
     ++ [mantaPicture]
     )
   where
-    Location (x, y) = playerLocation $ player worldInfo
-    playerPicture =
-        translate (blockSize * x) (blockSize * y)
-            $ color playerColor
-            $ circleSolid 20
+    allPlayers =
+        maybeToList (player worldInfo) ++ toList (otherPlayers worldInfo)
+    playerPictures = map
+        (\p ->
+            let Location (x, y) = playerLocation p
+            in
+                translate (blockSize * x) (blockSize * y)
+                $ color playerColor
+                $ circleSolid 20
+        )
+        allPlayers
     projectilePictures =
         map (\p -> projectileToPicture p $ projectileTexture renderInfo)
             (projectiles worldInfo) :: Seq Picture

@@ -6,8 +6,10 @@ import Network.WebSockets
 import System.Log.Logger
 import System.Log.Handler.Simple
 
+import Data.UUID
+import Data.UUID.V4
+
 import WaterWars.Core.DefaultGame
-import WaterWars.Core.GameState
 
 import WaterWars.Network.Protocol as Protocol
 
@@ -24,14 +26,12 @@ defaultState = ServerState
     , gameState   = defaultGameState
     }
 
-defaultConnections :: Connections ServerMessage ClientMessage
+defaultConnections :: Connections
 defaultConnections =
-    Connections {players = mapFromList empty, gameSetup = Just defaultGameSetup }
+    Connections {players = mapFromList empty, gameSetup = Just defaultGameSetup}
 
 defaultGameSetup :: GameSetup
-defaultGameSetup =
-    GameSetup {numberOfPlayers = 4, terrainMap = "default" 
-                                                          }
+defaultGameSetup = GameSetup {numberOfPlayers = 4, terrainMap = "default"}
 
 main :: IO ()
 main = do
@@ -45,33 +45,41 @@ main = do
     serverStateTvar <- newTVarIO defaultState
 
     -- start to accept connections
-    _ <- async (websocketServer serverStateTvar broadcastChan)
-    _ <- forever (gameLoopServer serverStateTvar broadcastChan)
+    _               <- async (websocketServer serverStateTvar broadcastChan)
+    _               <- forever (gameLoopServer serverStateTvar broadcastChan)
     return ()
 
 
-websocketServer :: MonadIO m => TVar ServerState -> TChan (ClientMessage, Player) -> m ()
-websocketServer serverStateTvar broadcastChan = liftIO $ runServer "localhost" 1234 $ \websocketConn -> do
-    connHandle <- acceptRequest websocketConn
-    debugM networkLoggerName "Client connected"
-    commChan <- newTChanIO
-    sendTextData connHandle (tshow $ GameMapMessage defaultGameMap)
-    let player = Player "Player One"
-    let conn = newClientConnection "Player One" player connHandle commChan broadcastChan :: ClientConnection ServerMessage ClientMessage
-    atomically $ do
-        ServerState {..} <- readTVar serverStateTvar
-        let newConnections = addConnection connections conn
-        writeTVar serverStateTvar ServerState {connections = newConnections, ..}
-    clientGameThread conn
-    -- ! Should be used for cleanup code
-    return ()
+websocketServer
+    :: MonadIO m => TVar ServerState -> TChan (ClientMessage, Text) -> m ()
+websocketServer serverStateTvar broadcastChan =
+    liftIO $ runServer "localhost" 1234 $ \websocketConn -> do
+        connHandle <- acceptRequest websocketConn
+        debugM networkLoggerName "Client connected"
+        commChan  <- newTChanIO -- to receive messages
+        sessionId <- toText <$> nextRandom -- uniquely identify connections
+        let
+            conn = newClientConnection sessionId
+                                       connHandle
+                                       commChan
+                                       broadcastChan
+        atomically $ do
+            ServerState {..} <- readTVar serverStateTvar
+            writeTVar
+                serverStateTvar
+                ServerState {connections = addConnection connections conn, ..}
+        clientGameThread conn
+        -- ! Should be used for cleanup code
+        return ()
 
-gameLoopServer :: MonadIO m => TVar ServerState -> TChan (ClientMessage, Player) -> m ()
+gameLoopServer
+    :: MonadIO m => TVar ServerState -> TChan (ClientMessage, Text) -> m ()
 gameLoopServer serverStateTvar broadcastChan = do
     readBroadcastChan <- atomically $ dupTChan broadcastChan
-    tmvar <- newTMVarIO (PlayerActions (mapFromList []))
-    _ <- liftIO . async $ eventLoop readBroadcastChan tmvar
+    tmvar             <- newTMVarIO (PlayerActions (mapFromList empty))
+    _                 <- liftIO . async $ eventLoop readBroadcastChan
+                                                    serverStateTvar
+                                                    tmvar
+                                                    (mapFromList empty)
     liftIO $ debugM networkLoggerName "Start game loop"
     runGameLoop serverStateTvar tmvar
-
-
