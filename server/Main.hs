@@ -7,12 +7,15 @@ import System.Log.Logger
 import System.Log.Handler.Simple
 
 import WaterWars.Core.DefaultGame
+import WaterWars.Core.GameState
 
 import WaterWars.Network.Protocol as Protocol
 
 import WaterWars.Server.Config
 import WaterWars.Server.ConnectionMgnt
 import WaterWars.Server.GameLoop
+import WaterWars.Server.Client
+import WaterWars.Server.EventLoop
 
 defaultState :: ServerState
 defaultState = ServerState
@@ -21,9 +24,9 @@ defaultState = ServerState
     , gameState   = defaultGameState
     }
 
-defaultConnections :: Connections
+defaultConnections :: Connections ServerMessage ClientMessage
 defaultConnections =
-    Connections {players = mapFromList empty, gameSetup = Just defaultGameSetup}
+    Connections {players = mapFromList empty, gameSetup = Just defaultGameSetup }
 
 defaultGameSetup :: GameSetup
 defaultGameSetup =
@@ -47,25 +50,28 @@ main = do
     return ()
 
 
-websocketServer :: MonadIO m => TVar ServerState -> TChan (Maybe PlayerAction) -> m ()
-websocketServer serverStateTvar broadcastChan = liftIO $ runServer "localhost" 1234 $ \conn -> do
-    connHandle <- acceptRequest conn
+websocketServer :: MonadIO m => TVar ServerState -> TChan (ClientMessage, Player) -> m ()
+websocketServer serverStateTvar broadcastChan = liftIO $ runServer "localhost" 1234 $ \websocketConn -> do
+    connHandle <- acceptRequest websocketConn
     debugM networkLoggerName "Client connected"
     commChan <- newTChanIO
-    sendTextData connHandle (tshow $ Map defaultGameMap)
+    sendTextData connHandle (tshow $ GameMapMessage defaultGameMap)
+    let player = Player "Player One"
+    let conn = newClientConnection "Player One" player connHandle commChan broadcastChan :: ClientConnection ServerMessage ClientMessage
     atomically $ do
-        serverState <- readTVar serverStateTvar
-        writeTVar serverStateTvar (addChannel serverState commChan)
-
-    clientGameThread connHandle broadcastChan commChan
+        ServerState {..} <- readTVar serverStateTvar
+        let newConnections = addConnection connections conn
+        writeTVar serverStateTvar ServerState {connections = newConnections, ..}
+    clientGameThread conn
     -- ! Should be used for cleanup code
     return ()
 
-gameLoopServer :: MonadIO m => TVar ServerState -> TChan (Maybe PlayerAction) -> m ()
+gameLoopServer :: MonadIO m => TVar ServerState -> TChan (ClientMessage, Player) -> m ()
 gameLoopServer serverStateTvar broadcastChan = do
-    liftIO $ debugM networkLoggerName "Start listening on Gameloop"
     readBroadcastChan <- atomically $ dupTChan broadcastChan
+    tmvar <- newTMVarIO (PlayerActions (mapFromList []))
+    _ <- liftIO . async $ eventLoop readBroadcastChan tmvar
     liftIO $ debugM networkLoggerName "Start game loop"
-    runGameLoop serverStateTvar broadcastChan readBroadcastChan
+    runGameLoop serverStateTvar tmvar
 
 

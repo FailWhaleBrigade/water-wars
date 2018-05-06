@@ -9,10 +9,10 @@ import Control.Concurrent
 
 import WaterWars.Client.Render.State
 import WaterWars.Client.Network.State (NetworkConfig(..), NetworkInfo(..))
-import qualified WaterWars.Network.Protocol as Protocol
-import qualified WaterWars.Core.GameState as CoreState
-import qualified WaterWars.Core.GameMap as CoreState
-import qualified WaterWars.Core.GameAction as CoreState
+import WaterWars.Network.Protocol as Protocol
+import WaterWars.Core.GameState ()
+import WaterWars.Core.GameMap as CoreState
+import WaterWars.Core.GameAction as CoreState
 
 -- |Name of the component for the logger
 networkLoggerName :: String
@@ -34,7 +34,7 @@ receiveUpdates :: MonadIO m => WorldSTM -> Connection -> m ()
 receiveUpdates (WorldSTM tvar) conn = forever $ do
     liftIO $ warningM networkLoggerName "Wait for Game Update"
     bs :: Text <- liftIO $ receiveData conn
-    let maybeGameInfo = readMay bs :: Maybe Protocol.GameInformation
+    let maybeGameInfo = readMay bs :: Maybe Protocol.ServerMessage
     case maybeGameInfo of
         Nothing ->
             liftIO
@@ -53,57 +53,53 @@ receiveUpdates (WorldSTM tvar) conn = forever $ do
                 writeTVar tvar world'
     return ()
 
-updateWorld :: Protocol.GameInformation -> World -> World
-updateWorld (Protocol.Map gameMap) world@World {..} =
-    setTerrain (blockMap renderInfo) (CoreState.gameTerrain gameMap) world
+updateWorld :: Protocol.ServerMessage -> World -> World
+updateWorld (GameMapMessage gameMap) world@World {..} =
+    setTerrain (blockMap renderInfo) (gameTerrain gameMap) world
 
-updateWorld (Protocol.State gameState) World {..} =
-    let
-        WorldInfo {..} = worldInfo
+updateWorld (GameStateMessage gameState) World {..} =
+    let WorldInfo {..} = worldInfo
         newPlayer      = fromMaybe
             player
             (headMay $ filter
-                ((== CoreState.playerDescription player) . CoreState.playerDescription)
-                (CoreState.getInGamePlayers $ CoreState.inGamePlayers gameState)
+                ((== playerDescription player) . playerDescription)
+                (getInGamePlayers $ inGamePlayers gameState)
             )
-        newOtherPlayers = filter
-            (/= player)
-            (CoreState.getInGamePlayers $ CoreState.inGamePlayers gameState)
-        newProjectiles =
-            CoreState.getProjectiles $ CoreState.gameProjectiles gameState
-        worldInfo_ = WorldInfo
+        newOtherPlayers =
+            filter (/= player) (getInGamePlayers $ inGamePlayers gameState)
+        newProjectiles = getProjectiles $ gameProjectiles gameState
+        worldInfo_     = WorldInfo
             { player       = newPlayer
             , otherPlayers = newOtherPlayers
             , projectiles  = newProjectiles
             , ..
             }
-    in
-        World {worldInfo = worldInfo_, ..}
+    in  World {worldInfo = worldInfo_, ..}
+updateWorld _ w = w -- TODO: this is not a valid message handling
 
 sendUpdates :: MonadIO m => WorldSTM -> Connection -> m ()
 sendUpdates (WorldSTM tvar) conn = forever $ do
     liftIO $ debugM networkLoggerName "Send an update to the Server"
     world <- readTVarIO tvar
     let action = extractGameAction world
-    liftIO . sendTextData conn $ tshow action
-    -- TODO: move this to bottom
+    let msg = PlayerActionMessage action
+    liftIO . sendTextData conn $ tshow msg
     liftIO $ threadDelay (1000000 `div` 60)
     return ()
 
 extractGameAction :: World -> Protocol.PlayerAction
 extractGameAction world =
-    let WorldInfo {..} = worldInfo world
-        runCmd | walkLeft  = Just (CoreState.RunAction CoreState.RunLeft)
-               | walkRight = Just (CoreState.RunAction CoreState.RunRight)
+    let
+        WorldInfo {..} = worldInfo world
+        runCmd | walkLeft  = Just (RunAction RunLeft)
+               | walkRight = Just (RunAction RunRight)
                | otherwise = Nothing
-        jmpCmd       = if jump then Just CoreState.JumpAction else Nothing
-        shootCmd     = if shoot then Just (CoreState.Angle 0) else Nothing
-        playerAction = CoreState.Action
+        jmpCmd       = if jump then Just JumpAction else Nothing
+        shootCmd     = if shoot then Just (Angle 0) else Nothing
+        playerAction = Action
             { runAction   = runCmd
             , jumpAction  = jmpCmd
             , shootAction = shootCmd
             }
-    in  Protocol.PlayerAction
-            { action = playerAction
-            , player = CoreState.playerDescription player
-            }
+    in
+        PlayerAction {getAction = playerAction}

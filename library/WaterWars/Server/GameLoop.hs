@@ -14,36 +14,21 @@ import WaterWars.Server.ConnectionMgnt
 import WaterWars.Server.GameNg
 
 import WaterWars.Network.Protocol
+import WaterWars.Network.Connection
 
-
--- to be forked in own thread
-runGameLoop :: MonadIO m => TVar ServerState -> TChan (Maybe PlayerAction) -> TChan (Maybe PlayerAction) -> m ()
-runGameLoop serverStateStm writeSide readSide = forever $ do
+runGameLoop :: MonadIO m => TVar ServerState -> TMVar PlayerActions -> m ()
+runGameLoop serverStateStm playerActions = forever $ do
     liftIO $ debugM "Server.Connection" "Exec Game Loop tick"
     ServerState {..} <- atomically $ do
         serverState@ServerState {..} <- readTVar serverStateStm
-        writeTChan writeSide Nothing
-        actions <- readAllActions readSide
+        actions <- getPlayerActions <$> swapTMVar playerActions (PlayerActions (mapFromList [])) 
         let newState       = runGameTick gameMap gameState actions
         let newServerState = serverState { gameState = newState }
         writeTVar serverStateStm newServerState
         return newServerState
-    liftIO $ debugM "Server.Connection" $ "Broadcast new State: " ++ show gameState
-    broadcastGameState connections gameState
+    liftIO $ debugM "Server.Connection" "Broadcast new State"
+    broadcast connections (GameStateMessage gameState)
     liftIO $ threadDelay (1000000 `div` 60) -- TODO: this sleep is necessary
-
-readAllActions :: TChan (Maybe PlayerAction) -> STM (Map Player Action)
-readAllActions readSide = readAllActions_ (mapFromList empty)
-    where
-        readAllActions_ :: Map Player Action -> STM (Map Player Action)
-        readAllActions_ m = do
-            maybeAction <- readTChan readSide
-            case maybeAction of
-                Nothing -> return m
-                Just PlayerAction { .. } -> do
-                    let m_ = insertWith (++) player action m
-                    readAllActions_ m_
-
 
 allGameTicks :: GameMap -> [Map Player Action] -> GameState -> [GameState]
 allGameTicks _ [] s = [s]

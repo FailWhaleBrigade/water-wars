@@ -1,85 +1,116 @@
-module WaterWars.Server.ConnectionMgnt where
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE InstanceSigs #-}
+
+module WaterWars.Server.ConnectionMgnt
+    ( ServerState(..)
+    , Connections(..)
+    , PlayerActions(..)
+    , ClientConnection(connectionId, clientPlayer)
+    , newClientConnection
+    , addConnection
+    , removeConnection
+    ) where
 
 import ClassyPrelude
 
-import Control.Monad.Except (runExceptT)
-import Control.Monad.Error.Class
-import System.Log.Logger
-
-import Network.WebSockets
+import qualified Network.WebSockets as WS
 
 import WaterWars.Network.Protocol
+import WaterWars.Network.Connection
 
 import WaterWars.Core.GameState
 import WaterWars.Core.GameMap
-
-import WaterWars.Server.Config
+import WaterWars.Core.GameAction
 
 data ServerState = ServerState
-    { connections :: Connections
+    { connections :: Connections ServerMessage ClientMessage
     , gameMap     :: GameMap
     , gameState   :: GameState
+    } deriving (Show, Eq)
+
+newtype PlayerActions = PlayerActions 
+    { getPlayerActions :: Map Player Action 
+    } deriving (Show, Eq)
+
+data Connections read write = Connections
+    { players       :: Map Text (ClientConnection read write)
+    , gameSetup     :: Maybe GameSetup
+    } deriving (Show, Eq, Ord)
+
+data ClientConnection read write = ClientConnection
+    { connectionId  :: Text -- ^Session id, uniquely identifies players
+    , clientPlayer  :: Player -- ^Player Meta information
+    , connection    :: WS.Connection -- ^Abstraction over an connection handle
+    , readChannel   :: TChan read -- ^Client threads read from this channel
+    , writeChannel  :: TChan (write, Player) -- ^Client threads write to this channel, with its id
     }
 
-data Connections = Connections
-    { players :: Map Player (TChan GameInformation)
-    , gameSetup :: Maybe GameSetup
-    }
+instance Eq (ClientConnection read write) where
+    c1 == c2 = connectionId c1 == connectionId c2
 
-addChannel :: ServerState -> TChan GameInformation -> ServerState
-addChannel ServerState {..} chan =
-    let Connections {..} = connections
-        newPlayer        = Player "Player One"
-    in  ServerState
-            { connections = connections
-                { players = insertMap newPlayer chan players
-                }
-            , ..
-            } -- TODO: temporary solution, please fix!
+instance Ord (ClientConnection read write) where
+    c1 <= c2 = connectionId c1 <= connectionId c2
 
-broadcastGameState :: MonadIO m => Connections -> GameState -> m ()
-broadcastGameState Connections {..} state =
-    forM_ players $ \chan -> atomically $ writeTChan chan (State state)
+instance Show (ClientConnection read write) where
+    show ClientConnection {..} = "ClientConnection { connectionId = " ++ show connectionId ++ ", clientPlayer = " ++ show clientPlayer ++"}"
 
-clientGameThread
-    :: MonadIO m
-    => Connection --  ^Connection of the client
-    -> TChan (Maybe PlayerAction)  -- ^Broadcast channel to send all messages to
-    -> TChan GameInformation -- ^Information channel that sends messages to client
-    -> m ()
-clientGameThread conn broadcastChan receiveChan = liftIO $ do
-    -- If any of these threads die, kill both threads and return, be careful for this swallows exceptions
-    _ <- async (clientReceive conn broadcastChan)
-    clientSend conn receiveChan
+instance NetworkConnection (ClientConnection read write) where
+    type SendType (ClientConnection read write) = read
+    type ReceiveType (ClientConnection read write) = write
+    send :: (MonadIO m, Serializable read) => ClientConnection read write -> read -> m ()
+    send conn toSend = do
+        let msg = serialize toSend
+        liftIO $ WS.sendTextData (connection conn) msg
 
+    receive :: (MonadIO m, Deserializable write) => ClientConnection read write -> m (Either Text write)
+    receive conn = do
+        msg <- liftIO $ WS.receiveData (connection conn)
+        case deserialize msg of
+            Nothing -> return $ Left msg
+            Just action -> return $ Right action
 
-clientReceive
-    :: MonadIO m
-    => Connection   --  ^Connection of the client
-    -> TChan (Maybe PlayerAction)   -- ^Broadcast channel to send all messages to
-    -> m ()
-clientReceive conn broadcastChan = forever $ do
-    liftIO $ debugM "Server.Connection" "Wait for data message"
-    msg :: Text <- liftIO $ receiveData conn
-    case readMay msg :: Maybe PlayerAction of
-        Nothing -> do
-            liftIO $ infoM networkLoggerName "Could not read message"
-            liftIO $ debugM networkLoggerName
-                            (show $ "Could not read message: " ++ msg)
-        Just playerAction -> do
-            liftIO $ infoM networkLoggerName $ "Read a message: " ++ show playerAction
-            atomically $ writeTChan broadcastChan (Just playerAction)
-    -- TODO: should i sleep here for some time to avoid DOS-attack? yes
-    return ()
+instance IPC (ClientConnection read write) where
+    type Identifier (ClientConnection read write) = Text 
+    type WriteTo (ClientConnection read write) = write
+    type ReadFrom (ClientConnection read write) = read
 
-clientSend
-    :: MonadIO m
-    => Connection  --  ^Connection of the client
-    -> TChan GameInformation -- ^Information channel that sends messages to client
-    -> m ()
-clientSend conn sendChan = forever $ do
-    liftIO $ debugM "Server.Connection" "Wait for message"
-    cmd <- liftIO . atomically $ readTChan sendChan
-    liftIO $ sendTextData conn $ tshow cmd
-    -- TODO: sleep for fun?
-    return ()
+    writeTo :: MonadIO m => ClientConnection read write -> write -> m ()
+    writeTo conn toSend = atomically $ writeTChan (writeChannel conn) (toSend, clientPlayer conn)
+
+    readFrom :: MonadIO m => ClientConnection read write -> m read
+    readFrom conn = atomically $ readTChan (readChannel conn)
+
+instance NetworkConnections (Connections read write) where
+    type WriteType (Connections read write) = read
+    type ReadType (Connections read write) = write
+    broadcast :: MonadIO m
+        => Connections read write
+        -> read
+        -> m ()
+    broadcast Connections {..} state =
+        forM_ players $ \conn ->
+            atomically $ writeTChan (readChannel conn) state
+
+addConnection
+    :: Connections read write
+    -> ClientConnection read write
+    -> Connections read write
+addConnection Connections {..} conn@ClientConnection {..} =
+    Connections {players = insertMap connectionId conn players, ..}
+
+removeConnection
+    :: Connections read write
+    -> ClientConnection read write
+    -> Connections read write
+removeConnection Connections {..} ClientConnection {..} =
+    Connections {players = deleteMap connectionId players, ..}
+
+newClientConnection
+    :: Text
+    -> Player
+    -> WS.Connection
+    -> TChan read
+    -> TChan (write, Player)
+    -> ClientConnection read write
+newClientConnection = ClientConnection
+ 

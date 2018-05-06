@@ -1,18 +1,12 @@
+{-# LANGUAGE TypeFamilies #-}
 module WaterWars.Network.Protocol where
 
 import ClassyPrelude
 
+import WaterWars.Network.Connection
 import qualified WaterWars.Core.GameState as CoreState
 import qualified WaterWars.Core.GameMap as CoreState
 import qualified WaterWars.Core.GameAction as CoreAction
-
--- |Information about game that is being played.
--- It can change the current map during the game or set up the game.
--- Contains all the information neccessary to render the game for exactly one tick
-data GameInformation
-    = Map CoreState.GameMap
-    | State CoreState.GameState
-    deriving (Show, Read, Eq)
 
 -- |Datatype to login to a game server.
 -- So far, only a reconnect options is supported.
@@ -26,18 +20,17 @@ newtype LoginResponse = LoginResponse
     { success :: Either String String
     } deriving (Show, Read, Eq)
 
--- |Player action that can sent to a server.
-data PlayerAction = PlayerAction
-    { action :: CoreAction.Action
-    , player :: CoreState.Player
+-- |Player action that can be sent to a server.
+newtype PlayerAction = PlayerAction
+    { getAction :: CoreAction.Action
     }
     deriving (Show, Read, Eq)
 
 -- |Sets up a game for a single round.
 data GameSetup = GameSetup
     { numberOfPlayers :: Int
-    , terrainMap :: Text -- TODO: currently ignored
-    } deriving (Show, Read, Eq)
+    , terrainMap :: Text
+    } deriving (Show, Read, Eq, Ord)
 
 -- |Response record for a GameSetup request.
 -- May fail if the game has already been set up, or the GameSetup request was invalid.
@@ -55,3 +48,27 @@ data SetupError
 newtype Logout = Logout
     { logoutSessionId :: Text
     } deriving (Show, Read, Eq)
+
+data ServerMessage
+    = GameSetupResponseMessage GameSetupResponse
+    | LoginResponseMessage LoginResponse
+    | GameMapMessage CoreState.GameMap
+    | GameStateMessage CoreState.GameState
+    deriving (Show, Eq, Read)
+
+instance Serializable ServerMessage where
+    serialize = tshow
+instance Deserializable ServerMessage where
+    deserialize = readMay
+
+data ClientMessage
+    = LoginMessage Login
+    | LogoutMessage Logout
+    | GameSetupMessage GameSetup
+    | PlayerActionMessage PlayerAction
+    deriving (Show, Eq, Read)
+
+instance Serializable ClientMessage where
+    serialize = tshow
+instance Deserializable ClientMessage where
+    deserialize = readMay
