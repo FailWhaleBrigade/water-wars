@@ -14,10 +14,10 @@ eventLoop
     :: MonadIO m
     => TChan (ClientMessage, Text)
     -> TVar ServerState
-    -> TMVar PlayerActions
+    -> TVar PlayerActions
     -> Map Text InGamePlayer
     -> m ()
-eventLoop broadcastChan tvar tmvar sessionMap = do
+eventLoop broadcastChan tvar playerActionTvar sessionMap = do
     (clientMsg, sessionId) <- atomically $ readTChan broadcastChan
     liftIO $ debugM "Server.Connection"
                     ("Successfully read a message from: " ++ show sessionId)
@@ -60,16 +60,16 @@ eventLoop broadcastChan tvar tmvar sessionMap = do
             case playerMay of
                 Nothing                -> return () -- TODO: add logging facilities
                 Just InGamePlayer {..} -> atomically $ do
-                    PlayerActions {..} <- takeTMVar tmvar
+                    PlayerActions {..} <- readTVar playerActionTvar
                     let getPlayerActions' = insertWith
                             (++)
                             playerDescription
                             (getAction playerAction)
                             getPlayerActions
-                    putTMVar tmvar (PlayerActions getPlayerActions')
+                    writeTVar playerActionTvar (PlayerActions getPlayerActions')
             return sessionMap
 
-    eventLoop broadcastChan tvar tmvar sessionMap'
+    eventLoop broadcastChan tvar playerActionTvar sessionMap'
 
 
 -- utility functions for creation

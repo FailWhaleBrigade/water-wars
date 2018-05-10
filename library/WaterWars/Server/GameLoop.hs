@@ -16,7 +16,7 @@ import WaterWars.Server.GameNg
 import WaterWars.Network.Protocol
 import WaterWars.Network.Connection
 
-runGameLoop :: MonadIO m => TVar ServerState -> TMVar PlayerActions -> m ()
+runGameLoop :: MonadIO m => TVar ServerState -> TVar PlayerActions -> m ()
 runGameLoop serverStateStm playerActions = forever $ do
     liftIO $ debugM "Server.Connection" "Exec Game Loop tick"
     ServerState {..} <- atomically $ do
@@ -37,6 +37,6 @@ allGameTicks gameMap (actions : rest) initialState =
                                 rest
                                 (runGameTick gameMap initialState actions)
 
-emptyPlayerActions :: TMVar PlayerActions -> STM (Map Player Action)
+emptyPlayerActions :: TVar PlayerActions -> STM (Map Player Action)
 emptyPlayerActions playerActions = getPlayerActions
-    <$> swapTMVar playerActions (PlayerActions (mapFromList []))
+    <$> swapTVar playerActions (PlayerActions (mapFromList []))

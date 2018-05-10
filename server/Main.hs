@@ -58,8 +58,7 @@ websocketServer serverStateTvar broadcastChan =
         debugM networkLoggerName "Client connected"
         commChan  <- newTChanIO -- to receive messages
         sessionId <- toText <$> nextRandom -- uniquely identify connections
-        let
-            conn = newClientConnection sessionId
+        let conn = newClientConnection sessionId
                                        connHandle
                                        commChan
                                        broadcastChan
@@ -76,10 +75,10 @@ gameLoopServer
     :: MonadIO m => TVar ServerState -> TChan (ClientMessage, Text) -> m ()
 gameLoopServer serverStateTvar broadcastChan = do
     readBroadcastChan <- atomically $ dupTChan broadcastChan
-    tmvar             <- newTMVarIO (PlayerActions (mapFromList empty))
+    playerActionTvar  <- newTVarIO (PlayerActions (mapFromList empty))
     _                 <- liftIO . async $ eventLoop readBroadcastChan
                                                     serverStateTvar
-                                                    tmvar
+                                                    playerActionTvar
                                                     (mapFromList empty)
     liftIO $ debugM networkLoggerName "Start game loop"
-    runGameLoop serverStateTvar tmvar
+    runGameLoop serverStateTvar playerActionTvar
