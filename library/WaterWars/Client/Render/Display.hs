@@ -28,7 +28,7 @@ render World {..} = Gloss.pictures
         (\p ->
             let Location (x, y) = playerLocation p
             in
-                translate (blockSize * x) (blockSize * y)
+                translate (blockSize * x) (blockSize * y + blockSize / 2)
                 $ color playerColor
                 $ circleSolid 20
         )
@@ -45,7 +45,7 @@ solidToPicture solid =
     uncurry translate (solidCenter solid) (solidTexture solid)
 
 projectileToPicture :: Projectile -> Picture -> Picture
-projectileToPicture p tex = scale 0.2 0.2 $ translate x y tex
+projectileToPicture p tex = scale 0.2 0.2 $ translate (x * blockSize) (y * blockSize) tex
     where Location (x, y) = projectileLocation p
 
 animateAnimation :: Animation -> Picture
