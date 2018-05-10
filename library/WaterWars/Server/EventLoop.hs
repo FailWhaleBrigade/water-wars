@@ -29,12 +29,18 @@ eventLoop broadcastChan tvar playerActionTvar sessionMap = do
                 serverState <- readTVar tvar
                 let serverState' = modifyGameState addPlayer serverState player
                 writeTVar tvar serverState'
-                return ((getConnectionBySessionId (connections serverState) sessionId), gameMap serverState)
-            case connectionMay of 
-                Nothing -> return ()
+                return
+                    ( getConnectionBySessionId (connections serverState)
+                                               sessionId
+                    , gameMap serverState
+                    )
+            case connectionMay of
+                Nothing         -> return ()
                 Just connection -> do
                     -- TODO: maybe batch these message if possible
-                    sendTo connection (LoginResponseMessage (LoginResponse sessionId player))
+                    sendTo
+                        connection
+                        (LoginResponseMessage (LoginResponse sessionId player))
                     sendTo connection (GameMapMessage gameMap_)
             return $ insertMap sessionId player sessionMap
 
@@ -51,9 +57,9 @@ eventLoop broadcastChan tvar playerActionTvar sessionMap = do
                     writeTVar tvar serverState'
             return $ deleteMap sessionId sessionMap
 
-        GameSetupMessage    gameSetup    -> 
+        GameSetupMessage gameSetup ->
             -- TODO: we dont handle game setup requests yet
-            return sessionMap 
+            return sessionMap
 
         PlayerActionMessage playerAction -> do
             let playerMay = lookup sessionId sessionMap
@@ -85,4 +91,5 @@ newInGamePlayer player location = InGamePlayer
 
 -- utility functions to retrieve connections
 getConnectionBySessionId :: Connections -> Text -> Maybe ClientConnection
-getConnectionBySessionId conns sessionId = lookup sessionId (players conns) 
+getConnectionBySessionId conns sessionId = lookup sessionId (players conns)
+
