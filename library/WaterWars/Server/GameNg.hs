@@ -4,19 +4,26 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
 
-module WaterWars.Server.GameNg (runGameTick, gameTick) where
+module WaterWars.Server.GameNg
+    ( runGameTick
+    , gameTick
+    )
+where
 
-import ClassyPrelude hiding (Reader, ask, asks) -- hide MTL functions reexported by prelude
-import WaterWars.Core.GameState
-import WaterWars.Core.GameMap
-import WaterWars.Core.GameAction
-import WaterWars.Core.Physics
-import WaterWars.Core.PhysicsConstants
-import Control.Eff.State.Strict
-import Control.Eff.Reader.Strict
-import Control.Eff
-import Data.Array.IArray
-import WaterWars.Core.Terrain.Block
+import           ClassyPrelude                     hiding ( Reader
+                                                          , ask
+                                                          , asks
+                                                          )
+import           WaterWars.Core.GameState
+import           WaterWars.Core.GameMap
+import           WaterWars.Core.GameAction
+import           WaterWars.Core.Physics
+import           WaterWars.Core.PhysicsConstants
+import           Control.Eff.State.Strict
+import           Control.Eff.Reader.Strict
+import           Control.Eff
+import           Data.Array.IArray
+import           WaterWars.Core.Terrain.Block
 
 runGameTick :: GameMap -> GameState -> Map Player Action -> GameState
 runGameTick gameMap gameState gameAction =
@@ -108,7 +115,10 @@ modifyPlayerByRunAction onGround action player@InGamePlayer {..} =
     fromMaybe player $ do -- maybe monad
         RunAction runDirection <- runAction action
         return $ setPlayerVelocity
-            (velocityBoundX runSpeed $ runVector onGround runDirection ++ playerVelocity)
+            (  velocityBoundX runSpeed
+            $  runVector onGround runDirection
+            ++ playerVelocity
+            )
             player
 
 -- do gravity, bounding, ...
