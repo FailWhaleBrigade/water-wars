@@ -18,6 +18,7 @@ import WaterWars.Network.Connection
 import WaterWars.Core.GameState ()
 import WaterWars.Core.GameMap as CoreState
 import WaterWars.Core.GameAction as CoreState
+import           WaterWars.Core.GameUtils
 
 
 -- |Name of the component for the logger
@@ -57,9 +58,9 @@ receiveUpdates (WorldSTM tvar) conn = forever $ do
     return ()
 
 updateWorld :: Protocol.ServerMessage -> World -> World
-updateWorld serverMsg world@World {..} =  
+updateWorld serverMsg world@World {..} =
     case serverMsg of
-        GameMapMessage gameMap -> 
+        GameMapMessage gameMap ->
             setTerrain (blockMap renderInfo) (gameTerrain gameMap) world
 
         GameStateMessage gameState ->
@@ -72,16 +73,16 @@ updateWorld serverMsg world@World {..} =
                             inGamePlayers_
                         )
                         <$> player
-        
+
                 newOtherPlayers = maybe
                     inGamePlayers_
                     (flip filter inGamePlayers_ . (/=))
                     player
-        
+
                 newProjectiles = getProjectiles $ gameProjectiles gameState
-        
+
                 worldInfo_     = WorldInfo
-                    { player       = join newPlayer -- TODO: can we express this better? 
+                    { player       = join newPlayer -- TODO: can we express this better?
                     , otherPlayers = newOtherPlayers
                     , projectiles  = newProjectiles
                     , ..
@@ -89,10 +90,10 @@ updateWorld serverMsg world@World {..} =
             in
                 World {worldInfo = worldInfo_, ..}
 
-        GameSetupResponseMessage _ -> 
+        GameSetupResponseMessage _ ->
             world
 
-        LoginResponseMessage loginResponse -> 
+        LoginResponseMessage loginResponse ->
             let
                 WorldInfo {..} = worldInfo
                 newPlayer = Just (successPlayer loginResponse)
@@ -105,6 +106,7 @@ sendUpdates (WorldSTM tvar) conn = forever $ do
     liftIO $ debugM networkLoggerName "Send an update to the Server"
     world <- readTVarIO tvar
     let action = extractGameAction world
+    liftIO $ debugM networkLoggerName $ "Message: " ++ show action
     send conn (PlayerActionMessage action)
     liftIO $ threadDelay (1000000 `div` 60)
     return ()
@@ -117,7 +119,7 @@ extractGameAction world =
                | walkRight = Just (RunAction RunRight)
                | otherwise = Nothing
         jmpCmd       = if jump then Just JumpAction else Nothing
-        shootCmd     = if shoot then Just (Angle 0) else Nothing
+        shootCmd     = if shoot then Just $ angleForRunDirection lastDirection else Nothing
         playerAction = Action
             { runAction   = runCmd
             , jumpAction  = jmpCmd

@@ -27,6 +27,7 @@ import qualified WaterWars.Core.DefaultGame as DefaultGame
 
 import WaterWars.Core.GameState
 import WaterWars.Core.GameMap
+import WaterWars.Core.GameAction
 
 newtype WorldSTM = WorldSTM (TVar World)
 
@@ -63,6 +64,7 @@ data WorldInfo = WorldInfo
     , player    :: Maybe CoreState.InGamePlayer
     , otherPlayers :: Seq CoreState.InGamePlayer
     , projectiles  :: Seq CoreState.Projectile
+    , lastDirection :: RunDirection
     } deriving Show
 
 initializeState :: Picture -> Picture -> [Picture] -> BlockMap -> IO WorldSTM
@@ -91,6 +93,7 @@ initializeState bmpBg bmpPrj bmpsMan blockMap' = WorldSTM <$> newTVarIO World
         , otherPlayers = empty
         , projectiles  = fromList
             [DefaultGame.defaultProjectile, DefaultGame.defaultProjectile]
+        , lastDirection = RunRight
         }
     , networkInfo = Nothing
     }

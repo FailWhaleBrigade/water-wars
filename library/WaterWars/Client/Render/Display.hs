@@ -45,7 +45,7 @@ solidToPicture solid =
     uncurry translate (solidCenter solid) (solidTexture solid)
 
 projectileToPicture :: Projectile -> Picture -> Picture
-projectileToPicture p tex = scale 0.2 0.2 $ translate (x * blockSize) (y * blockSize) tex
+projectileToPicture p = translate (x * blockSize) (y * blockSize) . scale 0.2 0.2
     where Location (x, y) = projectileLocation p
 
 animateAnimation :: Animation -> Picture

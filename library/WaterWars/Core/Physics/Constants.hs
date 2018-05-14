@@ -1,6 +1,7 @@
-module WaterWars.Core.PhysicsConstants where
+module WaterWars.Core.Physics.Constants where
 
 import ClassyPrelude
+import WaterWars.Core.GameState
 
 gravityForce :: Float
 gravityForce = 0.005
@@ -25,3 +26,6 @@ verticalDragAir = 0.98
 
 maxVelocity :: (Float, Float)
 maxVelocity = (0.25, 0.5)
+
+projectileSpeed :: Speed
+projectileSpeed = 0.5

@@ -45,7 +45,7 @@ eventLoop broadcastChan tvar playerActionTvar sessionMap = do
             return $ insertMap sessionId player sessionMap
 
         LogoutMessage _ -> do
-            -- TODO: why do we have a session id? 
+            -- TODO: why do we have a session id?
             -- TODO: remove connections
             let playerMay = lookup sessionId sessionMap
             case playerMay of
@@ -57,7 +57,7 @@ eventLoop broadcastChan tvar playerActionTvar sessionMap = do
                     writeTVar tvar serverState'
             return $ deleteMap sessionId sessionMap
 
-        GameSetupMessage gameSetup ->
+        GameSetupMessage _ ->
             -- TODO: we dont handle game setup requests yet
             return sessionMap
 
@@ -87,9 +87,9 @@ newInGamePlayer player location = InGamePlayer
     , playerMaxHealth     = 10
     , playerViewDirection = Angle 0.0
     , playerVelocity      = VelocityVector 0 0
+    , playerShootCooldown = 0
     }
 
 -- utility functions to retrieve connections
 getConnectionBySessionId :: Connections -> Text -> Maybe ClientConnection
 getConnectionBySessionId conns sessionId = lookup sessionId (players conns)
-

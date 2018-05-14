@@ -18,7 +18,9 @@ extra-source-files:
 - README.md
 - stack.yaml
 
-ghc-options: -Wall
+ghc-options:
+- -Wall
+- -Werror
 
 library:
   dependencies:
@@ -34,6 +36,7 @@ library:
   - extensible-effects >= 2.6.0.1
   - hslogger
   - stm
+  - extra
   source-dirs: library
   default-extensions:
   - NamedFieldPuns
@@ -42,6 +45,7 @@ library:
   - ScopedTypeVariables
   - RecordWildCards
   - FlexibleContexts
+  - MonoLocalBinds
 
 executables:
   water-wars-server:
@@ -52,7 +56,7 @@ executables:
     - water-wars
     - classy-prelude
     - array
-    - websockets  
+    - websockets
     - transformers
     - mtl
     - websockets

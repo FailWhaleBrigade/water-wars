@@ -11,8 +11,8 @@ data GameState = GameState
     , gameProjectiles :: Projectiles
     } deriving (Show, Read, Eq)
 
-newtype InGamePlayers = InGamePlayers 
-    { getInGamePlayers :: Seq InGamePlayer 
+newtype InGamePlayers = InGamePlayers
+    { getInGamePlayers :: Seq InGamePlayer
     }
     deriving (Read, Show, Eq, MonoFunctor)
 
@@ -25,6 +25,7 @@ data InGamePlayer = InGamePlayer
     , playerHealth :: Int
     , playerViewDirection :: Angle
     , playerVelocity :: VelocityVector
+    , playerShootCooldown :: Int
     }
     deriving (Show, Read, Eq)
 
