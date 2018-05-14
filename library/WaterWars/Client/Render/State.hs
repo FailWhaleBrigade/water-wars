@@ -50,6 +50,7 @@ data RenderInfo = RenderInfo
     { blockMap :: BlockMap
     , backgroundTexture :: Picture
     , projectileTexture :: Picture
+    , playerTexture :: Picture
     , solids :: Seq Solid
     , animation :: Animation
     } deriving Show
@@ -67,12 +68,13 @@ data WorldInfo = WorldInfo
     , lastDirection :: RunDirection
     } deriving Show
 
-initializeState :: Picture -> Picture -> [Picture] -> BlockMap -> IO WorldSTM
-initializeState bmpBg bmpPrj bmpsMan blockMap' = WorldSTM <$> newTVarIO World
+initializeState :: Picture -> Picture -> Picture -> [Picture] -> BlockMap -> IO WorldSTM
+initializeState bmpBg bmpPrj playerTex bmpsMan blockMap' = WorldSTM <$> newTVarIO World
     { renderInfo  = RenderInfo
         { blockMap          = blockMap'
         , backgroundTexture = bmpBg
         , projectileTexture = bmpPrj
+        , playerTexture = playerTex
         , animation         = Animation
             { location          = Location (100, -100)
             , countDownTilNext  = 30

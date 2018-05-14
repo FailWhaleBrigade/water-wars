@@ -30,10 +30,11 @@ backgroundColor = white
 
 setup
     :: (MonadIO m, MonadError String m)
-    => m (Picture, Picture, [Picture], BlockMap)
+    => m (Picture, Picture, Picture, [Picture], BlockMap)
 setup = do
     bgTex     <- loadPngAsBmp "resources/textures/background/background.png"
     prjTex    <- loadPngAsBmp "resources/textures/decoration/bubble.png"
+    playerTex <- loadPngAsBmp "resources/textures/mermaid/idle/mermaid1.png"
     mantaTexs <- bulkLoad $ fromList
         [ "resources/textures/manta_animation/manta1.png"
         , "resources/textures/manta_animation/manta2.png"
@@ -41,7 +42,7 @@ setup = do
         , "resources/textures/manta_animation/manta4.png"
         ]
     blockMap <- loadBlockMap
-    return (bgTex, prjTex, toList mantaTexs, blockMap)
+    return (bgTex, prjTex, playerTex, toList mantaTexs, blockMap)
 
 main :: IO ()
 main = do
@@ -51,8 +52,8 @@ main = do
     resources <- runExceptT setup
     case resources of
         Left  err -> putStrLn $ "Could not load texture. Cause: " ++ tshow err
-        Right (bgTex, prjTex, mantaTexs, blocks) -> do
-            worldStm <- initializeState bgTex prjTex mantaTexs blocks
+        Right (bgTex, prjTex, playerTex, mantaTexs, blocks) -> do
+            worldStm <- initializeState bgTex prjTex playerTex mantaTexs blocks
             _        <-
                 async {- Should never terminate -}
                     (connectionThread Nothing

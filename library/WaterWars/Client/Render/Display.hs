@@ -30,7 +30,7 @@ render World {..} = Gloss.pictures
             in
                 translate (blockSize * x) (blockSize * y + blockSize / 2)
                 $ color playerColor
-                $ circleSolid 20
+                $ scale 0.6 0.6 (playerTexture renderInfo)
         )
         allPlayers
     projectilePictures =
