@@ -8,7 +8,7 @@ import WaterWars.Core.GameState
 
 data GameMap = GameMap
   { gameTerrain :: Terrain
-  , gamePlayers :: Seq Player
+  , gamePlayers :: Seq Player -- TODO: what is this for?
   }
   deriving (Show, Read, Eq)
 

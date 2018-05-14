@@ -1,40 +1,28 @@
 module WaterWars.Core.Physics where
 
-import ClassyPrelude
-import WaterWars.Core.GameState
-import WaterWars.Core.GameMap
-import WaterWars.Core.PhysicsConstants
-import WaterWars.Core.GameAction
+import           ClassyPrelude                     hiding ( Reader, asks )
+import           WaterWars.Core.GameState
+import           WaterWars.Core.GameMap
+import           WaterWars.Core.GameUtils
+import           WaterWars.Core.Physics.Constants
+import           WaterWars.Core.GameAction
+import           Control.Eff
+import           Control.Eff.Reader.Strict
+import           Data.Array.IArray
+import           WaterWars.Core.Terrain.Block
 
--- TODO: module for the following
-moveLocation :: VelocityVector -> Location -> Location
-moveLocation (VelocityVector dx dy) (Location (x, y)) =
-    Location (x + dx, y + dy)
 
 jumpVector :: VelocityVector -> VelocityVector
 jumpVector (VelocityVector x _) = VelocityVector x jumpForce
 
 runVector :: Bool -> RunDirection -> VelocityVector
-runVector True RunLeft = VelocityVector (-runAccelerationGround) 0
-runVector True RunRight = VelocityVector runAccelerationGround 0
-runVector False RunLeft = VelocityVector (-runAccelerationAir) 0
+runVector True  RunLeft  = VelocityVector (-runAccelerationGround) 0
+runVector True  RunRight = VelocityVector runAccelerationGround 0
+runVector False RunLeft  = VelocityVector (-runAccelerationAir) 0
 runVector False RunRight = VelocityVector runAccelerationAir 0
 
 gravityVector :: VelocityVector
 gravityVector = VelocityVector 0 (-gravityForce)
-
-acceleratePlayer :: VelocityVector -> InGamePlayer -> InGamePlayer
-acceleratePlayer v p@InGamePlayer {..} =
-    setPlayerVelocity (playerVelocity ++ v) p
-
-setPlayerVelocity :: VelocityVector -> InGamePlayer -> InGamePlayer
-setPlayerVelocity v p = p { playerVelocity = v }
-
-modifyPlayerVelocity :: (VelocityVector -> VelocityVector) -> InGamePlayer -> InGamePlayer
-modifyPlayerVelocity f p = setPlayerVelocity (f $ playerVelocity p) p
-
-getBlock :: Location -> BlockLocation
-getBlock (Location (x, y)) = BlockLocation (round x, round y)
 
 velocityOnGround :: VelocityVector -> VelocityVector
 velocityOnGround (VelocityVector x _) = VelocityVector x 0
@@ -44,18 +32,41 @@ blockLocationBelowFeet InGamePlayer { playerLocation } =
     let Location (x, y) = playerLocation
     in  BlockLocation (round x, round $ y - 0.001)
 
-velocityBoundX :: Float -> VelocityVector -> VelocityVector
-velocityBoundX maxX v@(VelocityVector vx vy) = if abs vx <= maxX
-    then v
-    else VelocityVector (boundedBy (-maxX, maxX) vx) vy
+gravityPlayer :: InGamePlayer -> InGamePlayer
+gravityPlayer = acceleratePlayer gravityVector
 
--- bound velocity vector to be max 0.5 in both directions
-boundVelocityVector :: (Float, Float) -> VelocityVector -> VelocityVector
-boundVelocityVector (maxX, maxY) v@(VelocityVector vx vy) = if abs vx <= maxX && abs vy <= maxY
-    then v
-    else VelocityVector (boundedBy (-maxX, maxX) vx) (boundedBy (-maxY, maxY) vy)
+-- TODO: better drag with polar coordinates
+verticalDragPlayer :: Bool -> InGamePlayer -> InGamePlayer
+verticalDragPlayer onGround player@InGamePlayer {..} =
+    let VelocityVector vx vy = playerVelocity
+        dragFactor = if onGround then verticalDragGround else verticalDragAir
+    in  setPlayerVelocity (VelocityVector (vx * dragFactor) vy) player
 
-boundedBy :: Ord a => (a, a) -> a -> a
-boundedBy (l, u) x | x < l     = l
-                   | x > u     = u
-                   | otherwise = x
+
+isPlayerOnGround :: Member (Reader GameMap) e => InGamePlayer -> Eff e Bool
+isPlayerOnGround InGamePlayer {..} = do
+    blocks <- asks $ terrainBlocks . gameTerrain
+    let Location (x, y) = playerLocation
+    let blockBelowFeet  = BlockLocation (round x, round $ y - 0.001)
+    return $ inRange (bounds blocks) blockBelowFeet && isSolid
+        (blocks ! blockBelowFeet)
+
+movePlayer :: Member (Reader GameMap) e => InGamePlayer -> Eff e InGamePlayer
+movePlayer player@InGamePlayer {..} = do
+    blocks <- asks $ terrainBlocks . gameTerrain
+    let targetLocation = moveLocation playerVelocity playerLocation
+    let targetBlock    = getBlock targetLocation
+    let isTargetBlockSolid = inRange (bounds blocks) targetBlock
+            && isSolid (blocks ! targetBlock)
+    let realTargetLocation = if isTargetBlockSolid
+            then
+                let Location      (x, _) = targetLocation
+                    BlockLocation (_, y) = targetBlock
+                in  Location (x, fromIntegral y + 0.5)
+            else targetLocation
+    let realPlayerVelocity = if isTargetBlockSolid
+            then velocityOnGround playerVelocity
+            else playerVelocity
+    return player { playerLocation = realTargetLocation
+                  , playerVelocity = realPlayerVelocity
+                  }

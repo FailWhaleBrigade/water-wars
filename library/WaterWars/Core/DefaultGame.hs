@@ -1,54 +1,313 @@
 module WaterWars.Core.DefaultGame where
 
-import ClassyPrelude
-import WaterWars.Core.GameState
-import WaterWars.Core.GameMap
-import WaterWars.Core.Terrain.Block
-import Data.Array.IArray
+import           ClassyPrelude
+import           WaterWars.Core.GameState
+import           WaterWars.Core.GameMap
+import           WaterWars.Core.Terrain.Block
+import           Data.Array.IArray
+import           WaterWars.Core.GameUtils
 
-import Data.List (transpose)
+import           Data.List                                ( transpose )
 
 defaultGameMap :: GameMap
-defaultGameMap = GameMap
-  { gameTerrain = defaultTerrain
-  , gamePlayers = singleton defaultPlayer
-  }
+defaultGameMap = GameMap {gameTerrain = defaultTerrain, gamePlayers = empty}
 
 defaultTerrain :: Terrain
 defaultTerrain = Terrain
-  { terrainBlocks = listArray (BlockLocation (-8, -8), BlockLocation (8, 8))
-                              (concat $ transpose $ reverse
-                              [ [SolidBlock TopLeftCorner] ++ replicate 15 (SolidBlock Ceil) ++ [SolidBlock TopRightCorner]
-                              , [SolidBlock LeftWall, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, SolidBlock RightWall]
-                              , [SolidBlock LeftWall, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, SolidBlock RightWall]
-                              , [SolidBlock LeftWall, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, SolidBlock RightWall]
-                              , [SolidBlock LeftWall, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, SolidBlock RightWall]
-                              , [SolidBlock LeftWall, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, SolidBlock RightWall]
-                              , [SolidBlock LeftWall, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, SolidBlock BottomLeftCorner, SolidBlock Floor, SolidBlock BottomRightCorner, NoBlock, NoBlock, NoBlock, NoBlock, SolidBlock RightWall]
-                              , [SolidBlock LeftWall, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, SolidBlock RightWall]
-                              , [SolidBlock LeftWall, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, SolidBlock RightWall]
-                              , [SolidBlock LeftWall, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, SolidBlock RightWall]
-                              , [SolidBlock LeftWall, NoBlock, NoBlock, NoBlock, SolidBlock BottomLeftCorner, SolidBlock Floor, SolidBlock BottomRightCorner, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, SolidBlock RightWall]
-                              , [SolidBlock LeftWall, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, SolidBlock RightWall]
-                              , [SolidBlock LeftWall, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, SolidBlock RightWall]
-                              , [SolidBlock LeftWall, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, SolidBlock RightWall]
-                              , [SolidBlock LeftWall, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, SolidBlock RightWall]
-                              , [SolidBlock LeftWall, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, NoBlock, SolidBlock RightWall]
-                              , [SolidBlock BottomLeftCorner] ++ replicate 15 (SolidBlock Floor) ++ [SolidBlock BottomRightCorner]
-                              ]
-                              )
-  , terrainBackground = "default"
-  }
+    { terrainBlocks     = listArray
+        (BlockLocation (-8, -8), BlockLocation (8, 8))
+        (concat $ transpose $ reverse
+            [ [SolidBlock TopLeftCorner]
+            ++ replicate 15 (SolidBlock Ceil)
+            ++ [SolidBlock TopRightCorner]
+            , [ SolidBlock LeftWall
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , SolidBlock RightWall
+              ]
+            , [ SolidBlock LeftWall
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , SolidBlock RightWall
+              ]
+            , [ SolidBlock LeftWall
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , SolidBlock RightWall
+              ]
+            , [ SolidBlock LeftWall
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , SolidBlock RightWall
+              ]
+            , [ SolidBlock LeftWall
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , SolidBlock RightWall
+              ]
+            , [ SolidBlock LeftWall
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , SolidBlock BottomLeftCorner
+              , SolidBlock Floor
+              , SolidBlock BottomRightCorner
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , SolidBlock RightWall
+              ]
+            , [ SolidBlock LeftWall
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , SolidBlock RightWall
+              ]
+            , [ SolidBlock LeftWall
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , SolidBlock RightWall
+              ]
+            , [ SolidBlock LeftWall
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , SolidBlock RightWall
+              ]
+            , [ SolidBlock LeftWall
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , SolidBlock BottomLeftCorner
+              , SolidBlock Floor
+              , SolidBlock BottomRightCorner
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , SolidBlock RightWall
+              ]
+            , [ SolidBlock LeftWall
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , SolidBlock RightWall
+              ]
+            , [ SolidBlock LeftWall
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , SolidBlock RightWall
+              ]
+            , [ SolidBlock LeftWall
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , SolidBlock RightWall
+              ]
+            , [ SolidBlock LeftWall
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , SolidBlock RightWall
+              ]
+            , [ SolidBlock LeftWall
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , NoBlock
+              , SolidBlock RightWall
+              ]
+            , [SolidBlock BottomLeftCorner]
+            ++ replicate 15 (SolidBlock Floor)
+            ++ [SolidBlock BottomRightCorner]
+            ]
+        )
+    , terrainBackground = "default"
+    }
 
 defaultGameState :: GameState
 defaultGameState = GameState
-    { inGamePlayers = defaultInGamePlayers
+    { inGamePlayers   = defaultInGamePlayers
     , gameProjectiles = defaultProjectiles
     }
 
 defaultInGamePlayers :: InGamePlayers
-defaultInGamePlayers = InGamePlayers $ fromList [ defaultInGamePlayer ]
+defaultInGamePlayers = InGamePlayers empty
 
+{-
 defaultInGamePlayer :: InGamePlayer
 defaultInGamePlayer = InGamePlayer
     { playerDescription = defaultPlayer
@@ -61,12 +320,9 @@ defaultInGamePlayer = InGamePlayer
 
 defaultPlayer :: Player
 defaultPlayer = Player "Player One"
-
+-}
 defaultProjectiles :: Projectiles
 defaultProjectiles = Projectiles $ singleton defaultProjectile
 
 defaultProjectile :: Projectile
-defaultProjectile = Projectile
-    { projectileLocation = Location (1.0, 1.0)
-    , projectileVelocity = VelocityVector 0.5 0
-    }
+defaultProjectile = newProjectileFromAngle (Location (1.0, 1.0)) (Angle 0)

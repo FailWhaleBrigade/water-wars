@@ -17,16 +17,22 @@ render :: World -> Picture
 render World {..} = Gloss.pictures
     (  [backgroundTexture renderInfo]
     ++ toList solidPictures
-    ++ [playerPicture]
+    ++ playerPictures
     ++ toList projectilePictures
     ++ [mantaPicture]
     )
   where
-    Location (x, y) = playerLocation $ player worldInfo
-    playerPicture =
-        translate (blockSize * x) (blockSize * y)
-            $ color playerColor
-            $ circleSolid 20
+    allPlayers =
+        maybeToList (player worldInfo) ++ toList (otherPlayers worldInfo)
+    playerPictures = map
+        (\p ->
+            let Location (x, y) = playerLocation p
+            in
+                translate (blockSize * x) (blockSize * y + blockSize / 2)
+                $ color playerColor
+                $ circleSolid 20
+        )
+        allPlayers
     projectilePictures =
         map (\p -> projectileToPicture p $ projectileTexture renderInfo)
             (projectiles worldInfo) :: Seq Picture
@@ -39,7 +45,7 @@ solidToPicture solid =
     uncurry translate (solidCenter solid) (solidTexture solid)
 
 projectileToPicture :: Projectile -> Picture -> Picture
-projectileToPicture p tex = scale 0.2 0.2 $ translate x y tex
+projectileToPicture p = translate (x * blockSize) (y * blockSize) . scale 0.2 0.2
     where Location (x, y) = projectileLocation p
 
 animateAnimation :: Animation -> Picture
