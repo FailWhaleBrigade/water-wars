@@ -23,6 +23,7 @@ import           WaterWars.Core.Physics.Utils
 import           Control.Eff.State.Strict
 import           Control.Eff.Reader.Strict
 import           Control.Eff
+import           Data.Array.IArray
 -- import           Control.Monad.Extra                      ( whenJust )
 
 runGameTick :: GameMap -> GameState -> Map Player Action -> GameState
@@ -41,7 +42,8 @@ gameTick
     => Eff e ()
 gameTick = do
     mapMOverPlayers modifyPlayerByAction
-    mapMOverProjectiles (return . moveProjectile) -- TODO: clean projectile
+    mapMOverProjectiles (return . moveProjectile)
+    filterMOverProjectiles boundProjectile
     mapMOverPlayers modifyPlayerByEnvironment
     mapMOverPlayers movePlayer
     return ()
@@ -91,6 +93,13 @@ modifyPlayerShootCooldown player@InGamePlayer {..} =
         then player
         else player { playerShootCooldown = playerShootCooldown - 1 }
 
+boundProjectile
+    :: Member (Reader GameMap) e => Projectile -> Eff e Bool
+boundProjectile Projectile {..} = do
+    mapBounds <- asks $ bounds . terrainBlocks . gameTerrain
+    return $ inRange mapBounds (getBlock projectileLocation)
+
+
 -- TODO: local player-state
 -- apply any shoot action, if possible
 doShootAction
@@ -102,7 +111,7 @@ doShootAction action player@InGamePlayer {..} =
     case (shootAction action, playerShootCooldown) of
         (Just angle, 0) -> do
             addProjectile $ newProjectileFromAngle playerLocation angle
-            return $ player { playerShootCooldown = 20 } -- TODO: game constant
+            return $ player { playerShootCooldown = 10 } -- TODO: game constant
         _ -> return player
 
 -- do gravity, bounding, ...

@@ -78,3 +78,12 @@ mapMOverProjectiles mapping = do
     Projectiles projectiles <- gets gameProjectiles
     newProjectiles          <- mapM mapping projectiles
     modify $ \s -> s { gameProjectiles = Projectiles newProjectiles }
+
+filterMOverProjectiles
+    :: (Member (State GameState) e, Member (Reader GameMap) e)
+    => (Projectile -> Eff e Bool)
+    -> Eff e ()
+filterMOverProjectiles predicate = do
+    Projectiles projectiles <- gets gameProjectiles
+    newProjectiles          <- filterM predicate projectiles
+    modify $ \s -> s { gameProjectiles = Projectiles newProjectiles }

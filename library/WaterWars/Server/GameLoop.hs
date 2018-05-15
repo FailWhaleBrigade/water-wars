@@ -27,7 +27,6 @@ runGameLoop serverStateStm playerActions = forever $ do
         writeTVar serverStateStm newServerState
         return newServerState
     liftIO $ debugM "Server.Connection" "Broadcast new State"
-    liftIO $ debugM "Server.State" $ show (gameProjectiles gameState) ++ show (inGamePlayers gameState)
     broadcast connections (GameStateMessage gameState)
     liftIO $ threadDelay (1000000 `div` 60) -- TODO: this sleep is necessary
 
