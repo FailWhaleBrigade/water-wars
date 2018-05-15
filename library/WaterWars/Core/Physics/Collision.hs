@@ -15,8 +15,8 @@ moveWithCollision terrain startLocation velocity =
         Nothing -> (moveLocation velocity startLocation, velocity)
         Just b  -> collideWithBlock startLocation velocity b
 
-collidingBlock
-    :: Terrain -> Location -> VelocityVector -> Maybe BlockLocation
+collidingBlock :: Terrain -> Location -> VelocityVector -> Maybe BlockLocation
+collidingBlock _ _ (VelocityVector 0 0) = Nothing
 collidingBlock terrain startLocation velocity =
     case (middleBlockSolid, endBlockSolid) of
         (True, _   ) -> middleBlock -- garatueed to be Just
@@ -40,37 +40,59 @@ collidingBlock terrain startLocation velocity =
 collideWithBlock
     :: Location -> VelocityVector -> BlockLocation -> (Location, VelocityVector)
 collideWithBlock startLocation@(Location (x, y)) velocity collideBlock =
-    fromLeft (error "error in implementation of collision") $ do
-        let leftX  = blockLeftX collideBlock
-        let rightX = blockRightX collideBlock
-        let botY   = blockBotY collideBlock
-        let topY   = blockTopY collideBlock
-        when (x <= leftX)
-            . whenJust
-                  (cutBlockBorderX startLocation velocity collideBlock leftX)
-            $ \loc -> Left (loc, velocityOnCollisionX velocity)
-        when (x >= rightX)
-            . whenJust
-                  (cutBlockBorderX startLocation velocity collideBlock rightX)
-            $ \loc -> Left (loc, velocityOnCollisionX velocity)
-        when (y <= botY)
-            . whenJust
-                  (cutBlockBorderY startLocation velocity collideBlock botY)
-            $ \loc -> Left (loc, velocityOnCollisionY velocity)
-        when (y >= topY)
-            . whenJust
-                  (cutBlockBorderY startLocation velocity collideBlock topY)
-            $ \loc -> Left (loc, velocityOnCollisionY velocity)
+    fromLeft
+            -- (startLocation, velocity)
+            (error $ "error in implementation of collision" ++ show
+                (startLocation, velocity, collideBlock)
+            )
+        $ do
+              let leftX  = blockLeftX collideBlock
+              let rightX = blockRightX collideBlock
+              let botY   = blockBotY collideBlock
+              let topY   = blockTopY collideBlock
+              when (x <= leftX)
+                  . whenJust
+                        (cutBlockBorderX startLocation
+                                         velocity
+                                         collideBlock
+                                         leftX
+                        )
+                  $ \loc -> Left (loc, velocityOnCollisionX velocity)
+              when (x >= rightX)
+                  . whenJust
+                        (cutBlockBorderX startLocation
+                                         velocity
+                                         collideBlock
+                                         rightX
+                        )
+                  $ \loc -> Left (loc, velocityOnCollisionX velocity)
+              when (y <= botY)
+                  . whenJust
+                        (cutBlockBorderY startLocation
+                                         velocity
+                                         collideBlock
+                                         botY
+                        )
+                  $ \loc -> Left (loc, velocityOnCollisionY velocity)
+              when (y >= topY)
+                  . whenJust
+                        (cutBlockBorderY startLocation
+                                         velocity
+                                         collideBlock
+                                         topY
+                        )
+                  $ \loc -> Left (loc, velocityOnCollisionY velocity)
 
 cutBlockBorderX
     :: Location -> VelocityVector -> BlockLocation -> Float -> Maybe Location
 cutBlockBorderX (Location (x, y)) (VelocityVector vx vy) block bx = do
     unless (t <= 1)                 Nothing
     unless (inBlockRangeY block by) Nothing
-    Just $ Location (bx, by)
-  where
-    t  = (bx - x) / vx
-    by = y + t * vy
+    Just $ Location (bx - corr, by)
+  where -- solve (x y) + t (vx vy) = (bx by)
+    t    = (bx - x) / vx
+    by   = y + t * vy
+    corr = 0.01 * signum vx -- correction term to avoid sticking to walls
 
 cutBlockBorderY
     :: Location -> VelocityVector -> BlockLocation -> Float -> Maybe Location

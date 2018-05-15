@@ -34,7 +34,7 @@ modifyPlayerVelocity
 modifyPlayerVelocity f p = setPlayerVelocity (f $ playerVelocity p) p
 
 getBlock :: Location -> BlockLocation
-getBlock (Location (x, y)) = BlockLocation (round x, round y)
+getBlock (Location (x, y)) = BlockLocation (round x, round $ y + 0.001)
 
 moveProjectile :: Projectile -> Projectile
 moveProjectile (projectile@Projectile {..}) = projectile

@@ -2,7 +2,7 @@ module WaterWars.Server.GameLoop where
 
 import ClassyPrelude
 
-import System.Log.Logger
+-- import System.Log.Logger
 
 import Control.Concurrent
 
@@ -18,7 +18,7 @@ import WaterWars.Network.Connection
 
 runGameLoop :: MonadIO m => TVar ServerState -> TVar PlayerActions -> m ()
 runGameLoop serverStateStm playerActions = forever $ do
-    liftIO $ debugM "Server.Connection" "Exec Game Loop tick"
+    -- liftIO $ debugM "Server.Connection" "Exec Game Loop tick"
     ServerState {..} <- atomically $ do
         serverState@ServerState {..} <- readTVar serverStateStm
         actions                      <- emptyPlayerActions playerActions
@@ -26,7 +26,7 @@ runGameLoop serverStateStm playerActions = forever $ do
         let newServerState = serverState { gameState = newState }
         writeTVar serverStateStm newServerState
         return newServerState
-    liftIO $ debugM "Server.Connection" "Broadcast new State"
+    -- liftIO $ debugM "Server.Connection" "Broadcast new State"
     broadcast connections (GameStateMessage gameState)
     liftIO $ threadDelay (1000000 `div` 60) -- TODO: this sleep is necessary
 
