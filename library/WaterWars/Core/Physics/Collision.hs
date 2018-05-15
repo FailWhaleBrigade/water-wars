@@ -11,9 +11,16 @@ import           Control.Monad.Extra                      ( whenJust )
 moveWithCollision
     :: Terrain -> Location -> VelocityVector -> (Location, VelocityVector)
 moveWithCollision terrain startLocation velocity =
-    case collidingBlock terrain startLocation velocity of
-        Nothing -> (moveLocation velocity startLocation, velocity)
-        Just b  -> collideWithBlock startLocation velocity b
+    if isSolidAt terrain (getBlock newLocation)
+        then error $ "player enters block " ++ show
+            (startLocation, velocity, newLocation)
+        else (newLocation, newVelocity)
+  where
+    (newLocation, newVelocity) =
+        case collidingBlock terrain startLocation velocity of
+            Nothing -> (moveLocation velocity startLocation, velocity)
+            Just b  -> collideWithBlock startLocation velocity b
+-- TODO: ensure that resulting location is not inside a block
 
 collidingBlock :: Terrain -> Location -> VelocityVector -> Maybe BlockLocation
 collidingBlock _ _ (VelocityVector 0 0) = Nothing
@@ -42,7 +49,7 @@ collideWithBlock
 collideWithBlock startLocation@(Location (x, y)) velocity collideBlock =
     fromLeft
             -- (startLocation, velocity)
-            (error $ "error in implementation of collision" ++ show
+            (error $ "error in implementation of collision " ++ show
                 (startLocation, velocity, collideBlock)
             )
         $ do

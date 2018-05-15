@@ -77,20 +77,43 @@ collisionBlockFind = describe "find collision block" $ do
                                   (VelocityVector (-0.5) (-0.5))
         `shouldBe` Just (BlockLocation (-1, -1))
 
-    mapM_ testForObservedGlitch observedGlitches
+    mapM_ testForObservedGlitch  observedGlitches
+    mapM_ testForObservedGlitch2 observedGlitches2
 
 testForObservedGlitch :: (Location, VelocityVector, BlockLocation) -> Spec
 testForObservedGlitch config@(l, v, _) =
     it ("should not not collide : " ++ show config)
-        $ collidingBlock defaultTerrain l v `shouldBe` Nothing
+        $          collidingBlock defaultTerrain l v
+        `shouldBe` Nothing
+
+testForObservedGlitch2 :: (Location, VelocityVector, Location) -> Spec
+testForObservedGlitch2 config@(l, v, _) =
+    it ("should not not enter block : " ++ show config)
+        $          collidingBlock defaultTerrain l v
+        `shouldBe` Nothing -- TODO: make correct assertion
 
 observedGlitches :: [(Location, VelocityVector, BlockLocation)]
 observedGlitches =
-    [ (Location (-5.2932585e-3,-5.5),VelocityVector (-4.4656962e-2) 0.0,BlockLocation (0,-6))
-    , (Location (7.5,-4.2011304),VelocityVector 0.0 0.2,BlockLocation (8,-4))
-    , (Location (-7.50012,-7.5),VelocityVector (-4.0000003e-2) 0.0,BlockLocation (-8,-7))
-    , (Location (0.48279497,-5.4049997),VelocityVector 4.62041e-2 (-0.23499991),BlockLocation (0,-6))
-    , (Location (7.5026383,-5.5),VelocityVector 6.915821e-3 0.0,BlockLocation (8,-5))
+    [ ( Location (0.48279497, -5.4049997)
+      , VelocityVector 4.62041e-2 (-0.23499991)
+      , BlockLocation (0, -6)
+      )
+    ]
+
+observedGlitches2 :: [(Location, VelocityVector, Location)]
+observedGlitches2 =
+    [ ( Location (7.498761, -4.307909)
+      , VelocityVector 8.644776e-3 (-0.1949999)
+      , Location (7.507277, -4.5)
+      )
+    , ( Location (-2.0688167, -2.5549994)
+      , VelocityVector (-0.105503686) 0.105000064
+      , Location (-2.1240797, -2.5)
+      )
+    , ( Location (-7.498761, -4.4562984)
+      , VelocityVector (-8.644776e-3) (-7.499994e-2)
+      , Location (-7.5037985, -4.5)
+      )
     ]
 
 collisionTargetLocation :: Spec
