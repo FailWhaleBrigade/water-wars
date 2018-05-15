@@ -10,11 +10,15 @@ import           WaterWars.Core.GameUtils
 import           Data.List                                ( transpose )
 
 defaultGameMap :: GameMap
-defaultGameMap = GameMap {gameTerrain = defaultTerrain, gamePlayers = empty}
+defaultGameMap = GameMap
+    { gameTerrain       = defaultTerrain
+    , gamePlayers       = empty
+    , terrainBackground = "default"
+    }
 
 defaultTerrain :: Terrain
 defaultTerrain = Terrain
-    { terrainBlocks     = listArray
+    { terrainBlocks = listArray
         (BlockLocation (-8, -8), BlockLocation (8, 8))
         (concat $ transpose $ reverse
             [ [SolidBlock TopLeftCorner]
@@ -295,7 +299,6 @@ defaultTerrain = Terrain
             ++ [SolidBlock BottomRightCorner]
             ]
         )
-    , terrainBackground = "default"
     }
 
 defaultGameState :: GameState

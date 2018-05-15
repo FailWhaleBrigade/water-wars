@@ -122,7 +122,9 @@ tests:
     - tasty
     - tasty-hspec
     - tasty-hunit
+    - hspec
     - HUnit
+    - array
     ghc-options:
     - -rtsopts
     - -threaded

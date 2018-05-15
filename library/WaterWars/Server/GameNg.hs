@@ -118,5 +118,5 @@ modifyPlayerByEnvironment p = do
     return
         . modifyPlayerVelocity (boundVelocityVector maxVelocity)
         . verticalDragPlayer isOnGround
-        . gravityPlayer
+        . gravityPlayer isOnGround
         $ p

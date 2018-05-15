@@ -5,37 +5,36 @@ import           WaterWars.Core.GameState
 import           WaterWars.Core.GameMap
 import           WaterWars.Core.GameUtils
 import           WaterWars.Core.Physics.Utils
-import           Data.Array.IArray
 import           Data.Either.Combinators                  ( fromLeft )
 import           Control.Monad.Extra                      ( whenJust )
 
 moveWithCollision
-    :: TerrainBlocks -> Location -> VelocityVector -> (Location, VelocityVector)
-moveWithCollision terrainBlocks startLocation velocity =
-    case collidingBlock terrainBlocks startLocation velocity of
+    :: Terrain -> Location -> VelocityVector -> (Location, VelocityVector)
+moveWithCollision terrain startLocation velocity =
+    case collidingBlock terrain startLocation velocity of
         Nothing -> (moveLocation velocity startLocation, velocity)
         Just b  -> collideWithBlock startLocation velocity b
 
 collidingBlock
-    :: TerrainBlocks -> Location -> VelocityVector -> Maybe BlockLocation
-collidingBlock terrainBlocks startLocation velocity =
+    :: Terrain -> Location -> VelocityVector -> Maybe BlockLocation
+collidingBlock terrain startLocation velocity =
     case (middleBlockSolid, endBlockSolid) of
         (True, _   ) -> middleBlock -- garatueed to be Just
         (_   , True) -> Just endBlock
         _            -> Nothing
   where
-    mapBounds     = bounds terrainBlocks
+    mapBounds     = terrainBounds terrain
     startBlock    = getBlock startLocation
     endLocation   = moveLocation velocity startLocation
     endBlock      = getBlock endLocation
-    endBlockSolid = isSolidAt terrainBlocks endBlock
+    endBlockSolid = isSolidAt terrain endBlock
     middleBlock   = if isBlockDiagonal startBlock endBlock
         then
             minimumByMay (compare `on` distanceFromLine' startLocation velocity)
                 $ get4NeighborBlocks mapBounds startBlock
         else Nothing
     middleBlockSolid = case middleBlock of
-        Just b  -> isSolidAt terrainBlocks b
+        Just b  -> isSolidAt terrain b
         Nothing -> False
 
 collideWithBlock

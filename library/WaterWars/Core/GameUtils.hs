@@ -13,6 +13,8 @@ import           WaterWars.Core.GameAction
 import           Data.Array.IArray
 import           WaterWars.Core.Terrain.Block
 
+-- TODO: refactor?
+
 moveLocation :: VelocityVector -> Location -> Location
 moveLocation (VelocityVector dx dy) (Location (x, y)) =
     Location (x + dx, y + dy)
@@ -79,9 +81,9 @@ get4NeighborBlocks mapBounds (BlockLocation (x, y)) = filter
     , BlockLocation (x, y - 1)
     ]
 
-isSolidAt :: TerrainBlocks -> BlockLocation -> Bool
-isSolidAt terrainBlocks location = inRange (bounds terrainBlocks) location
-    && isSolid (terrainBlocks ! location)
+isSolidAt :: Terrain -> BlockLocation -> Bool
+isSolidAt terrain location = inRange (terrainBounds terrain) location
+    && isSolid (terrain `blockAt` location)
 
 manhattanDistance :: BlockLocation -> BlockLocation -> Int
 manhattanDistance (BlockLocation (x1, y1)) (BlockLocation (x2, y2)) =

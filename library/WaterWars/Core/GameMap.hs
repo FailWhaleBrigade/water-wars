@@ -8,24 +8,27 @@ import           WaterWars.Core.GameState
 
 data GameMap = GameMap
   { gameTerrain :: Terrain
-  , gamePlayers :: Seq Player -- TODO: what is this for?
-  }
-  deriving (Show, Read, Eq)
-
-
-type TerrainBlocks = Array BlockLocation Block
-
--- |Terrain description of theBlockId
-data Terrain = Terrain
-  { terrainBlocks :: TerrainBlocks
+  , gamePlayers :: Seq Player -- TODO: what is this for
   , terrainBackground :: String -- TODO: how to send info about background?
   }
   deriving (Show, Read, Eq)
 
 
+-- |Terrain description of theBlockId
+newtype Terrain = Terrain
+  { terrainBlocks :: Array BlockLocation Block
+  }
+  deriving (Show, Read, Eq)
+
+terrainBounds :: Terrain -> (BlockLocation, BlockLocation)
+terrainBounds Terrain{..} = bounds terrainBlocks
+
+blockAt :: Terrain -> BlockLocation -> Block
+blockAt Terrain{..} l = terrainBlocks ! l
+
 instance Semigroup Terrain where
-    Terrain blocks1 _ <> Terrain blocks2 background =
-        Terrain (accum useSolidBlock blocks1 $ assocs blocks2) background
+    Terrain blocks1 <> Terrain blocks2 =
+        Terrain (accum useSolidBlock blocks1 $ assocs blocks2)
         where
             useSolidBlock :: Block -> Block -> Block
             useSolidBlock (SolidBlock x) _ = SolidBlock x

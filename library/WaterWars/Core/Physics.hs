@@ -31,8 +31,9 @@ blockLocationBelowFeet InGamePlayer { playerLocation } =
     let Location (x, y) = playerLocation
     in  BlockLocation (round x, round $ y - 0.001)
 
-gravityPlayer :: InGamePlayer -> InGamePlayer
-gravityPlayer = acceleratePlayer gravityVector
+gravityPlayer :: Bool -> InGamePlayer -> InGamePlayer
+gravityPlayer True = id
+gravityPlayer False = acceleratePlayer gravityVector
 
 gravityProjectile :: Projectile -> Projectile
 gravityProjectile = accelerateProjectile gravityVector
@@ -47,14 +48,14 @@ verticalDragPlayer onGround player@InGamePlayer {..} =
 
 isPlayerOnGround :: Member (Reader GameMap) e => InGamePlayer -> Eff e Bool
 isPlayerOnGround InGamePlayer {..} = do
-    blocks <- asks $ terrainBlocks . gameTerrain
+    blocks <- asks gameTerrain
     let Location (x, y) = playerLocation
     let blockBelowFeet  = BlockLocation (round x, round $ y - 0.001)
     return $ isSolidAt blocks blockBelowFeet
 
 movePlayer :: Member (Reader GameMap) e => InGamePlayer -> Eff e InGamePlayer
 movePlayer player@InGamePlayer {..} = do
-    blocks <- asks $ terrainBlocks . gameTerrain
+    blocks <- asks gameTerrain
     let (targetLocation, newVelocity) =
             moveWithCollision blocks playerLocation playerVelocity
     return player { playerLocation = targetLocation
