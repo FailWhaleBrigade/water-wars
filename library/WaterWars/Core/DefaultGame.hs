@@ -262,9 +262,9 @@ defaultTerrain = Terrain
               , NoBlock
               , NoBlock
               , NoBlock
-              , NoBlock
-              , NoBlock
-              , NoBlock
+              , SolidBlock Middle
+              , SolidBlock Middle
+              , SolidBlock Middle
               , NoBlock
               , NoBlock
               , NoBlock

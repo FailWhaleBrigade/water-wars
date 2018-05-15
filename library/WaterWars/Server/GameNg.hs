@@ -99,7 +99,6 @@ boundProjectile Projectile {..} = do
     return $ inRange mapBounds (getBlock projectileLocation)
 
 
--- TODO: local player-state
 -- apply any shoot action, if possible
 doShootAction
     :: (Member (State GameState) e, Member (State InGamePlayer) e)

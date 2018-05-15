@@ -10,6 +10,8 @@ import           Control.Eff.Reader.Strict
 import           Control.Eff.State.Strict
 import           WaterWars.Core.Physics.Constants
 import           WaterWars.Core.GameAction
+import           Data.Array.IArray
+import           WaterWars.Core.Terrain.Block
 
 moveLocation :: VelocityVector -> Location -> Location
 moveLocation (VelocityVector dx dy) (Location (x, y)) =
@@ -46,7 +48,8 @@ setProjectileVelocity v p = p { projectileVelocity = v }
 
 modifyProjectileVelocity
     :: (VelocityVector -> VelocityVector) -> Projectile -> Projectile
-modifyProjectileVelocity f p = setProjectileVelocity (f $ projectileVelocity p) p
+modifyProjectileVelocity f p =
+    setProjectileVelocity (f $ projectileVelocity p) p
 
 newProjectileFromAngle :: Location -> Angle -> Projectile
 newProjectileFromAngle loc angle =
@@ -65,6 +68,41 @@ addProjectile projectile = do
 angleForRunDirection :: RunDirection -> Angle
 angleForRunDirection RunRight = Angle 0
 angleForRunDirection RunLeft  = Angle pi
+
+get4NeighborBlocks
+    :: (BlockLocation, BlockLocation) -> BlockLocation -> [BlockLocation]
+get4NeighborBlocks mapBounds (BlockLocation (x, y)) = filter
+    (inRange mapBounds)
+    [ BlockLocation (x + 1, y)
+    , BlockLocation (x, y + 1)
+    , BlockLocation (x - 1, y)
+    , BlockLocation (x, y - 1)
+    ]
+
+isSolidAt :: TerrainBlocks -> BlockLocation -> Bool
+isSolidAt terrainBlocks location = inRange (bounds terrainBlocks) location
+    && isSolid (terrainBlocks ! location)
+
+manhattanDistance :: BlockLocation -> BlockLocation -> Int
+manhattanDistance (BlockLocation (x1, y1)) (BlockLocation (x2, y2)) =
+    abs (x2 - x1) + abs (y2 - y1)
+
+blockLeftX :: BlockLocation -> Float
+blockLeftX (BlockLocation (x,_)) = fromIntegral x - 0.5
+blockRightX :: BlockLocation -> Float
+blockRightX (BlockLocation (x,_)) = fromIntegral x + 0.5
+blockBotY :: BlockLocation -> Float
+blockBotY (BlockLocation (_, y)) = fromIntegral y - 0.5
+blockTopY :: BlockLocation -> Float
+blockTopY (BlockLocation (_,y)) = fromIntegral y + 0.5
+blockRangeX :: BlockLocation -> (Float, Float)
+blockRangeX b = (blockLeftX b, blockRightX b)
+blockRangeY :: BlockLocation -> (Float, Float)
+blockRangeY b = (blockBotY b, blockTopY b)
+inBlockRangeX :: BlockLocation -> Float -> Bool
+inBlockRangeX b bx = blockLeftX b <= bx && bx <= blockRightX b
+inBlockRangeY :: BlockLocation -> Float -> Bool
+inBlockRangeY b by = blockBotY b <= by && by <= blockTopY b
 
 asks :: Member (Reader s) r => (s -> a) -> Eff r a
 asks f = map f ask

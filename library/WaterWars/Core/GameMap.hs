@@ -1,9 +1,9 @@
 module WaterWars.Core.GameMap where
 
-import ClassyPrelude
-import WaterWars.Core.Terrain.Block
-import Data.Array.IArray
-import WaterWars.Core.GameState
+import           ClassyPrelude
+import           WaterWars.Core.Terrain.Block
+import           Data.Array.IArray
+import           WaterWars.Core.GameState
 
 
 data GameMap = GameMap
@@ -13,9 +13,11 @@ data GameMap = GameMap
   deriving (Show, Read, Eq)
 
 
+type TerrainBlocks = Array BlockLocation Block
+
 -- |Terrain description of theBlockId
 data Terrain = Terrain
-  { terrainBlocks :: Array BlockLocation Block
+  { terrainBlocks :: TerrainBlocks
   , terrainBackground :: String -- TODO: how to send info about background?
   }
   deriving (Show, Read, Eq)

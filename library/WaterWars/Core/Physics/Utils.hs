@@ -2,6 +2,7 @@ module WaterWars.Core.Physics.Utils where
 
 import           ClassyPrelude
 import           WaterWars.Core.GameState
+import           WaterWars.Core.GameMap
 
 angleFromVector :: VelocityVector -> Angle
 angleFromVector (VelocityVector vx vy) = Angle $ atan2 vx vy
@@ -9,6 +10,15 @@ angleFromVector (VelocityVector vx vy) = Angle $ atan2 vx vy
 velocityBoundX :: Float -> VelocityVector -> VelocityVector
 velocityBoundX maxX v@(VelocityVector vx vy) =
     if abs vx <= maxX then v else VelocityVector (boundedBy (-maxX, maxX) vx) vy
+
+distanceFromLine' :: Location -> VelocityVector -> BlockLocation -> Float
+distanceFromLine' (Location (x, y)) (VelocityVector vx vy) (BlockLocation (bx, by))
+    = (x - fromIntegral bx) * vx + (y - fromIntegral by) * vy
+
+velocityOnCollisionY :: VelocityVector -> VelocityVector
+velocityOnCollisionY (VelocityVector x _) = VelocityVector x 0
+velocityOnCollisionX :: VelocityVector -> VelocityVector
+velocityOnCollisionX (VelocityVector _ y) = VelocityVector 0 y
 
 -- bound velocity vector to be max 0.5 in both directions
 boundVelocityVector :: (Float, Float) -> VelocityVector -> VelocityVector

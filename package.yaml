@@ -37,6 +37,7 @@ library:
   - hslogger
   - stm
   - extra
+  - either
   source-dirs: library
   default-extensions:
   - NamedFieldPuns
