@@ -24,7 +24,7 @@ import           Control.Eff.State.Strict
 import           Control.Eff.Reader.Strict
 import           Control.Eff
 import           Data.Array.IArray
--- import           Control.Monad.Extra                      ( whenJust )
+import           Control.Monad.Extra                      ( whenJust )
 
 runGameTick :: GameMap -> GameState -> Map Player Action -> GameState
 runGameTick gameMap gameState gameAction =
@@ -42,9 +42,9 @@ gameTick
     => Eff e ()
 gameTick = do
     mapMOverPlayers modifyPlayerByAction
+    mapMOverPlayers modifyPlayerByEnvironment
     mapMOverProjectiles (return . moveProjectile)
     filterMOverProjectiles boundProjectile
-    mapMOverPlayers modifyPlayerByEnvironment
     mapMOverPlayers movePlayer
     return ()
 
@@ -56,17 +56,17 @@ modifyPlayerByAction
        )
     => InGamePlayer
     -> Eff e InGamePlayer
-modifyPlayerByAction player = do
+modifyPlayerByAction player = execState player $ do
     actionMap :: Map Player Action <- ask
+    isOnGround                     <- isPlayerOnGround player
     let action =
             fromMaybe noAction $ lookup (playerDescription player) actionMap
-    isOnGround <- isPlayerOnGround player -- TODO: deduplicate
-    player'    <- doShootAction action player -- TODO: local state for player?
-    return
-        . modifyPlayerShootCooldown
-        . modifyPlayerByRunAction isOnGround action
+    doShootAction action
+    modify
+        ( modifyPlayerShootCooldown
+        . modifyPlayerByRunAction isOnGround action -- TODO: use local reader here?
         . modifyPlayerByJumpAction isOnGround action
-        $ player'
+        )
 
 modifyPlayerByJumpAction :: Bool -> Action -> InGamePlayer -> InGamePlayer
 modifyPlayerByJumpAction onGround action player@InGamePlayer {..} =
@@ -93,8 +93,7 @@ modifyPlayerShootCooldown player@InGamePlayer {..} =
         then player
         else player { playerShootCooldown = playerShootCooldown - 1 }
 
-boundProjectile
-    :: Member (Reader GameMap) e => Projectile -> Eff e Bool
+boundProjectile :: Member (Reader GameMap) e => Projectile -> Eff e Bool
 boundProjectile Projectile {..} = do
     mapBounds <- asks $ bounds . terrainBlocks . gameTerrain
     return $ inRange mapBounds (getBlock projectileLocation)
@@ -103,16 +102,14 @@ boundProjectile Projectile {..} = do
 -- TODO: local player-state
 -- apply any shoot action, if possible
 doShootAction
-    :: Member (State GameState) e
+    :: (Member (State GameState) e, Member (State InGamePlayer) e)
     => Action
-    -> InGamePlayer
-    -> Eff e InGamePlayer
-doShootAction action player@InGamePlayer {..} =
-    case (shootAction action, playerShootCooldown) of
-        (Just angle, 0) -> do
-            addProjectile $ newProjectileFromAngle playerLocation angle
-            return $ player { playerShootCooldown = 10 } -- TODO: game constant
-        _ -> return player
+    -> Eff e ()
+doShootAction Action{shootAction} = do
+    InGamePlayer{..} <- get
+    when (playerShootCooldown == 0) $ whenJust shootAction $ \angle -> do
+        addProjectile $ newProjectileFromAngle playerLocation angle
+        modify setPlayerCooldown
 
 -- do gravity, bounding, ...
 modifyPlayerByEnvironment

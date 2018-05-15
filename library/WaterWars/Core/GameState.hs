@@ -65,3 +65,6 @@ newtype Angle = Angle Float
 
 newtype Speed = Speed Float
     deriving (Show, Read, Num, Eq, Floating, Fractional)
+
+data IsOnGround = OnGround | InAir
+    deriving (Show, Read, Enum)

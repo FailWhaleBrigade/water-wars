@@ -35,7 +35,10 @@ blockLocationBelowFeet InGamePlayer { playerLocation } =
 gravityPlayer :: InGamePlayer -> InGamePlayer
 gravityPlayer = acceleratePlayer gravityVector
 
--- TODO: better drag with polar coordinates
+gravityProjectile :: Projectile -> Projectile
+gravityProjectile = accelerateProjectile gravityVector
+
+
 verticalDragPlayer :: Bool -> InGamePlayer -> InGamePlayer
 verticalDragPlayer onGround player@InGamePlayer {..} =
     let VelocityVector vx vy = playerVelocity

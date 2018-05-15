@@ -15,6 +15,9 @@ moveLocation :: VelocityVector -> Location -> Location
 moveLocation (VelocityVector dx dy) (Location (x, y)) =
     Location (x + dx, y + dy)
 
+setPlayerCooldown :: InGamePlayer -> InGamePlayer
+setPlayerCooldown player = player { playerShootCooldown = shootCooldown }
+
 acceleratePlayer :: VelocityVector -> InGamePlayer -> InGamePlayer
 acceleratePlayer v p@InGamePlayer {..} =
     setPlayerVelocity (playerVelocity ++ v) p
@@ -33,6 +36,17 @@ moveProjectile :: Projectile -> Projectile
 moveProjectile (projectile@Projectile {..}) = projectile
     { projectileLocation = moveLocation projectileVelocity projectileLocation
     }
+
+accelerateProjectile :: VelocityVector -> Projectile -> Projectile
+accelerateProjectile v p@Projectile {..} =
+    setProjectileVelocity (projectileVelocity ++ v) p
+
+setProjectileVelocity :: VelocityVector -> Projectile -> Projectile
+setProjectileVelocity v p = p { projectileVelocity = v }
+
+modifyProjectileVelocity
+    :: (VelocityVector -> VelocityVector) -> Projectile -> Projectile
+modifyProjectileVelocity f p = setProjectileVelocity (f $ projectileVelocity p) p
 
 newProjectileFromAngle :: Location -> Angle -> Projectile
 newProjectileFromAngle loc angle =
