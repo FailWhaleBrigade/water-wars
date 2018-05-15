@@ -13,7 +13,7 @@ moveWithCollision
 moveWithCollision terrain startLocation velocity =
     if isSolidAt terrain (getBlock newLocation)
         then error $ "player enters block " ++ show
-            (startLocation, velocity, newLocation)
+            (startLocation, velocity, newLocation, getBlock newLocation)
         else (newLocation, newVelocity)
   where
     (newLocation, newVelocity) =
@@ -78,7 +78,7 @@ collideWithBlock startLocation@(Location (x, y)) velocity collideBlock =
                         (cutBlockBorderY startLocation
                                          velocity
                                          collideBlock
-                                         botY
+                                         (botY - 0.002)
                         )
                   $ \loc -> Left (loc, velocityOnCollisionY velocity)
               when (y >= topY)

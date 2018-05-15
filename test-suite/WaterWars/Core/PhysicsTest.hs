@@ -86,7 +86,8 @@ testForObservedGlitch config@(l, v, _) =
         $          collidingBlock defaultTerrain l v
         `shouldBe` Nothing
 
-testForObservedGlitch2 :: (Location, VelocityVector, Location) -> Spec
+testForObservedGlitch2
+    :: (Location, VelocityVector, Location, BlockLocation) -> Spec
 testForObservedGlitch2 config@(l, v, _) =
     it ("should not not enter block : " ++ show config)
         $          collidingBlock defaultTerrain l v
@@ -98,21 +99,22 @@ observedGlitches =
       , VelocityVector 4.62041e-2 (-0.23499991)
       , BlockLocation (0, -6)
       )
+    , ( Location (-2.4680746, -2.5549994)
+      , VelocityVector (-9.483214e-2) 0.105000064
+      , BlockLocation (-2, -2)
+      )
+    , ( Location (7.498761, -7.297317)
+      , VelocityVector 8.644776e-3 (-0.38499972)
+      , BlockLocation (7, -8)
+      )
     ]
 
-observedGlitches2 :: [(Location, VelocityVector, Location)]
+observedGlitches2 :: [(Location, VelocityVector, Location, BlockLocation)]
 observedGlitches2 =
-    [ ( Location (7.498761, -4.307909)
-      , VelocityVector 8.644776e-3 (-0.1949999)
-      , Location (7.507277, -4.5)
-      )
-    , ( Location (-2.0688167, -2.5549994)
-      , VelocityVector (-0.105503686) 0.105000064
-      , Location (-2.1240797, -2.5)
-      )
-    , ( Location (-7.498761, -4.4562984)
-      , VelocityVector (-8.644776e-3) (-7.499994e-2)
-      , Location (-7.5037985, -4.5)
+    [ ( Location (7.495284, -1.3799889)
+      , VelocityVector 8.912142e-2 (-0.28499982)
+      , Location (7.5328126, -1.5)
+      , BlockLocation (8, -1)
       )
     ]
 
