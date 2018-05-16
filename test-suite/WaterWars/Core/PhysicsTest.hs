@@ -1,3 +1,5 @@
+{-# LANGUAGE TupleSections #-}
+
 module WaterWars.Core.PhysicsTest where
 
 import           Test.Hspec
@@ -25,6 +27,12 @@ terrainWithBlockAt location = Terrain $ accumArray
     NoBlock
     smallBounds
     [(location, SolidBlock Middle)]
+
+terrainWithBlocksAt :: [BlockLocation] -> Terrain
+terrainWithBlocksAt locations =
+    Terrain $ accumArray (flip const) NoBlock smallBounds $ map
+        (, SolidBlock Middle)
+        locations
 
 collisionTests :: Spec
 collisionTests = do
@@ -76,7 +84,12 @@ collisionBlockFind = describe "find collision block" $ do
                                   (Location (-0.3, -0.3))
                                   (VelocityVector (-0.5) (-0.5))
         `shouldBe` Just (BlockLocation (-1, -1))
-
+    it "should collide with top block when going top right"
+        $          collidingBlock
+                       (terrainWithBlocksAt [BlockLocation (0, 1), BlockLocation (1, 1)])
+                       (Location (0.2, 0.4))
+                       (VelocityVector 0.5 0.5)
+        `shouldBe` Just (BlockLocation (0, 1))
     mapM_ testForObservedGlitch  observedGlitches
     mapM_ testForObservedGlitch2 observedGlitches2
 
@@ -88,35 +101,18 @@ testForObservedGlitch config@(l, v, _) =
 
 testForObservedGlitch2
     :: (Location, VelocityVector, Location, BlockLocation) -> Spec
-testForObservedGlitch2 config@(l, v, _) =
+testForObservedGlitch2 config@(l, v, _, b) =
     it ("should not not enter block : " ++ show config)
         $          collidingBlock defaultTerrain l v
-        `shouldBe` Nothing -- TODO: make correct assertion
+        `shouldBe` Just b
 
 observedGlitches :: [(Location, VelocityVector, BlockLocation)]
-observedGlitches =
-    [ ( Location (0.48279497, -5.4049997)
-      , VelocityVector 4.62041e-2 (-0.23499991)
-      , BlockLocation (0, -6)
-      )
-    , ( Location (-2.4680746, -2.5549994)
-      , VelocityVector (-9.483214e-2) 0.105000064
-      , BlockLocation (-2, -2)
-      )
-    , ( Location (7.498761, -7.297317)
-      , VelocityVector 8.644776e-3 (-0.38499972)
-      , BlockLocation (7, -8)
-      )
-    ]
+observedGlitches = []
 
 observedGlitches2 :: [(Location, VelocityVector, Location, BlockLocation)]
-observedGlitches2 =
-    [ ( Location (7.495284, -1.3799889)
-      , VelocityVector 8.912142e-2 (-0.28499982)
-      , Location (7.5328126, -1.5)
-      , BlockLocation (8, -1)
-      )
-    ]
+observedGlitches2 = []
+
+-- TODO: detailled tests for middle-blocks
 
 collisionTargetLocation :: Spec
 collisionTargetLocation = describe "find location after collision with" $ do
@@ -124,7 +120,7 @@ collisionTargetLocation = describe "find location after collision with" $ do
         $          collideWithBlock (Location (0, 0.3))
                                     (VelocityVector 0 0.5)
                                     (BlockLocation (0, 1))
-        `shouldBe` (Location (0, 0.5), VelocityVector 0 0)
+        `shouldBe` (Location (0, 0.498), VelocityVector 0 0)
     it "should collide with bottom block"
         $          collideWithBlock (Location (0, -0.3))
                                     (VelocityVector 0 (-0.5))
@@ -154,12 +150,12 @@ collisionTargetLocation = describe "find location after collision with" $ do
         $          collideWithBlock (Location (0.4, 0.3))
                                     (VelocityVector 0.5 0.5)
                                     (BlockLocation (1, 1))
-        `shouldBe` (Location (0.6, 0.5), VelocityVector 0.5 0)
+        `shouldBe` (Location (0.598, 0.498), VelocityVector 0.5 0)
     it "should collide with top left corner down"
         $          collideWithBlock (Location (-0.4, 0.3))
                                     (VelocityVector (-0.5) 0.5)
                                     (BlockLocation (-1, 1))
-        `shouldBe` (Location (-0.6, 0.5), VelocityVector (-0.5) 0)
+        `shouldBe` (Location (-0.598, 0.498), VelocityVector (-0.5) 0)
     it "should collide with bottom right corner down"
         $          collideWithBlock (Location (0.3, -0.4))
                                     (VelocityVector 0.5 (-0.5))

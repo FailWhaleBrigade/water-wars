@@ -30,7 +30,6 @@ collidingBlock terrain startLocation velocity =
         (_   , True) -> Just endBlock
         _            -> Nothing
   where
-    mapBounds     = terrainBounds terrain
     startBlock    = getBlock startLocation
     endLocation   = moveLocation velocity startLocation
     endBlock      = getBlock endLocation
@@ -38,11 +37,12 @@ collidingBlock terrain startLocation velocity =
     middleBlock   = if isBlockDiagonal startBlock endBlock
         then
             minimumByMay (compare `on` distanceFromLine' startLocation velocity)
-                $ get4NeighborBlocks mapBounds startBlock
+                $ tupleToList $ getNextToDiagonal startBlock endBlock
         else Nothing
     middleBlockSolid = case middleBlock of
         Just b  -> isSolidAt terrain b
         Nothing -> False
+    tupleToList (a,b) = [a,b] -- TODO: refactor
 
 collideWithBlock
     :: Location -> VelocityVector -> BlockLocation -> (Location, VelocityVector)

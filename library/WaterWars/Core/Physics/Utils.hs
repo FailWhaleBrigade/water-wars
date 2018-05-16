@@ -13,7 +13,12 @@ velocityBoundX maxX v@(VelocityVector vx vy) =
 
 distanceFromLine' :: Location -> VelocityVector -> BlockLocation -> Float
 distanceFromLine' (Location (x, y)) (VelocityVector vx vy) (BlockLocation (bx, by))
-    = (x - fromIntegral bx) * vx + (y - fromIntegral by) * vy
+    = abs $ (x - fromIntegral bx) * nx + (y - fromIntegral by) * ny
+    where
+        nx = vy
+        ny = -vx
+
+-- TODO: test distance.
 
 velocityOnCollisionY :: VelocityVector -> VelocityVector
 velocityOnCollisionY (VelocityVector x _) = VelocityVector x 0

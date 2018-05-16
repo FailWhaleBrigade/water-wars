@@ -81,6 +81,12 @@ get4NeighborBlocks mapBounds (BlockLocation (x, y)) = filter
     , BlockLocation (x, y - 1)
     ]
 
+-- TODO: comment
+getNextToDiagonal
+    :: BlockLocation -> BlockLocation -> (BlockLocation, BlockLocation)
+getNextToDiagonal (BlockLocation (b1x, b1y)) (BlockLocation (b2x, b2y)) =
+    (BlockLocation (b1x, b2y), BlockLocation (b2x, b1y))
+
 isSolidAt :: Terrain -> BlockLocation -> Bool
 isSolidAt terrain location = inRange (terrainBounds terrain) location
     && isSolid (terrain `blockAt` location)
@@ -90,13 +96,13 @@ manhattanDistance (BlockLocation (x1, y1)) (BlockLocation (x2, y2)) =
     abs (x2 - x1) + abs (y2 - y1)
 
 blockLeftX :: BlockLocation -> Float
-blockLeftX (BlockLocation (x,_)) = fromIntegral x - 0.5
+blockLeftX (BlockLocation (x, _)) = fromIntegral x - 0.5
 blockRightX :: BlockLocation -> Float
-blockRightX (BlockLocation (x,_)) = fromIntegral x + 0.5
+blockRightX (BlockLocation (x, _)) = fromIntegral x + 0.5
 blockBotY :: BlockLocation -> Float
 blockBotY (BlockLocation (_, y)) = fromIntegral y - 0.5
 blockTopY :: BlockLocation -> Float
-blockTopY (BlockLocation (_,y)) = fromIntegral y + 0.5
+blockTopY (BlockLocation (_, y)) = fromIntegral y + 0.5
 blockRangeX :: BlockLocation -> (Float, Float)
 blockRangeX b = (blockLeftX b, blockRightX b)
 blockRangeY :: BlockLocation -> (Float, Float)
