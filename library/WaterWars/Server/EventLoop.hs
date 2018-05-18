@@ -88,6 +88,8 @@ newInGamePlayer player location = InGamePlayer
     , playerLastRunDirection = RunLeft
     , playerVelocity         = VelocityVector 0 0
     , playerShootCooldown    = 0
+    , playerWidth            = 0.95
+    , playerHeight           = 1.52
     }
 
 -- utility functions to retrieve connections

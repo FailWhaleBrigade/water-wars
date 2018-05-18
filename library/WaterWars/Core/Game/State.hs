@@ -31,6 +31,8 @@ data InGamePlayer = InGamePlayer
     , playerLastRunDirection :: RunDirection
     , playerVelocity :: VelocityVector
     , playerShootCooldown :: Int
+    , playerWidth :: Float
+    , playerHeight :: Float
     }
     deriving (Show, Read, Eq)
 
