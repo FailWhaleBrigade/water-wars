@@ -69,6 +69,7 @@ update _ World {..} =
     let worldAnimated = World
             { renderInfo = renderInfo
                 { mantaAnimation = updateAnimation (mantaAnimation renderInfo)
+                , playerAnimation = updateAnimation (playerAnimation renderInfo)
                 }
             , ..
             }

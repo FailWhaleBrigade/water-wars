@@ -35,6 +35,8 @@ setup = do
     bgTex     <- loadPngAsBmp "resources/textures/background/background.png"
     prjTex    <- loadPngAsBmp "resources/textures/decoration/bubble.png"
     playerTex <- loadPngAsBmp "resources/textures/mermaid/idle/mermaid1.png"
+    playerRunningTexs <- bulkLoad $ fromList
+        (getMermaidPaths "resources/textures/mermaid/running/mermaid" 1)
     mantaTexs <- bulkLoad $ fromList
         [ "resources/textures/manta_animation/manta1.png"
         , "resources/textures/manta_animation/manta2.png"
@@ -43,6 +45,10 @@ setup = do
         ]
     blockMap <- loadBlockMap
     return (bgTex, prjTex, playerTex, toList mantaTexs, blockMap)
+
+getMermaidPaths :: String -> Int -> [String]
+getMermaidPaths _ 15 = []
+getMermaidPaths pathStart ind = (pathStart ++ (show ind) ++ ".png") : (getMermaidPaths pathStart (ind + 1))
 
 main :: IO ()
 main = do
