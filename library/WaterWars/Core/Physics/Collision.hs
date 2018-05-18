@@ -35,20 +35,25 @@ collidingBlock terrain startLocation velocity =
     middleBlock   = if isBlockDiagonal startBlock endBlock
         then
             minimumByMay (compare `on` distanceFromLine' startLocation velocity)
-                $ tupleToList $ getNextToDiagonal startBlock endBlock
+            $ tupleToList
+            $ getNextToDiagonal startBlock endBlock
         else Nothing
     middleBlockSolid = case middleBlock of
         Just b  -> isSolidAt terrain b
         Nothing -> False
-    tupleToList (a,b) = [a,b] -- TODO: refactor
+    tupleToList (a, b) = [a, b] -- TODO: refactor
 
 collideWithBlock
     :: Location -> VelocityVector -> BlockLocation -> (Location, VelocityVector)
 collideWithBlock startLocation@(Location (x, y)) velocity collideBlock =
     fromLeft
-            -- (startLocation, velocity)
-            (error $ "error in implementation of collision " ++ show
-                (startLocation, velocity, collideBlock)
+            -- (startLocation, velocity) -- TODO: moveLocation instead?
+            (error $ "contradiction if player collides with block " ++ show
+                ( startLocation
+                , velocity
+                , moveLocation velocity startLocation
+                , collideBlock
+                )
             )
         $ do
               let leftX  = blockLeftX collideBlock
@@ -79,7 +84,7 @@ collideWithBlock startLocation@(Location (x, y)) velocity collideBlock =
                                          (botY - 0.002)
                         )
                   $ \loc -> Left (loc, velocityOnCollisionY velocity)
-              when (y >= topY)
+              when (y >= topY - 0.001) -- TODO: constant for block-hover
                   . whenJust
                         (cutBlockBorderY startLocation
                                          velocity

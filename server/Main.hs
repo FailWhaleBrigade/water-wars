@@ -79,6 +79,7 @@ main = do
                 . decodeUtf8
                 $ content
 
+
     -- Initialize server state
     broadcastChan   <- atomically newBroadcastTChan
     serverStateTvar <- newTVarIO $ serverStateWithTerrain terrain

@@ -6,7 +6,7 @@ import           Test.Hspec
 import           ClassyPrelude
 import           WaterWars.Core.Physics.Collision
 import           WaterWars.Core.Game
-import           WaterWars.Core.DefaultGame
+import           WaterWars.Core.Terrains
 import           Data.Array.IArray
 
 
@@ -88,30 +88,38 @@ collisionBlockFind = describe "find collision block" $ do
                        (Location (0.2, 0.4))
                        (VelocityVector 0.5 0.5)
         `shouldBe` Just (BlockLocation (0, 1))
-    mapM_ testForObservedGlitch  observedGlitches
-    mapM_ testForObservedGlitch2 observedGlitches2
+    mapM_ testForObservedGhostCollide observedGhostCollide
+    mapM_ testForObservedEnteredBlock observedEnteredBlocks
 
-testForObservedGlitch :: (Location, VelocityVector, BlockLocation) -> Spec
-testForObservedGlitch config@(l, v, _) =
-    it ("should not not collide : " ++ show config)
-        $          collidingBlock defaultTerrain l v
+testForObservedGhostCollide
+    :: (Terrain, Location, VelocityVector, Location, BlockLocation) -> Spec
+testForObservedGhostCollide (t, l, v, l1, b) =
+    it ("should not not collide : " ++ show (l, v, b, l1))
+        $          collidingBlock t l v
         `shouldBe` Nothing
 
-testForObservedGlitch2
-    :: (Location, VelocityVector, Location, BlockLocation) -> Spec
-testForObservedGlitch2 config@(l, v, _, b) =
-    it ("should not not enter block : " ++ show config)
-        $          collidingBlock defaultTerrain l v
+testForObservedEnteredBlock
+    :: (Terrain, Location, VelocityVector, Location, BlockLocation) -> Spec
+testForObservedEnteredBlock (t, l, v, l1, b) =
+    it ("should not not enter block : " ++ show (l, v, l1, b))
+        $          collidingBlock t l v
         `shouldBe` Just b
 
-observedGlitches :: [(Location, VelocityVector, BlockLocation)]
-observedGlitches = []
+observedGhostCollide :: [(Terrain, Location, VelocityVector, Location, BlockLocation)]
+observedGhostCollide = []
 
-observedGlitches2 :: [(Location, VelocityVector, Location, BlockLocation)]
-observedGlitches2 = []
+observedEnteredBlocks
+    :: [(Terrain, Location, VelocityVector, Location, BlockLocation)]
+observedEnteredBlocks =
+    [ ( terrain2
+      , Location (-7, 1.4990239)
+      , VelocityVector 0 (-0.18999991)
+      , moveLocation (VelocityVector 0 (-0.18999991)) $ Location (-7, 1.4990239)
+      , BlockLocation (-7, 1)
+      )
+    ]
 
--- (Location (-6.49,-1.5009279),VelocityVector 0.0 (-0.14499995),BlockLocation (-6,-2))
--- (Location (-6.9558063,1.4990239),VelocityVector (-6.312152e-2) (-0.18999991),BlockLocation (-7,1))
+
 
 -- TODO: detailled tests for middle-blocks
 
