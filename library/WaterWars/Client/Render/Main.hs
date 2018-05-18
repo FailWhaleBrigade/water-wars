@@ -30,7 +30,7 @@ backgroundColor = white
 
 setup
     :: (MonadIO m, MonadError String m)
-    => m (Picture, Picture, Picture, [Picture], BlockMap)
+    => m (Picture, Picture, Picture, [Picture], [Picture], BlockMap)
 setup = do
     bgTex     <- loadPngAsBmp "resources/textures/background/background.png"
     prjTex    <- loadPngAsBmp "resources/textures/decoration/bubble.png"
@@ -44,7 +44,7 @@ setup = do
         , "resources/textures/manta_animation/manta4.png"
         ]
     blockMap <- loadBlockMap
-    return (bgTex, prjTex, playerTex, toList mantaTexs, blockMap)
+    return (bgTex, prjTex, playerTex, toList playerRunningTexs, toList mantaTexs, blockMap)
 
 getMermaidPaths :: String -> Int -> [String]
 getMermaidPaths _ 15 = []
@@ -58,8 +58,8 @@ main = do
     resources <- runExceptT setup
     case resources of
         Left  err -> putStrLn $ "Could not load texture. Cause: " ++ tshow err
-        Right (bgTex, prjTex, playerTex, mantaTexs, blocks) -> do
-            worldStm <- initializeState bgTex prjTex playerTex mantaTexs blocks
+        Right (bgTex, prjTex, playerTex, playerRunningTexs, mantaTexs, blocks) -> do
+            worldStm <- initializeState bgTex prjTex playerTex playerRunningTexs mantaTexs blocks
             _        <-
                 async {- Should never terminate -}
                     (connectionThread Nothing

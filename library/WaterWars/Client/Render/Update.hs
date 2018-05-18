@@ -70,6 +70,7 @@ update _ World {..} =
             { renderInfo = renderInfo
                 { mantaAnimation = updateAnimation (mantaAnimation renderInfo)
                 , playerAnimation = updateAnimation (playerAnimation renderInfo)
+                , playerRunningAnimation = updateAnimation (playerRunningAnimation renderInfo)
                 }
             , ..
             }

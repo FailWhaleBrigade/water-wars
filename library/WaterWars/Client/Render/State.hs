@@ -48,6 +48,7 @@ data RenderInfo = RenderInfo
     , backgroundTexture :: Picture
     , projectileTexture :: Picture
     , playerAnimation :: Animation
+    , playerRunningAnimation :: Animation
     , solids :: Seq Solid
     , mantaAnimation :: Animation
     } deriving Show
@@ -66,28 +67,41 @@ data WorldInfo = WorldInfo
     } deriving Show
 
 initializeState
-    :: Picture -> Picture -> Picture -> [Picture] -> BlockMap -> IO WorldSTM
-initializeState bmpBg bmpPrj playerTex bmpsMan blockMap' =
+    :: Picture
+    -> Picture
+    -> Picture
+    -> [Picture]
+    -> [Picture]
+    -> BlockMap
+    -> IO WorldSTM
+initializeState bmpBg bmpPrj playerTex playerRunningTexs bmpsMan blockMap' =
     WorldSTM <$> newTVarIO World
         { renderInfo  = RenderInfo
-            { blockMap          = blockMap'
-            , backgroundTexture = bmpBg
-            , projectileTexture = bmpPrj
-            , playerAnimation   = Animation
-                { location           = Location (100, -50)
-                , countDownTilNext   = 30
-                , countDownMax       = 30
+            { blockMap               = blockMap'
+            , backgroundTexture      = bmpBg
+            , projectileTexture      = bmpPrj
+            , playerAnimation        = Animation
+                { location          = Location (100, -50)
+                , countDownTilNext  = 30
+                , countDownMax      = 30
                 , animationPictures = cycle [playerTex]
-                , picInd             = 0
+                , picInd            = 0
                 }
-            , mantaAnimation    = Animation
+            , playerRunningAnimation = Animation
+                { location          = Location (100, -50)
+                , countDownTilNext  = 5
+                , countDownMax      = 5
+                , animationPictures = cycle playerRunningTexs
+                , picInd            = 0
+                }
+            , mantaAnimation         = Animation
                 { location          = Location (100, -100)
                 , countDownTilNext  = 30
                 , countDownMax      = 30
                 , animationPictures = cycle bmpsMan
                 , picInd            = 0
                 }
-            , solids            = empty
+            , solids                 = empty
             }
         , worldInfo   = WorldInfo
             { jump          = False
@@ -140,4 +154,5 @@ blockLocationToSolid mapWidthHalf mapHeightHalf size (BlockLocation (x, y)) pict
                          )
         , solidTexture = picture
         }
+
 
