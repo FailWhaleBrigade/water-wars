@@ -1,7 +1,7 @@
 module WaterWars.Core.Physics.Constants where
 
 import ClassyPrelude
-import WaterWars.Core.GameState
+import WaterWars.Core.Game.State
 
 gravityForce :: Float
 gravityForce = 0.005

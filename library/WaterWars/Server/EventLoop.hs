@@ -1,14 +1,14 @@
 module WaterWars.Server.EventLoop where
 
-import ClassyPrelude
+import           ClassyPrelude
 
-import System.Log.Logger
+import           System.Log.Logger
 
-import WaterWars.Network.Protocol
-import WaterWars.Network.Connection
+import           WaterWars.Network.Protocol
+import           WaterWars.Network.Connection
 
-import WaterWars.Core.GameState
-import WaterWars.Server.ConnectionMgnt
+import           WaterWars.Core.Game
+import           WaterWars.Server.ConnectionMgnt
 
 eventLoop
     :: MonadIO m
@@ -81,13 +81,13 @@ eventLoop broadcastChan tvar playerActionTvar sessionMap = do
 -- utility functions for creation
 newInGamePlayer :: Player -> Location -> InGamePlayer
 newInGamePlayer player location = InGamePlayer
-    { playerDescription   = player
-    , playerLocation      = location
-    , playerHealth        = 10
-    , playerMaxHealth     = 10
-    , playerViewDirection = Angle 0.0
-    , playerVelocity      = VelocityVector 0 0
-    , playerShootCooldown = 0
+    { playerDescription      = player
+    , playerLocation         = location
+    , playerHealth           = 10
+    , playerMaxHealth        = 10
+    , playerLastRunDirection = RunLeft
+    , playerVelocity         = VelocityVector 0 0
+    , playerShootCooldown    = 0
     }
 
 -- utility functions to retrieve connections

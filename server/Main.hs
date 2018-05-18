@@ -12,9 +12,7 @@ import           Data.UUID
 import           Data.UUID.V4
 
 import           WaterWars.Core.DefaultGame
-import           WaterWars.Core.GameMap
-import           WaterWars.Core.Terrain.Block
-
+import           WaterWars.Core.Game
 
 import           WaterWars.Network.Protocol    as Protocol
 

@@ -1,8 +1,7 @@
 module WaterWars.Core.Physics.Utils where
 
 import           ClassyPrelude
-import           WaterWars.Core.GameState
-import           WaterWars.Core.GameMap
+import           WaterWars.Core.Game
 
 angleFromVector :: VelocityVector -> Angle
 angleFromVector (VelocityVector vx vy) = Angle $ atan2 vx vy

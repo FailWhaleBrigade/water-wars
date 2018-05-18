@@ -15,10 +15,9 @@ import WaterWars.Client.Network.State (NetworkConfig(..), NetworkInfo(..), Conne
 import WaterWars.Network.Protocol as Protocol
 import WaterWars.Network.Connection
 
-import WaterWars.Core.GameState ()
-import WaterWars.Core.GameMap as CoreState
-import WaterWars.Core.GameAction as CoreState
-import           WaterWars.Core.GameUtils
+import WaterWars.Core.Game.Map as CoreState
+import WaterWars.Core.Game.Action as CoreState
+import           WaterWars.Core.Game.Utils
 
 
 -- |Name of the component for the logger

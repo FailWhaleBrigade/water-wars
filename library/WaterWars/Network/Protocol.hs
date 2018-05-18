@@ -4,9 +4,9 @@ module WaterWars.Network.Protocol where
 import ClassyPrelude
 
 import WaterWars.Network.Connection
-import qualified WaterWars.Core.GameState as CoreState
-import qualified WaterWars.Core.GameMap as CoreState
-import qualified WaterWars.Core.GameAction as CoreAction
+import qualified WaterWars.Core.Game.State as CoreState
+import qualified WaterWars.Core.Game.Map as CoreState
+import qualified WaterWars.Core.Game.Action as CoreAction
 
 -- |Datatype to login to a game server.
 -- So far, only a reconnect options is supported.
@@ -73,4 +73,3 @@ instance Serializable ClientMessage where
     serialize = tshow
 instance Deserializable ClientMessage where
     deserialize = readMay
-

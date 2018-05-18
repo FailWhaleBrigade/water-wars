@@ -1,9 +1,7 @@
 module WaterWars.Core.Physics.Collision where
 
 import           ClassyPrelude
-import           WaterWars.Core.GameState
-import           WaterWars.Core.GameMap
-import           WaterWars.Core.GameUtils
+import           WaterWars.Core.Game
 import           WaterWars.Core.Physics.Utils
 import           Data.Either.Combinators                  ( fromLeft )
 import           Control.Monad.Extra                      ( whenJust )

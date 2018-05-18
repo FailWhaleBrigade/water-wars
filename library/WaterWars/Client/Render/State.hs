@@ -1,6 +1,5 @@
 module WaterWars.Client.Render.State
-    ( module WaterWars.Core.GameState
-    , Animation(..)
+    ( Animation(..)
     , World(..)
     , WorldSTM(..)
     , RenderInfo(..)
@@ -21,13 +20,11 @@ import WaterWars.Client.Resources.Block
 
 import qualified WaterWars.Client.Network.State as NetworkState
 
-import qualified WaterWars.Core.GameState as CoreState
-import qualified WaterWars.Core.GameMap as CoreState
+import qualified WaterWars.Core.Game.State as CoreState
+import qualified WaterWars.Core.Game.Map as CoreState
 import qualified WaterWars.Core.DefaultGame as DefaultGame
 
-import WaterWars.Core.GameState
-import WaterWars.Core.GameMap
-import WaterWars.Core.GameAction
+import WaterWars.Core.Game
 
 newtype WorldSTM = WorldSTM (TVar World)
 

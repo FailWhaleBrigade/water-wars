@@ -1,7 +1,11 @@
-module WaterWars.Core.GameAction where
+module WaterWars.Core.Game.Action
+    ( module WaterWars.Core.Game.Action
+    , module WaterWars.Core.Game.Base
+    )
+where
 
-import ClassyPrelude
-import WaterWars.Core.GameState
+import           ClassyPrelude
+import           WaterWars.Core.Game.Base
 
 data Action = Action
     { runAction :: Maybe RunAction
@@ -20,12 +24,8 @@ instance Monoid Action where
     mempty = Action Nothing Nothing Nothing
     mappend = (<>)
 
-
 newtype RunAction = RunAction RunDirection
     deriving (Show, Read, Eq)
-
-data RunDirection = RunLeft | RunRight
-    deriving (Show, Read, Eq, Enum, Bounded)
 
 data JumpAction = JumpAction
     deriving (Show, Read, Eq)

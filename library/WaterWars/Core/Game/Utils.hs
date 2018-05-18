@@ -1,17 +1,22 @@
-module WaterWars.Core.GameUtils where
+module WaterWars.Core.Game.Utils
+    ( module WaterWars.Core.Game.Utils
+    , module WaterWars.Core.Game.State
+    , module WaterWars.Core.Game.Map
+    , module WaterWars.Core.Game.Action
+    )
+where
 
 import           ClassyPrelude                     hiding ( Reader
                                                           , ask
                                                           )
-import           WaterWars.Core.GameState
-import           WaterWars.Core.GameMap
+import           WaterWars.Core.Game.State
+import           WaterWars.Core.Game.Map
+import           WaterWars.Core.Game.Action
 import           Control.Eff
 import           Control.Eff.Reader.Strict
 import           Control.Eff.State.Strict
 import           WaterWars.Core.Physics.Constants
-import           WaterWars.Core.GameAction
 import           Data.Array.IArray
-import           WaterWars.Core.Terrain.Block
 
 -- TODO: refactor?
 

@@ -13,10 +13,7 @@ import           ClassyPrelude                     hiding ( Reader
                                                           , ask
                                                           , asks
                                                           )
-import           WaterWars.Core.GameState
-import           WaterWars.Core.GameMap
-import           WaterWars.Core.GameUtils
-import           WaterWars.Core.GameAction
+import           WaterWars.Core.Game
 import           WaterWars.Core.Physics
 import           WaterWars.Core.Physics.Constants
 import           WaterWars.Core.Physics.Utils

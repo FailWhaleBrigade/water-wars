@@ -6,9 +6,7 @@ import ClassyPrelude
 
 import Control.Concurrent
 
-import WaterWars.Core.GameState
-import WaterWars.Core.GameMap
-import WaterWars.Core.GameAction
+import WaterWars.Core.Game
 
 import WaterWars.Server.ConnectionMgnt
 import WaterWars.Server.GameNg

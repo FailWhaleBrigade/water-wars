@@ -3,11 +3,8 @@ module WaterWars.Core.Physics where
 import           ClassyPrelude                     hiding ( Reader
                                                           , asks
                                                           )
-import           WaterWars.Core.GameState
-import           WaterWars.Core.GameMap
-import           WaterWars.Core.GameUtils
+import           WaterWars.Core.Game
 import           WaterWars.Core.Physics.Constants
-import           WaterWars.Core.GameAction
 import           WaterWars.Core.Physics.Collision
 import           Control.Eff
 import           Control.Eff.Reader.Strict

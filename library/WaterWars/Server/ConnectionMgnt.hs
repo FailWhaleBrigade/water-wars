@@ -22,9 +22,7 @@ import qualified Network.WebSockets as WS
 import WaterWars.Network.Protocol
 import WaterWars.Network.Connection
 
-import WaterWars.Core.GameState
-import WaterWars.Core.GameMap
-import WaterWars.Core.GameAction
+import WaterWars.Core.Game
 
 data ServerState = ServerState
     { connections :: Connections

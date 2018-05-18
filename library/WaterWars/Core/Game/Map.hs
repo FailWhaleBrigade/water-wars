@@ -1,9 +1,13 @@
-module WaterWars.Core.GameMap where
+module WaterWars.Core.Game.Map
+    ( module WaterWars.Core.Game.Map
+    , module WaterWars.Core.Terrain.Block
+    )
+where
 
 import           ClassyPrelude
 import           WaterWars.Core.Terrain.Block
 import           Data.Array.IArray
-import           WaterWars.Core.GameState
+import           WaterWars.Core.Game.State
 
 
 data GameMap = GameMap
@@ -21,10 +25,10 @@ newtype Terrain = Terrain
   deriving (Show, Read, Eq)
 
 terrainBounds :: Terrain -> (BlockLocation, BlockLocation)
-terrainBounds Terrain{..} = bounds terrainBlocks
+terrainBounds Terrain {..} = bounds terrainBlocks
 
 blockAt :: Terrain -> BlockLocation -> Block
-blockAt Terrain{..} l = terrainBlocks ! l
+blockAt Terrain {..} l = terrainBlocks ! l
 
 instance Semigroup Terrain where
     Terrain blocks1 <> Terrain blocks2 =

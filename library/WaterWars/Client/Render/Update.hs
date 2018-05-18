@@ -6,7 +6,7 @@ import           Graphics.Gloss.Interface.IO.Game
 import qualified Graphics.Gloss.Interface.IO.Game
                                                as Gloss
 import           WaterWars.Client.Render.State
-import           WaterWars.Core.GameAction
+import           WaterWars.Core.Game
 
 handleKeys :: Event -> World -> World
 handleKeys (EventKey (Char c) Gloss.Down _ _) world@World {..}
