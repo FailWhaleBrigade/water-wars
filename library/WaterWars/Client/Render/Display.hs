@@ -31,7 +31,7 @@ render World {..} = Gloss.pictures
             in
                 translate (blockSize * x) (blockSize * y + blockSize / 2)
                 $ color playerColor
-                $ scale (1 * directionComponent) 1 ((animationPictures $ playerAnimation renderInfo) `indexEx` (picInd $ playerAnimation renderInfo))
+                $ scale (1 * directionComponent) 1 ((animationPictures $ playerAnim) `indexEx` (picInd $ playerAnim))
         )
         allPlayers
     projectilePictures =
@@ -41,6 +41,11 @@ render World {..} = Gloss.pictures
     solidPictures = map solidToPicture (solids renderInfo)
     mantaPicture  = animateAnimation (mantaAnimation renderInfo)
     directionComponent = if (lastDirection worldInfo) == RunLeft then -1 else 1
+    playerAnim = case player worldInfo of 
+                    Just p -> if abs (velocityX $ playerVelocity p) <= 0.01
+                        then playerAnimation renderInfo 
+                            else playerRunningAnimation renderInfo
+                    Nothing -> playerAnimation renderInfo
 
 solidToPicture :: Solid -> Picture
 solidToPicture solid =
@@ -51,7 +56,6 @@ projectileToPicture p = translate (x * blockSize) (y * blockSize) . scale 0.2 0.
     where Location (x, y) = projectileLocation p
 
 animateAnimation :: Animation -> Picture
-animateAnimation Animation {..} = translate x y img
+animateAnimation Animation {..} = img
   where
-    Location (x, y) = location
     img             = animationPictures `indexEx` picInd

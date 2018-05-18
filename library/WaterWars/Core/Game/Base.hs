@@ -14,8 +14,10 @@ instance Monoid Location where
     mempty = Location (0, 0)
     mappend (Location (x, y)) (Location (a, b)) = Location (x + a, y + b)
 
-data VelocityVector = VelocityVector Float Float
-    deriving (Show, Read, Eq)
+data VelocityVector = VelocityVector
+    { velocityX :: Float
+    , velocityY :: Float
+    } deriving (Show, Read, Eq)
 
 instance Semigroup VelocityVector where
     VelocityVector vx1 vy1 <> VelocityVector vx2 vy2 =
@@ -30,3 +32,7 @@ newtype Angle = Angle Float
 
 newtype Speed = Speed Float
     deriving (Show, Read, Num, Eq, Floating, Fractional)
+
+
+
+
