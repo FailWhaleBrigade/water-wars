@@ -68,7 +68,7 @@ update :: Float -> World -> World
 update _ World {..} =
     let worldAnimated = World
             { renderInfo = renderInfo
-                { animation = updateAnimation (animation renderInfo)
+                { mantaAnimation = updateAnimation (mantaAnimation renderInfo)
                 }
             , ..
             }

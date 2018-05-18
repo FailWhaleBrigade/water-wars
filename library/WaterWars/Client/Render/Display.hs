@@ -7,6 +7,7 @@ import Graphics.Gloss as Gloss
 import WaterWars.Client.Render.State
 import WaterWars.Client.Render.Terrain.Solid
 import WaterWars.Client.Render.Config
+import WaterWars.Core.GameAction
 
 -- |Convert a game state into a picture
 renderIO :: WorldSTM -> IO Picture
@@ -30,7 +31,7 @@ render World {..} = Gloss.pictures
             in
                 translate (blockSize * x) (blockSize * y + blockSize / 2)
                 $ color playerColor
-                $ scale 0.6 0.6 (playerTexture renderInfo)
+                $ scale (1 * directionComponent) 1 ((animationPictures $ playerAnimation renderInfo) `indexEx` (picInd $ playerAnimation renderInfo))
         )
         allPlayers
     projectilePictures =
@@ -38,7 +39,8 @@ render World {..} = Gloss.pictures
             (projectiles worldInfo) :: Seq Picture
     playerColor   = red
     solidPictures = map solidToPicture (solids renderInfo)
-    mantaPicture  = animateAnimation (animation renderInfo)
+    mantaPicture  = animateAnimation (mantaAnimation renderInfo) 
+    directionComponent = if (lastDirection worldInfo) == RunLeft then -1 else 1
 
 solidToPicture :: Solid -> Picture
 solidToPicture solid =
@@ -53,3 +55,4 @@ animateAnimation Animation {..} = translate x y img
   where
     Location (x, y) = location
     img             = animationPictures `indexEx` picInd
+
