@@ -112,6 +112,9 @@ observedGlitches = []
 observedGlitches2 :: [(Location, VelocityVector, Location, BlockLocation)]
 observedGlitches2 = []
 
+-- (Location (-6.49,-1.5009279),VelocityVector 0.0 (-0.14499995),BlockLocation (-6,-2))
+-- (Location (-6.9558063,1.4990239),VelocityVector (-6.312152e-2) (-0.18999991),BlockLocation (-7,1))
+
 -- TODO: detailled tests for middle-blocks
 
 collisionTargetLocation :: Spec

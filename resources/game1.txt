@@ -1,17 +1,17 @@
-xxxxxxxxxxxxxxxxx
-xxx             x
+xxx_____________x
+x_x             x
 x               x
 x               x
-x    xxxxx      x
+x    -----      x
 x      xxx      x
-x       xxxx    x
+x       xx--    x
+x-              x
 xx              x
-xx              x
-xx           xxxx
-xxxx          xxx
+xx           ---x
+xx--          xxx
 x               x
-x    xxxxxxx    x
+x    -------    x
 xx    xxxx     xx
 xx            xxx
 xxx          xxxx
-xxxxxxxxxxxxxxxxx
+xxx----------xxxx

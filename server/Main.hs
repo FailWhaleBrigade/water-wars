@@ -1,3 +1,5 @@
+{-# LANGUAGE LambdaCase #-}
+
 module Main where
 
 import           ClassyPrelude
@@ -65,7 +67,12 @@ main = do
     let terrain =
             Terrain
                 $ listArray (BlockLocation (-8, -8), BlockLocation (8, 8))
-                . map (\c -> if c == 'x' then SolidBlock Middle else NoBlock)
+                . map (\case
+                    'x' -> SolidBlock Middle
+                    '_' -> SolidBlock Ceil
+                    '-' -> SolidBlock Floor
+                    _ -> NoBlock
+                    )
                 . concat
                 . transpose
                 . reverse
