@@ -29,8 +29,7 @@ import WaterWars.Core.Game
 newtype WorldSTM = WorldSTM (TVar World)
 
 data Animation = Animation
-    { location :: Location
-    , countDownTilNext :: Integer
+    { countDownTilNext :: Integer
     , countDownMax :: Integer
     , animationPictures :: [Picture]
     , picInd :: Int
@@ -81,22 +80,19 @@ initializeState bmpBg bmpPrj playerTex playerRunningTexs bmpsMan blockMap' =
             , backgroundTexture      = bmpBg
             , projectileTexture      = bmpPrj
             , playerAnimation        = Animation
-                { location          = Location (100, -50)
-                , countDownTilNext  = 30
+                { countDownTilNext  = 30
                 , countDownMax      = 30
                 , animationPictures = cycle [playerTex]
                 , picInd            = 0
                 }
             , playerRunningAnimation = Animation
-                { location          = Location (100, -50)
-                , countDownTilNext  = 5
+                { countDownTilNext  = 5
                 , countDownMax      = 5
                 , animationPictures = cycle playerRunningTexs
                 , picInd            = 0
                 }
             , mantaAnimation         = Animation
-                { location          = Location (100, -100)
-                , countDownTilNext  = 30
+                { countDownTilNext  = 30
                 , countDownMax      = 30
                 , animationPictures = cycle bmpsMan
                 , picInd            = 0

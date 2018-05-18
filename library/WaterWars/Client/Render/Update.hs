@@ -10,10 +10,14 @@ import           WaterWars.Core.Game
 
 handleKeys :: Event -> World -> World
 handleKeys (EventKey (Char c) Gloss.Down _ _) world@World {..}
-    | c == 'a' = world { worldInfo = worldInfo { walkLeft = True, lastDirection = RunLeft } }
+    | c == 'a' = world
+        { worldInfo = worldInfo { walkLeft = True, lastDirection = RunLeft }
+        }
     | c == 'w' = world { worldInfo = worldInfo { jump = True } }
     | c == 's' = world { worldInfo = worldInfo { duck = True } }
-    | c == 'd' = world { worldInfo = worldInfo { walkRight = True, lastDirection = RunRight } }
+    | c == 'd' = world
+        { worldInfo = worldInfo { walkRight = True, lastDirection = RunRight }
+        }
 handleKeys (EventKey (SpecialKey KeySpace) Gloss.Down _ _) world@World {..} =
     world { worldInfo = worldInfo { shoot = True } }
 handleKeys (EventKey (Char c) Gloss.Up _ _) world@World {..}
@@ -55,22 +59,18 @@ handleKeysIO e world@(WorldSTM tvar) = atomically $ do
 
 updateAnimation :: Animation -> Animation
 updateAnimation a@Animation {..} = if countDownTilNext == 0
-    then a { picInd           = picInd + 1
-           , location         = Location (x - 1, y)
-           , countDownTilNext = countDownMax
-           }
-    else a { location         = Location (x - 1, y)
-           , countDownTilNext = countDownTilNext - 1
-           }
-    where Location (x, y) = location
+    then a { picInd = picInd + 1, countDownTilNext = countDownMax }
+    else a { countDownTilNext = countDownTilNext - 1 }
 
 update :: Float -> World -> World
 update _ World {..} =
-    let worldAnimated = World
+    let
+        worldAnimated = World
             { renderInfo = renderInfo
                 { mantaAnimation = updateAnimation (mantaAnimation renderInfo)
                 , playerAnimation = updateAnimation (playerAnimation renderInfo)
-                , playerRunningAnimation = updateAnimation (playerRunningAnimation renderInfo)
+                , playerRunningAnimation = updateAnimation
+                    (playerRunningAnimation renderInfo)
                 }
             , ..
             }
@@ -82,3 +82,5 @@ updateIO diff world@(WorldSTM tvar) = do
     let newState = update diff state
     atomically $ writeTVar tvar newState
     return world
+
+

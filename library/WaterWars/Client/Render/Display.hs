@@ -56,7 +56,6 @@ projectileToPicture p = translate (x * blockSize) (y * blockSize) . scale 0.2 0.
     where Location (x, y) = projectileLocation p
 
 animateAnimation :: Animation -> Picture
-animateAnimation Animation {..} = translate x y img
+animateAnimation Animation {..} = img
   where
-    Location (x, y) = location
     img             = animationPictures `indexEx` picInd
