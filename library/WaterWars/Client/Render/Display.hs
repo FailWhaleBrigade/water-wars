@@ -31,7 +31,7 @@ render World {..} = Gloss.pictures
             in
                 translate (blockSize * x) (blockSize * y + blockSize / 2)
                 $ color playerColor
-                $ rectangleSolid 20 40
+                $ scale (1 * directionComponent) 1 ((animationPictures $ playerAnimation renderInfo) `indexEx` (picInd $ playerAnimation renderInfo))
         )
         allPlayers
     projectilePictures =
@@ -39,7 +39,8 @@ render World {..} = Gloss.pictures
             (projectiles worldInfo) :: Seq Picture
     playerColor   = red
     solidPictures = map solidToPicture (solids renderInfo)
-    mantaPicture  = animateAnimation (animation renderInfo)
+    mantaPicture  = animateAnimation (mantaAnimation renderInfo)
+    directionComponent = if (lastDirection worldInfo) == RunLeft then -1 else 1
 
 solidToPicture :: Solid -> Picture
 solidToPicture solid =

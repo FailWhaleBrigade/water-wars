@@ -5,11 +5,9 @@ module WaterWars.Core.PhysicsTest where
 import           Test.Hspec
 import           ClassyPrelude
 import           WaterWars.Core.Physics.Collision
-import           WaterWars.Core.GameState
-import           WaterWars.Core.GameMap
+import           WaterWars.Core.Game
 import           WaterWars.Core.DefaultGame
 import           Data.Array.IArray
-import           WaterWars.Core.Terrain.Block
 
 
 physicsTests :: Spec

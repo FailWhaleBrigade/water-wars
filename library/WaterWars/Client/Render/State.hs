@@ -47,8 +47,9 @@ data RenderInfo = RenderInfo
     { blockMap :: BlockMap
     , backgroundTexture :: Picture
     , projectileTexture :: Picture
+    , playerAnimation :: Animation
     , solids :: Seq Solid
-    , animation :: Animation
+    , mantaAnimation :: Animation
     } deriving Show
 
 data WorldInfo = WorldInfo
@@ -64,36 +65,45 @@ data WorldInfo = WorldInfo
     , lastDirection :: RunDirection
     } deriving Show
 
-initializeState :: Picture -> Picture -> [Picture] -> BlockMap -> IO WorldSTM
-initializeState bmpBg bmpPrj bmpsMan blockMap' = WorldSTM <$> newTVarIO World
-    { renderInfo  = RenderInfo
-        { blockMap          = blockMap'
-        , backgroundTexture = bmpBg
-        , projectileTexture = bmpPrj
-        , animation         = Animation
-            { location          = Location (100, -100)
-            , countDownTilNext  = 30
-            , countDownMax      = 30
-            , animationPictures = cycle bmpsMan
-            , picInd            = 0
+initializeState
+    :: Picture -> Picture -> Picture -> [Picture] -> BlockMap -> IO WorldSTM
+initializeState bmpBg bmpPrj playerTex bmpsMan blockMap' =
+    WorldSTM <$> newTVarIO World
+        { renderInfo  = RenderInfo
+            { blockMap          = blockMap'
+            , backgroundTexture = bmpBg
+            , projectileTexture = bmpPrj
+            , playerAnimation   = Animation
+                { location           = Location (100, -50)
+                , countDownTilNext   = 30
+                , countDownMax       = 30
+                , animationPictures = cycle [playerTex]
+                , picInd             = 0
+                }
+            , mantaAnimation    = Animation
+                { location          = Location (100, -100)
+                , countDownTilNext  = 30
+                , countDownMax      = 30
+                , animationPictures = cycle bmpsMan
+                , picInd            = 0
+                }
+            , solids            = empty
             }
-        , solids            = empty
+        , worldInfo   = WorldInfo
+            { jump          = False
+            , walkLeft      = False
+            , walkRight     = False
+            , duck          = False
+            , shoot         = False
+            , exitGame      = False
+            , player        = Nothing
+            , otherPlayers  = empty
+            , projectiles   = fromList
+                [DefaultGame.defaultProjectile, DefaultGame.defaultProjectile]
+            , lastDirection = RunRight
+            }
+        , networkInfo = Nothing
         }
-    , worldInfo   = WorldInfo
-        { jump         = False
-        , walkLeft     = False
-        , walkRight    = False
-        , duck         = False
-        , shoot        = False
-        , exitGame     = False
-        , player       = Nothing
-        , otherPlayers = empty
-        , projectiles  = fromList
-            [DefaultGame.defaultProjectile, DefaultGame.defaultProjectile]
-        , lastDirection = RunRight
-        }
-    , networkInfo = Nothing
-    }
 
 setTerrain :: BlockMap -> CoreState.Terrain -> World -> World
 setTerrain blockMap terrain World {..} = World
@@ -130,3 +140,4 @@ blockLocationToSolid mapWidthHalf mapHeightHalf size (BlockLocation (x, y)) pict
                          )
         , solidTexture = picture
         }
+
