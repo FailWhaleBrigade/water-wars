@@ -2,67 +2,97 @@ module WaterWars.Server.EventLoop where
 
 import           ClassyPrelude
 
-import           System.Log.Logger
-
 import           WaterWars.Network.Protocol
-import           WaterWars.Network.Connection
-
 import           WaterWars.Core.Game
 import           WaterWars.Server.ConnectionMgnt
 
 eventLoop
     :: MonadIO m
-    => TChan (ClientMessage, Text)
-    -> TVar ServerState
+    => TChan EventMessage
+    -> TVar GameLoopState
     -> TVar PlayerActions
-    -> Map Text InGamePlayer
+    -> TVar (Map Text ClientConnection)
+    -> TVar (Map Text InGamePlayer)
     -> m ()
-eventLoop broadcastChan tvar playerActionTvar sessionMap = do
-    (clientMsg, sessionId) <- atomically $ readTChan broadcastChan
-    liftIO $ debugM "Server.Connection"
-                    ("Successfully read a message from: " ++ show sessionId)
-    sessionMap' <- case clientMsg of
+eventLoop broadcastChan gameLoopTvar playerActionTvar sessionMapTvar playerMapTVar = forever $ do
+    message <- atomically $ readTChan broadcastChan
+    
+    case message of 
+        -- handle messages sent by a client connection
+        EventClientMessage sessionId clientMsg -> 
+            handleClientMessages sessionId clientMsg gameLoopTvar playerActionTvar sessionMapTvar playerMapTVar
+        
+        -- handle messages sent from the gameloop
+        EventGameLoopMessage gameStateUpdate ->
+            handleGameLoopMessages gameStateUpdate sessionMapTvar
+        
+        -- TODO: handle messages sent from websocket app 
+
+handleGameLoopMessages :: MonadIO m 
+    => GameState 
+    -> TVar (Map Text ClientConnection)
+    -> m () 
+handleGameLoopMessages gameStateUpdate sessionMapTvar =  do
+    sessionMap <- readTVarIO sessionMapTvar
+    forM_ sessionMap $ \conn -> 
+        atomically $ writeTChan (readChannel conn) (GameStateMessage gameStateUpdate)
+
+handleClientMessages :: MonadIO m
+    => Text 
+    -> ClientMessage 
+    -> TVar GameLoopState
+    -> TVar PlayerActions
+    -> TVar (Map Text ClientConnection)
+    -> TVar (Map Text InGamePlayer)
+    -> m ()
+handleClientMessages sessionId clientMsg gameLoopTvar playerActionTvar sessionMapTvar playerMapTVar =
+    case clientMsg of
         LoginMessage _ -> do
             -- TODO: Handle reconnects
+            -- Create new Player
             let player = newInGamePlayer (Player sessionId) (Location (0, 0))
+            -- Tell the game loop engine about the newly connected player
             (connectionMay, gameMap_) <- atomically $ do
-                serverState <- readTVar tvar
+                serverState <- readTVar gameLoopTvar
                 let serverState' = modifyGameState addPlayer serverState player
-                writeTVar tvar serverState'
+                writeTVar gameLoopTvar serverState'
+                sessionMap <- readTVar sessionMapTvar
+                modifyTVar' playerMapTVar (insertMap sessionId player)
                 return
-                    ( getConnectionBySessionId (connections serverState)
-                                               sessionId
+                    ( lookup sessionId sessionMap
                     , gameMap serverState
                     )
+            -- If a connection is found then send required information
             case connectionMay of
                 Nothing         -> return ()
-                Just connection -> do
-                    -- TODO: maybe batch these message if possible
-                    sendTo
-                        connection
+                Just connection -> atomically $ do
+                    writeTChan 
+                        (readChannel connection)
                         (LoginResponseMessage (LoginResponse sessionId player))
-                    sendTo connection (GameMapMessage gameMap_)
-            return $ insertMap sessionId player sessionMap
-
-        LogoutMessage _ -> do
-            -- TODO: why do we have a session id?
-            -- TODO: remove connections
-            let playerMay = lookup sessionId sessionMap
+                    writeTChan 
+                        (readChannel connection)
+                        (GameMapMessage gameMap_)
+            return ()
+                    
+        LogoutMessage Logout -> do
+            playerMay <- lookup sessionId <$> readTVarIO playerMapTVar
             case playerMay of
                 Nothing     -> return ()
                 Just player -> atomically $ do
-                    serverState <- readTVar tvar
+                    serverState <- readTVar gameLoopTvar
                     let serverState' =
                             modifyGameState removePlayer serverState player
-                    writeTVar tvar serverState'
-            return $ deleteMap sessionId sessionMap
-
+                    writeTVar gameLoopTvar serverState'
+                    modifyTVar' sessionMapTvar (deleteMap sessionId)
+                    modifyTVar' playerMapTVar (deleteMap sessionId)
+            return () 
+                    
         GameSetupMessage _ ->
             -- TODO: we dont handle game setup requests yet
-            return sessionMap
-
+            return ()
+        
         PlayerActionMessage playerAction -> do
-            let playerMay = lookup sessionId sessionMap
+            playerMay <- lookup sessionId <$> readTVarIO playerMapTVar
             case playerMay of
                 Nothing                -> return () -- TODO: add logging facilities
                 Just InGamePlayer {..} -> atomically $ do
@@ -73,9 +103,7 @@ eventLoop broadcastChan tvar playerActionTvar sessionMap = do
                             (getAction playerAction)
                             getPlayerActions
                     writeTVar playerActionTvar (PlayerActions getPlayerActions')
-            return sessionMap
-
-    eventLoop broadcastChan tvar playerActionTvar sessionMap'
+            return ()
 
 
 -- utility functions for creation
@@ -92,6 +120,3 @@ newInGamePlayer player location = InGamePlayer
     , playerHeight           = 1.52
     }
 
--- utility functions to retrieve connections
-getConnectionBySessionId :: Connections -> Text -> Maybe ClientConnection
-getConnectionBySessionId conns sessionId = lookup sessionId (players conns)

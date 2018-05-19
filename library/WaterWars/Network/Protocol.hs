@@ -46,9 +46,7 @@ data SetupError
     deriving (Show, Read, Eq, Ord, Enum, Bounded)
 
 -- |If players are logging out, for completeness, not neccessarily used.
-newtype Logout = Logout
-    { getLogoutSessionId :: Text
-    } deriving (Show, Read, Eq)
+data Logout = Logout deriving (Show, Read, Eq)
 
 data ServerMessage
     = GameSetupResponseMessage GameSetupResponse

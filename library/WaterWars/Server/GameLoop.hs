@@ -11,22 +11,22 @@ import WaterWars.Core.Game
 import WaterWars.Server.ConnectionMgnt
 import WaterWars.Server.GameNg
 
-import WaterWars.Network.Protocol
-import WaterWars.Network.Connection
-
-runGameLoop :: MonadIO m => TVar ServerState -> TVar PlayerActions -> m ()
-runGameLoop serverStateStm playerActions = forever $ do
-    -- liftIO $ debugM "Server.Connection" "Exec Game Loop tick"
-    ServerState {..} <- atomically $ do
-        serverState@ServerState {..} <- readTVar serverStateStm
+runGameLoop
+    :: MonadIO m
+    => TVar GameLoopState
+    -> TChan EventMessage
+    -> TVar PlayerActions
+    -> m ()
+runGameLoop gameLoopStateTvar broadcastChan playerActions = forever $ do
+    GameLoopState {..} <- atomically $ do
+        gameLoopState@GameLoopState {..} <- readTVar gameLoopStateTvar
         actions                      <- emptyPlayerActions playerActions
-        let newState       = runGameTick gameMap gameState actions
-        let newServerState = serverState { gameState = newState }
-        writeTVar serverStateStm newServerState
-        return newServerState
-    -- liftIO $ debugM "Server.Connection" "Broadcast new State"
-    broadcast connections (GameStateMessage gameState)
-    liftIO $ threadDelay (1000000 `div` 60) -- TODO: this sleep is necessary
+        let newState     = runGameTick gameMap gameState actions
+        let newgameState = gameLoopState { gameState = newState }
+        writeTVar gameLoopStateTvar newgameState
+        return newgameState
+    atomically $ writeTChan broadcastChan (EventGameLoopMessage gameState)
+    liftIO $ threadDelay (1000000 `div` 60)
 
 allGameTicks :: GameMap -> [Map Player Action] -> GameState -> [GameState]
 allGameTicks _ [] s = [s]
@@ -36,5 +36,5 @@ allGameTicks gameMap (actions : rest) initialState =
                                 (runGameTick gameMap initialState actions)
 
 emptyPlayerActions :: TVar PlayerActions -> STM (Map Player Action)
-emptyPlayerActions playerActions = getPlayerActions
-    <$> swapTVar playerActions (PlayerActions (mapFromList []))
+emptyPlayerActions playerActions =
+    getPlayerActions <$> swapTVar playerActions (PlayerActions (mapFromList []))

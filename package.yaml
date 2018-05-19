@@ -38,6 +38,7 @@ library:
   - stm
   - extra
   - either
+  - uuid
   source-dirs: library
   default-extensions:
   - NamedFieldPuns
