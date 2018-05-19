@@ -23,24 +23,3 @@ class NetworkConnections c where
     type WriteType c :: *
     type ReadType c :: *
     broadcast :: MonadIO m => c -> WriteType c -> m ()
-
--- Generilitation over TChan
-class IPC c where
-    type Identifier c :: * -- ^Uniquely identifies a connection
-    type WriteTo c :: * -- ^Type to write to the server loop
-    type ReadFrom c :: * -- ^Type that is received from the server loop
-
-    writeTo :: MonadIO m => c -> WriteTo c -> m ()
-    sendTo :: MonadIO m => c -> ReadFrom c -> m ()
-    readFrom :: MonadIO m => c -> m (ReadFrom c)
-
--- |Type class that combines a network communication with a IPC connection
--- Makes sure that the types fit.
--- combines IPC and NetworkConnection.
-type CanCommunicate c = (IPC c
-    , NetworkConnection c
-    , WriteTo c ~ ReceiveType c
-    , Deserializable (ReceiveType c)
-    , ReadFrom c ~ SendType c
-    , Serializable (SendType c)
-    )

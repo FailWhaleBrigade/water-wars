@@ -6,23 +6,27 @@ import ClassyPrelude
 import System.Log.Logger
 
 import WaterWars.Network.Connection
+import WaterWars.Network.Protocol
 import WaterWars.Server.Config
 
 clientGameThread
-    :: (MonadIO m, CanCommunicate c, Show (ReceiveType c))
+    :: (MonadUnliftIO m, MonadIO m, NetworkConnection c, ReceiveType c ~ ClientMessage, SendType c ~ ServerMessage)
     => c --  ^Connection of the client
+    -> (ClientMessage -> m ())
+    -> m ServerMessage
     -> m ()
-clientGameThread conn = do
+clientGameThread conn sendAction receiveAction = do
     -- If any of these threads die, kill both threads and return, be careful for this swallows exceptions
-    _ <- liftIO $ async (clientReceive conn)
-    clientSend conn
+    _ <- async (clientReceive conn sendAction)
+    clientSend conn receiveAction
 
 
 clientReceive
-    :: (MonadIO m, CanCommunicate c, Show (ReceiveType c))
+    :: (MonadIO m, NetworkConnection c, ReceiveType c ~ ClientMessage)
     => c --  ^Connection of the client
+    -> (ClientMessage -> m ()) -- ^Send Message to Eventloop
     -> m ()
-clientReceive conn = forever $ do
+clientReceive conn sendAction = forever $ do
     liftIO $ debugM "Server.Connection" "Wait for data message"
     msg <- receive conn
     case msg of
@@ -35,16 +39,17 @@ clientReceive conn = forever $ do
                 $  infoM networkLoggerName
                 $  "Read a message: "
                 ++ show playerAction
-            writeTo conn playerAction
+            sendAction playerAction
     -- TODO: should i sleep here for some time to avoid DOS-attack? yes
     return ()
 
 clientSend
-    :: (MonadIO m, CanCommunicate c)
+    :: (MonadIO m, NetworkConnection c, SendType c ~ ServerMessage)
     => c --  ^Connection of the client
+    -> m ServerMessage
     -> m ()
-clientSend conn = forever $ do
+clientSend conn receiveAction = forever $ do
     liftIO $ debugM "Server.Connection" "Wait for message"
-    cmd <- readFrom conn
+    cmd <- receiveAction
     send conn cmd
     return ()

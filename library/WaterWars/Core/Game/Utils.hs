@@ -19,6 +19,18 @@ import           WaterWars.Core.Physics.Constants
 import           Data.Array.IArray
 
 -- TODO: refactor?
+addPlayer :: GameState -> InGamePlayer -> GameState
+addPlayer GameState {..} igp = GameState
+    { inGamePlayers = InGamePlayers (igp `cons` getInGamePlayers inGamePlayers)
+    , ..
+    }
+
+removePlayer :: GameState -> InGamePlayer -> GameState
+removePlayer GameState {..} igp = GameState
+    { inGamePlayers = InGamePlayers
+        (filter (/= igp) $ getInGamePlayers inGamePlayers)
+    , ..
+    }
 
 moveLocation :: VelocityVector -> Location -> Location
 moveLocation (VelocityVector dx dy) (Location (x, y)) =

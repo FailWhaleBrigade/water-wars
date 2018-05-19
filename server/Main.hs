@@ -21,32 +21,22 @@ import           WaterWars.Server.Client
 import           WaterWars.Server.EventLoop
 import           WaterWars.Core.Terrain.Read
 
-defaultState :: ServerState
-defaultState = ServerState
-    { connections = defaultConnections
-    , gameMap     = defaultGameMap
-    , gameState   = defaultGameState
-    }
-
-defaultConnections :: Connections
-defaultConnections =
-    Connections {players = mapFromList empty, gameSetup = Just defaultGameSetup}
+defaultState :: GameLoopState
+defaultState =
+    GameLoopState {gameMap = defaultGameMap, gameState = defaultGameState}
 
 defaultGameSetup :: GameSetup
 defaultGameSetup = GameSetup {numberOfPlayers = 4, terrainMap = "default"}
 
-serverStateWithTerrain :: Terrain -> ServerState
-serverStateWithTerrain terrain = ServerState
-    { connections = defaultConnections
-    , gameMap     = GameMap
+serverStateWithTerrain :: Terrain -> GameLoopState
+serverStateWithTerrain terrain = GameLoopState
+    { gameMap   = GameMap
         { gameTerrain       = terrain
         , gamePlayers       = empty
         , terrainBackground = "default"
         }
-    , gameState   = defaultGameState
+    , gameState = defaultGameState
     }
-
--- TODO: refactor startup
 
 main :: IO ()
 main = do
@@ -59,49 +49,51 @@ main = do
     terrain         <- readTerrainFromFile "resources/game1.txt"
 
     -- Initialize server state
-    broadcastChan   <- atomically newBroadcastTChan
-    serverStateTvar <- newTVarIO $ serverStateWithTerrain terrain
-
+    broadcastChan     <- atomically newBroadcastTChan
+    gameLoopStateTvar <- newTVarIO $ serverStateWithTerrain terrain
+    sessionMapTvar    <- newTVarIO $ mapFromList []
     -- start to accept connections
-    _               <- async (websocketServer serverStateTvar broadcastChan)
-    forever (gameLoopServer serverStateTvar broadcastChan)
+    _                 <- async (websocketServer sessionMapTvar broadcastChan)
+    forever (gameLoopServer gameLoopStateTvar sessionMapTvar broadcastChan)
 
 
 websocketServer
-    :: MonadIO m => TVar ServerState -> TChan (ClientMessage, Text) -> m ()
-websocketServer serverStateTvar broadcastChan =
-    liftIO
-        $ runServer "localhost" 1234
-        $ \websocketConn -> do
-              connHandle <- acceptRequest websocketConn
-              debugM networkLoggerName "Client connected"
-              commChan  <- newTChanIO -- to receive messages
-              sessionId <- toText <$> nextRandom -- uniquely identify connections
-              let
-                  conn = newClientConnection sessionId
-                                             connHandle
-                                             commChan
-                                             broadcastChan
-              atomically $ do
-                  ServerState {..} <- readTVar serverStateTvar
-                  writeTVar
-                      serverStateTvar
-                      ServerState
-                          { connections = addConnection connections conn
-                          , ..
-                          }
-              clientGameThread conn
-              -- ! Should be used for cleanup code
-              return ()
+    :: MonadIO m
+    => TVar (Map Text ClientConnection)
+    -> TChan EventMessage
+    -> m ()
+websocketServer sessionMapTvar broadcastChan =
+    liftIO $ runServer "localhost" 1234 $ \websocketConn -> do
+        connHandle <- acceptRequest websocketConn
+        debugM networkLoggerName "Client connected"
+        commChan  <- newTChanIO -- to receive messages
+        sessionId <- toText <$> nextRandom -- uniquely identify connections
+        let conn = newClientConnection sessionId
+                                       connHandle
+                                       commChan
+                                       broadcastChan
+        atomically $ modifyTVar' sessionMapTvar (insertMap sessionId conn)
+        clientGameThread
+            conn
+            (\msg -> atomically $ writeTChan broadcastChan (EventClientMessage sessionId msg))
+            (atomically $ readTChan commChan)
+        -- ! Should be used for cleanup code
+        return ()
 
 gameLoopServer
-    :: MonadIO m => TVar ServerState -> TChan (ClientMessage, Text) -> m ()
-gameLoopServer serverStateTvar broadcastChan = do
+    :: MonadIO m
+    => TVar GameLoopState
+    -> TVar (Map Text ClientConnection)
+    -> TChan EventMessage
+    -> m ()
+gameLoopServer gameLoopStateTvar sessionMapTvar broadcastChan = do
     readBroadcastChan <- atomically $ dupTChan broadcastChan
     playerActionTvar  <- newTVarIO (PlayerActions (mapFromList empty))
+    playerInGameTVar  <- newTVarIO $ mapFromList []
     _                 <- liftIO . async $ eventLoop readBroadcastChan
-                                                    serverStateTvar
+                                                    gameLoopStateTvar
                                                     playerActionTvar
-                                                    (mapFromList empty)
+                                                    sessionMapTvar
+                                                    playerInGameTVar
     liftIO $ debugM networkLoggerName "Start game loop"
-    runGameLoop serverStateTvar playerActionTvar
+    runGameLoop gameLoopStateTvar broadcastChan playerActionTvar
