@@ -1,5 +1,3 @@
-{-# LANGUAGE LambdaCase #-}
-
 module Main where
 
 import           ClassyPrelude
@@ -21,9 +19,7 @@ import           WaterWars.Server.ConnectionMgnt
 import           WaterWars.Server.GameLoop
 import           WaterWars.Server.Client
 import           WaterWars.Server.EventLoop
-import           System.IO                                ( openFile )
-import           Data.Array.IArray
-import           Data.List                                ( transpose )
+import           WaterWars.Core.Terrain.Read
 
 defaultState :: ServerState
 defaultState = ServerState
@@ -60,25 +56,7 @@ main = do
     updateGlobalLogger rootLoggerName (setLevel DEBUG)
 
     -- read resources
-    terrainFile           <- openFile "resources/game1.txt" ReadMode
-    content :: ByteString <- hGetContents terrainFile
-    let terrain =
-            Terrain
-                $ listArray (BlockLocation (-8, -8), BlockLocation (8, 8))
-                . map (\case
-                    'x' -> SolidBlock Middle
-                    '_' -> SolidBlock Ceil
-                    '-' -> SolidBlock Floor
-                    _ -> NoBlock
-                    )
-                . concat
-                . transpose
-                . reverse
-                . lines
-                . unpack
-                . decodeUtf8
-                $ content
-
+    terrain         <- readTerrainFromFile "resources/game1.txt"
 
     -- Initialize server state
     broadcastChan   <- atomically newBroadcastTChan
@@ -86,8 +64,7 @@ main = do
 
     -- start to accept connections
     _               <- async (websocketServer serverStateTvar broadcastChan)
-    _               <- forever (gameLoopServer serverStateTvar broadcastChan)
-    return ()
+    forever (gameLoopServer serverStateTvar broadcastChan)
 
 
 websocketServer
