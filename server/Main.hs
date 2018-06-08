@@ -46,7 +46,7 @@ main = do
     updateGlobalLogger rootLoggerName (setLevel DEBUG)
 
     -- read resources
-    terrain         <- readTerrainFromFile "resources/game1.txt"
+    terrain           <- readTerrainFromFile "resources/game1.txt"
 
     -- Initialize server state
     broadcastChan     <- atomically newBroadcastTChan
@@ -75,7 +75,10 @@ websocketServer sessionMapTvar broadcastChan =
         atomically $ modifyTVar' sessionMapTvar (insertMap sessionId conn)
         clientGameThread
             conn
-            (\msg -> atomically $ writeTChan broadcastChan (EventClientMessage sessionId msg))
+            (\msg -> atomically $ writeTChan
+                broadcastChan
+                (EventClientMessage sessionId msg)
+            )
             (atomically $ readTChan commChan)
         -- ! Should be used for cleanup code
         return ()

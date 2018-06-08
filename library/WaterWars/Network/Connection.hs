@@ -8,8 +8,8 @@ module WaterWars.Network.Connection where
 import ClassyPrelude
 
 class NetworkConnection c where
-    type SendType c :: * -- ^Type that is sent as a message
-    type ReceiveType c :: * -- ^Type that is read from a message
+    type SendType c :: * -- Type that is sent as a message
+    type ReceiveType c :: * -- Type that is read from a message
     send :: (MonadIO m, Serializable (SendType c)) => c -> SendType c -> m ()
     receive :: (MonadIO m, Deserializable (ReceiveType c)) => c -> m (Either Text (ReceiveType c))
 
