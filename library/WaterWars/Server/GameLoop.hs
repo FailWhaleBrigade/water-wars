@@ -2,7 +2,7 @@ module WaterWars.Server.GameLoop where
 
 import ClassyPrelude
 
--- import System.Log.Logger
+import Control.Monad.Logger
 
 import Control.Concurrent
 
@@ -12,7 +12,7 @@ import WaterWars.Server.ConnectionMgnt
 import WaterWars.Server.GameNg
 
 runGameLoop
-    :: MonadIO m
+    :: (MonadLogger m, MonadIO m)
     => TVar GameLoopState
     -> TChan EventMessage
     -> TVar PlayerActions

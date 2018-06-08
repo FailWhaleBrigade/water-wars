@@ -1,13 +1,17 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module WaterWars.Server.EventLoop where
 
-import           ClassyPrelude
+import ClassyPrelude
 
-import           WaterWars.Network.Protocol
-import           WaterWars.Core.Game
-import           WaterWars.Server.ConnectionMgnt
+import Control.Monad.Logger
+
+import WaterWars.Network.Protocol
+import WaterWars.Core.Game
+import WaterWars.Server.ConnectionMgnt
 
 eventLoop
-    :: MonadIO m
+    :: (MonadIO m, MonadLogger m)
     => TChan EventMessage
     -> TVar GameLoopState
     -> TVar PlayerActions
@@ -17,7 +21,7 @@ eventLoop
 eventLoop broadcastChan gameLoopTvar playerActionTvar sessionMapTvar playerMapTVar
     = forever $ do
         message <- atomically $ readTChan broadcastChan
-
+        $logDebug $ "Read a new event loop message: " ++ tshow message
         case message of
             -- handle messages sent by a client connection
             EventClientMessage sessionId clientMsg -> handleClientMessages
@@ -32,7 +36,7 @@ eventLoop broadcastChan gameLoopTvar playerActionTvar sessionMapTvar playerMapTV
             EventGameLoopMessage gameStateUpdate ->
                 handleGameLoopMessages gameStateUpdate sessionMapTvar
 
-        -- TODO: handle messages sent from websocket app 
+        -- TODO: handle messages sent from websocket app
 
 handleGameLoopMessages
     :: MonadIO m => GameState -> TVar (Map Text ClientConnection) -> m ()

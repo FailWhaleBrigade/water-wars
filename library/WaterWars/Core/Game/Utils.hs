@@ -6,17 +6,19 @@ module WaterWars.Core.Game.Utils
     )
 where
 
-import           ClassyPrelude                     hiding ( Reader
-                                                          , ask
-                                                          )
-import           WaterWars.Core.Game.State
-import           WaterWars.Core.Game.Map
-import           WaterWars.Core.Game.Action
-import           Control.Eff
-import           Control.Eff.Reader.Strict
-import           Control.Eff.State.Strict
-import           WaterWars.Core.Physics.Constants
-import           Data.Array.IArray
+import ClassyPrelude hiding (Reader, ask)
+
+import Control.Eff
+import Control.Eff.Reader.Strict
+import Control.Eff.State.Strict
+
+import Data.Array.IArray
+
+import WaterWars.Core.Game.State
+import WaterWars.Core.Game.Map
+import WaterWars.Core.Game.Action
+import WaterWars.Core.Physics.Constants
+
 
 -- TODO: refactor?
 addPlayer :: GameState -> InGamePlayer -> GameState

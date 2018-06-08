@@ -3,8 +3,7 @@ module WaterWars.Client.Render.Main(main) where
 import ClassyPrelude
 import Control.Monad.Except
 
-import System.Log.Logger
-import System.Log.Handler.Simple
+import Control.Monad.Logger
 
 import Graphics.Gloss
 import Graphics.Gloss.Interface.IO.Game
@@ -48,13 +47,10 @@ setup = do
 
 getMermaidPaths :: String -> Int -> [String]
 getMermaidPaths _ 15 = []
-getMermaidPaths pathStart ind = (pathStart ++ (show ind) ++ ".png") : (getMermaidPaths pathStart (ind + 1))
+getMermaidPaths pathStart ind = (pathStart ++ show ind ++ ".png") : (getMermaidPaths pathStart (ind + 1))
 
 main :: IO ()
 main = do
-    s <- liftIO $ fileHandler "water-wars-client.log" DEBUG
-    updateGlobalLogger rootLoggerName (addHandler s)
-    updateGlobalLogger rootLoggerName (setLevel DEBUG)
     resources <- runExceptT setup
     case resources of
         Left  err -> putStrLn $ "Could not load texture. Cause: " ++ tshow err
@@ -73,4 +69,5 @@ main = do
                    renderIO
                    handleKeysIO
                    updateIO
+            -- Will never be reached
             putStrLn "Goodbye, shutting down the Server!"

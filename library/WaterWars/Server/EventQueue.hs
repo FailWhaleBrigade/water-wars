@@ -21,9 +21,9 @@ newtype PlayerActions = PlayerActions
 
 
 modifyGameState
-    :: (GameState -> a -> GameState) 
-    -> GameLoopState 
-    -> a 
+    :: (GameState -> a -> GameState)
+    -> GameLoopState
+    -> a
     -> GameLoopState
 modifyGameState f GameLoopState {..} a =
     GameLoopState {gameState = f gameState a, ..}
