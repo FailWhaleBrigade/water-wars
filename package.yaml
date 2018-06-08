@@ -39,6 +39,7 @@ library:
   - extra
   - either
   - uuid
+  - monad-logger
   source-dirs: library
   default-extensions:
   - NamedFieldPuns

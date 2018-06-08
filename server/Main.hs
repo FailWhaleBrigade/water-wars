@@ -1,7 +1,7 @@
 module Main where
 
 import           ClassyPrelude
-import           Network.WebSockets
+import           Network.WebSockets hiding (newClientConnection)
 
 import           System.Log.Logger
 import           System.Log.Handler.Simple
