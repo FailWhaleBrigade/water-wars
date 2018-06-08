@@ -10,7 +10,12 @@ import WaterWars.Network.Protocol
 import WaterWars.Server.Config
 
 clientGameThread
-    :: (MonadUnliftIO m, MonadIO m, NetworkConnection c, ReceiveType c ~ ClientMessage, SendType c ~ ServerMessage)
+    :: ( MonadUnliftIO m
+       , MonadIO m
+       , NetworkConnection c
+       , ReceiveType c ~ ClientMessage
+       , SendType c ~ ServerMessage
+       )
     => c --  ^Connection of the client
     -> (ClientMessage -> m ())
     -> m ServerMessage

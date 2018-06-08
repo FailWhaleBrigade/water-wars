@@ -11,6 +11,7 @@ import           Data.UUID.V4
 
 import           WaterWars.Core.DefaultGame
 import           WaterWars.Core.Game
+import           WaterWars.Core.Terrain.Read
 
 import           WaterWars.Network.Protocol    as Protocol
 
@@ -19,7 +20,6 @@ import           WaterWars.Server.ConnectionMgnt
 import           WaterWars.Server.GameLoop
 import           WaterWars.Server.Client
 import           WaterWars.Server.EventLoop
-import           WaterWars.Core.Terrain.Read
 
 defaultState :: GameLoopState
 defaultState =
@@ -75,9 +75,9 @@ websocketServer sessionMapTvar broadcastChan =
         atomically $ modifyTVar' sessionMapTvar (insertMap sessionId conn)
         clientGameThread
             conn
-            (\msg -> atomically $ writeTChan
-                broadcastChan
-                (EventClientMessage sessionId msg)
+            ( atomically
+            . writeTChan broadcastChan
+            . EventClientMessage sessionId
             )
             (atomically $ readTChan commChan)
         -- ! Should be used for cleanup code
