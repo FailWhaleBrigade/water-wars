@@ -16,30 +16,30 @@ eventLoop
     -> m ()
 eventLoop broadcastChan gameLoopTvar playerActionTvar sessionMapTvar playerMapTVar = forever $ do
     message <- atomically $ readTChan broadcastChan
-    
-    case message of 
+
+    case message of
         -- handle messages sent by a client connection
-        EventClientMessage sessionId clientMsg -> 
+        EventClientMessage sessionId clientMsg ->
             handleClientMessages sessionId clientMsg gameLoopTvar playerActionTvar sessionMapTvar playerMapTVar
-        
+
         -- handle messages sent from the gameloop
         EventGameLoopMessage gameStateUpdate ->
             handleGameLoopMessages gameStateUpdate sessionMapTvar
-        
-        -- TODO: handle messages sent from websocket app 
 
-handleGameLoopMessages :: MonadIO m 
-    => GameState 
+        -- TODO: handle messages sent from websocket app
+
+handleGameLoopMessages :: MonadIO m
+    => GameState
     -> TVar (Map Text ClientConnection)
-    -> m () 
+    -> m ()
 handleGameLoopMessages gameStateUpdate sessionMapTvar =  do
     sessionMap <- readTVarIO sessionMapTvar
-    forM_ sessionMap $ \conn -> 
+    forM_ sessionMap $ \conn ->
         atomically $ writeTChan (readChannel conn) (GameStateMessage gameStateUpdate)
 
 handleClientMessages :: MonadIO m
-    => Text 
-    -> ClientMessage 
+    => Text
+    -> ClientMessage
     -> TVar GameLoopState
     -> TVar PlayerActions
     -> TVar (Map Text ClientConnection)
@@ -66,14 +66,14 @@ handleClientMessages sessionId clientMsg gameLoopTvar playerActionTvar sessionMa
             case connectionMay of
                 Nothing         -> return ()
                 Just connection -> atomically $ do
-                    writeTChan 
+                    writeTChan
                         (readChannel connection)
                         (LoginResponseMessage (LoginResponse sessionId player))
-                    writeTChan 
+                    writeTChan
                         (readChannel connection)
                         (GameMapMessage gameMap_)
             return ()
-                    
+
         LogoutMessage Logout -> do
             playerMay <- lookup sessionId <$> readTVarIO playerMapTVar
             case playerMay of
@@ -85,12 +85,12 @@ handleClientMessages sessionId clientMsg gameLoopTvar playerActionTvar sessionMa
                     writeTVar gameLoopTvar serverState'
                     modifyTVar' sessionMapTvar (deleteMap sessionId)
                     modifyTVar' playerMapTVar (deleteMap sessionId)
-            return () 
-                    
+            return ()
+
         GameSetupMessage _ ->
             -- TODO: we dont handle game setup requests yet
             return ()
-        
+
         PlayerActionMessage playerAction -> do
             playerMay <- lookup sessionId <$> readTVarIO playerMapTVar
             case playerMay of
@@ -116,7 +116,9 @@ newInGamePlayer player location = InGamePlayer
     , playerLastRunDirection = RunLeft
     , playerVelocity         = VelocityVector 0 0
     , playerShootCooldown    = 0
-    , playerWidth            = 0.95
-    , playerHeight           = 1.52
+    , playerWidth            = newPlayerWidth
+    , playerHeight           = newPlayerHeight
     }
-
+    where
+        newPlayerWidth = 3
+        newPlayerHeight = 1.6 * newPlayerWidth

@@ -26,12 +26,15 @@ render World {..} = Gloss.pictures
     allPlayers =
         maybeToList (player worldInfo) ++ toList (otherPlayers worldInfo)
     playerPictures = map
-        (\p ->
-            let Location (x, y) = playerLocation p
+        (\InGamePlayer{..} ->
+            let Location (x, y) = playerLocation
             in
-                translate (blockSize * x) (blockSize * y + blockSize / 2)
+                translate (blockSize * x) (blockSize * y + blockSize * playerHeight / 2)
                 $ color playerColor
-                $ scale (1 * directionComponent) 1 ((animationPictures $ playerAnim) `indexEx` (picInd $ playerAnim))
+                $ scale blockSize blockSize
+                $ scale playerWidth playerHeight
+                $ scale (1 / mermaidHeight) (1 / mermaidHeight)
+                $ scale directionComponent 1 ((animationPictures $ playerAnim) `indexEx` (picInd $ playerAnim))
         )
         allPlayers
     projectilePictures =
@@ -41,15 +44,18 @@ render World {..} = Gloss.pictures
     solidPictures = map solidToPicture (solids renderInfo)
     mantaPicture  = animateAnimation (mantaAnimation renderInfo)
     directionComponent = if (lastDirection worldInfo) == RunLeft then -1 else 1
-    playerAnim = case player worldInfo of 
+    playerAnim = case player worldInfo of
                     Just p -> if abs (velocityX $ playerVelocity p) <= 0.01
-                        then playerAnimation renderInfo 
+                        then playerAnimation renderInfo
                             else playerRunningAnimation renderInfo
                     Nothing -> playerAnimation renderInfo
 
 solidToPicture :: Solid -> Picture
 solidToPicture solid =
-    uncurry translate (solidCenter solid) (solidTexture solid)
+    uncurry translate (solidCenter solid)
+        $ scale blockSize blockSize
+        $ scale (1 / blockImgWidth) (1 / blockImgHeight)
+        $ solidTexture solid
 
 projectileToPicture :: Projectile -> Picture -> Picture
 projectileToPicture p = translate (x * blockSize) (y * blockSize) . scale 0.2 0.2

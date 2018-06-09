@@ -1,5 +1,5 @@
 module WaterWars.Client.Render.Config where
-    
+
 import ClassyPrelude
 
 -- TODO: makes this configurable with a file
@@ -11,3 +11,13 @@ fieldHeight = 256
 
 blockSize :: Float
 blockSize = 32
+
+mermaidHeight :: Float
+mermaidHeight = 125
+mermaidWidth :: Float
+mermaidWidth = 78
+
+blockImgHeight :: Float
+blockImgHeight = 32
+blockImgWidth :: Float
+blockImgWidth = 32
