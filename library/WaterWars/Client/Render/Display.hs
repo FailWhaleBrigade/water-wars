@@ -54,10 +54,10 @@ inGamePlayerToPicture RenderInfo {..} InGamePlayer {..} =
         Animation {..} =
             playerToAnimation $ fromMaybe defaultPlayerAnimation maybeAnimation
     in
-        translate (blockSize * x) (blockSize * y + blockSize / 2)
+        translate (blockSize * x) (blockSize * y + blockSize)
         $ color inGamePlayerColor
-        $ scale (0.6 * directionComponent)
-                0.6
+        $ scale (0.624 * directionComponent)
+                0.624
                 (animationPictures `indexEx` picInd)
 
 

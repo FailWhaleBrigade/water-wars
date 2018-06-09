@@ -20,17 +20,29 @@ import WaterWars.Core.Game as CoreState
 
 connectionThread
     :: MonadIO m => Maybe NetworkInfo -> NetworkConfig -> WorldSTM -> m ()
-connectionThread _ NetworkConfig {..} world = liftIO $ WS.runClient
-    hostName
-    portId
-    ""
-    (\conn -> do
-        let connection = newConnection conn
-        -- TODO: this setup code should be refactored soon-ish
-        send connection (LoginMessage (Login Nothing))
-        _ <- async $ receiveUpdates world connection
-        sendUpdates world connection
-    )
+connectionThread _ NetworkConfig {..} world = forever $ do 
+    ret :: Either WS.ConnectionException () <- liftIO $ try $ WS.runClient
+        hostName
+        portId
+        ""
+        (\conn -> do
+            say "Connection has been opened"
+            let connection = newConnection conn
+            -- TODO: this setup code should be refactored soon-ish
+            send connection (LoginMessage (Login Nothing))
+            _ <- async $ receiveUpdates world connection
+            sendUpdates world connection
+        )
+
+    case ret of 
+        Left (WS.CloseRequest _ _) -> say "Server requested to close the conenction"
+        Left WS.ConnectionClosed -> say "Connection has been closed"
+        Left (WS.ParseException _) -> say "Client sent impressive garbage"
+        Left (WS.UnicodeException _)  -> say "Weird unicode error"
+        Right () -> say "Altoough weird, the connection was a success, whatever that means"
+    say "Connection failed, retry in some time" 
+    liftIO $ threadDelay (1000000 * 5)
+    
 
 
 receiveUpdates :: MonadIO m => WorldSTM -> Connection -> m ()
