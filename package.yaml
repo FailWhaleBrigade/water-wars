@@ -62,7 +62,6 @@ executables:
     - transformers
     - mtl
     - websockets
-    - hslogger
     - uuid
     - monad-logger
     ghc-options:

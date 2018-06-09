@@ -4,6 +4,7 @@ module WaterWars.Client.Render.State
     , WorldSTM(..)
     , RenderInfo(..)
     , WorldInfo(..)
+    , PlayerAnimation(..)
     , initializeState
     , setTerrain
     ) where
@@ -22,18 +23,11 @@ import qualified WaterWars.Client.Network.State as NetworkState
 
 import qualified WaterWars.Core.Game.State as CoreState
 import qualified WaterWars.Core.Game.Map as CoreState
-import qualified WaterWars.Core.DefaultGame as DefaultGame
 
 import WaterWars.Core.Game
+import WaterWars.Client.Render.Animation
 
 newtype WorldSTM = WorldSTM (TVar World)
-
-data Animation = Animation
-    { countDownTilNext :: Integer
-    , countDownMax :: Integer
-    , animationPictures :: [Picture]
-    , picInd :: Int
-    } deriving Show
 
 data World = World
     { renderInfo :: RenderInfo
@@ -46,8 +40,12 @@ data RenderInfo = RenderInfo
     { blockMap :: BlockMap
     , backgroundTexture :: Picture
     , projectileTexture :: Picture
-    , playerAnimation :: Animation
-    , playerRunningAnimation :: Animation
+    , playerRunningTextures :: [Picture]
+    , playerIdleTextures :: [Picture]
+    , defaultPlayerAnimation :: PlayerAnimation
+    , newPlayerIdleAnimation :: PlayerAnimation
+    , newPlayerRunnningAnimation :: PlayerAnimation
+    , playerAnimations :: Map Player PlayerAnimation
     , solids :: Seq Solid
     , mantaAnimation :: Animation
     } deriving Show
@@ -62,7 +60,6 @@ data WorldInfo = WorldInfo
     , player    :: Maybe CoreState.InGamePlayer
     , otherPlayers :: Seq CoreState.InGamePlayer
     , projectiles  :: Seq CoreState.Projectile
-    , lastDirection :: RunDirection
     } deriving Show
 
 initializeState
@@ -76,41 +73,48 @@ initializeState
 initializeState bmpBg bmpPrj playerTex playerRunningTexs bmpsMan blockMap' =
     WorldSTM <$> newTVarIO World
         { renderInfo  = RenderInfo
-            { blockMap               = blockMap'
-            , backgroundTexture      = bmpBg
-            , projectileTexture      = bmpPrj
-            , playerAnimation        = Animation
+            { blockMap                   = blockMap'
+            , backgroundTexture          = bmpBg
+            , projectileTexture          = bmpPrj
+            , playerRunningTextures      = playerRunningTexs
+            , playerIdleTextures         = singleton playerTex
+            , playerAnimations           = mapFromList []
+            , defaultPlayerAnimation     = PlayerIdleAnimation Animation
                 { countDownTilNext  = 30
                 , countDownMax      = 30
-                , animationPictures = cycle [playerTex]
+                , animationPictures = repeat playerTex
                 , picInd            = 0
                 }
-            , playerRunningAnimation = Animation
+            , newPlayerIdleAnimation     = PlayerIdleAnimation Animation
+                { countDownTilNext  = 30
+                , countDownMax      = 30
+                , animationPictures = repeat playerTex
+                , picInd            = 0
+                }
+            , newPlayerRunnningAnimation = PlayerIdleAnimation Animation
                 { countDownTilNext  = 5
                 , countDownMax      = 5
                 , animationPictures = cycle playerRunningTexs
                 , picInd            = 0
                 }
-            , mantaAnimation         = Animation
+            , mantaAnimation             = Animation
                 { countDownTilNext  = 30
                 , countDownMax      = 30
                 , animationPictures = cycle bmpsMan
                 , picInd            = 0
                 }
-            , solids                 = empty
+            , solids                     = empty
             }
         , worldInfo   = WorldInfo
-            { jump          = False
-            , walkLeft      = False
-            , walkRight     = False
-            , duck          = False
-            , shoot         = False
-            , exitGame      = False
-            , player        = Nothing
-            , otherPlayers  = empty
-            , projectiles   = fromList
-                [DefaultGame.defaultProjectile, DefaultGame.defaultProjectile]
-            , lastDirection = RunRight
+            { jump         = False
+            , walkLeft     = False
+            , walkRight    = False
+            , duck         = False
+            , shoot        = False
+            , exitGame     = False
+            , player       = Nothing
+            , otherPlayers = empty
+            , projectiles  = empty
             }
         , networkInfo = Nothing
         }
@@ -150,5 +154,3 @@ blockLocationToSolid mapWidthHalf mapHeightHalf size (BlockLocation (x, y)) pict
                          )
         , solidTexture = picture
         }
-
-

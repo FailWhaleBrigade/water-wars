@@ -20,7 +20,7 @@ runGameLoop
 runGameLoop gameLoopStateTvar broadcastChan playerActions = forever $ do
     GameLoopState {..} <- atomically $ do
         gameLoopState@GameLoopState {..} <- readTVar gameLoopStateTvar
-        actions                      <- emptyPlayerActions playerActions
+        actions                          <- emptyPlayerActions playerActions
         let newState     = runGameTick gameMap gameState actions
         let newgameState = gameLoopState { gameState = newState }
         writeTVar gameLoopStateTvar newgameState

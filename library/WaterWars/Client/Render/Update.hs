@@ -3,21 +3,17 @@ module WaterWars.Client.Render.Update where
 import           ClassyPrelude
 
 import           Graphics.Gloss.Interface.IO.Game
-import qualified Graphics.Gloss.Interface.IO.Game
-                                               as Gloss
+import qualified Graphics.Gloss.Interface.IO.Game as Gloss
 import           WaterWars.Client.Render.State
+import           WaterWars.Client.Render.Animation
 import           WaterWars.Core.Game
 
 handleKeys :: Event -> World -> World
 handleKeys (EventKey (Char c) Gloss.Down _ _) world@World {..}
-    | c == 'a' = world
-        { worldInfo = worldInfo { walkLeft = True, lastDirection = RunLeft }
-        }
+    | c == 'a' = world { worldInfo = worldInfo { walkLeft = True } }
     | c == 'w' = world { worldInfo = worldInfo { jump = True } }
     | c == 's' = world { worldInfo = worldInfo { duck = True } }
-    | c == 'd' = world
-        { worldInfo = worldInfo { walkRight = True, lastDirection = RunRight }
-        }
+    | c == 'd' = world { worldInfo = worldInfo { walkRight = True } }
 handleKeys (EventKey (SpecialKey KeySpace) Gloss.Down _ _) world@World {..} =
     world { worldInfo = worldInfo { shoot = True } }
 handleKeys (EventKey (Char c) Gloss.Up _ _) world@World {..}
@@ -37,40 +33,17 @@ handleKeysIO e world@(WorldSTM tvar) = atomically $ do
     writeTVar tvar newState
     return world
 
--- movePlayer :: Float -> World -> World
--- movePlayer seconds World {..} =
---     let v                 = 50
---         WorldInfo {..}    = worldInfo
---         Location (dx, dy) = concatMap snd $ filter
---             fst
---             [ (walkLeft , Location (-v, 0))
---             , (jump     , Location (0, v))
---             , (walkRight, Location (v, 0))
---             , (duck     , Location (0, -v))
---             ]
---         diffs       = Location (dx * seconds, dy * seconds)
---         oldLocation = playerLocation player
---     in  World
---             { worldInfo = worldInfo
---                 { player = player { playerLocation = oldLocation ++ diffs }
---                 }
---             , ..
---             }
-
-updateAnimation :: Animation -> Animation
-updateAnimation a@Animation {..} = if countDownTilNext == 0
-    then a { picInd = picInd + 1, countDownTilNext = countDownMax }
-    else a { countDownTilNext = countDownTilNext - 1 }
-
 update :: Float -> World -> World
 update _ World {..} =
     let
         worldAnimated = World
             { renderInfo = renderInfo
-                { mantaAnimation = updateAnimation (mantaAnimation renderInfo)
-                , playerAnimation = updateAnimation (playerAnimation renderInfo)
-                , playerRunningAnimation = updateAnimation
-                    (playerRunningAnimation renderInfo)
+                { mantaAnimation   = updateAnimation (mantaAnimation renderInfo)
+                , playerAnimations = mapFromList $ map
+                    (updatePlayerInformation renderInfo)
+                    (  maybeToList (player worldInfo)
+                    ++ toList (otherPlayers worldInfo)
+                    )
                 }
             , ..
             }
@@ -83,4 +56,21 @@ updateIO diff world@(WorldSTM tvar) = do
     atomically $ writeTVar tvar newState
     return world
 
-
+updatePlayerInformation
+    :: RenderInfo -> InGamePlayer -> (Player, PlayerAnimation)
+updatePlayerInformation RenderInfo {..} InGamePlayer {..} =
+    let
+        maybePlayerAnim = lookup playerDescription playerAnimations
+        playerAnim      = fromMaybe defaultPlayerAnimation maybePlayerAnim
+        newAnim :: PlayerAnimation -> PlayerAnimation
+        newAnim (PlayerRunningAnimation _)
+            | abs (velocityX playerVelocity) >= 0.01 = updatePlayerAnimation
+                playerAnim
+            | otherwise = newPlayerIdleAnimation
+        newAnim (PlayerIdleAnimation _)
+            | abs (velocityX playerVelocity) <= 0.01
+            = newPlayerRunnningAnimation
+            | otherwise
+            = updatePlayerAnimation playerAnim
+    in
+        (playerDescription, newAnim playerAnim)

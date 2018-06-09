@@ -4,9 +4,11 @@ import ClassyPrelude
 
 import Graphics.Gloss as Gloss
 
+import WaterWars.Client.Render.Config
+import WaterWars.Client.Render.Animation
 import WaterWars.Client.Render.State
 import WaterWars.Client.Render.Terrain.Solid
-import WaterWars.Client.Render.Config
+
 import WaterWars.Core.Game
 
 -- |Convert a game state into a picture
@@ -25,37 +27,44 @@ render World {..} = Gloss.pictures
   where
     allPlayers =
         maybeToList (player worldInfo) ++ toList (otherPlayers worldInfo)
-    playerPictures = map
-        (\p ->
-            let Location (x, y) = playerLocation p
-            in
-                translate (blockSize * x) (blockSize * y + blockSize / 2)
-                $ color playerColor
-                $ scale (1 * directionComponent) 1 ((animationPictures $ playerAnim) `indexEx` (picInd $ playerAnim))
-        )
-        allPlayers
+    playerPictures :: [Picture]
+    playerPictures = map (inGamePlayerToPicture renderInfo) allPlayers
     projectilePictures =
         map (\p -> projectileToPicture p $ projectileTexture renderInfo)
             (projectiles worldInfo) :: Seq Picture
-    playerColor   = red
+
     solidPictures = map solidToPicture (solids renderInfo)
     mantaPicture  = animateAnimation (mantaAnimation renderInfo)
-    directionComponent = if (lastDirection worldInfo) == RunLeft then -1 else 1
-    playerAnim = case player worldInfo of 
-                    Just p -> if abs (velocityX $ playerVelocity p) <= 0.01
-                        then playerAnimation renderInfo 
-                            else playerRunningAnimation renderInfo
-                    Nothing -> playerAnimation renderInfo
+
+inGamePlayerColor :: Color
+inGamePlayerColor = red
 
 solidToPicture :: Solid -> Picture
 solidToPicture solid =
     uncurry translate (solidCenter solid) (solidTexture solid)
 
+inGamePlayerToPicture :: RenderInfo -> InGamePlayer -> Picture
+inGamePlayerToPicture RenderInfo {..} InGamePlayer {..} =
+    let
+        Location (x, y)    = playerLocation
+        directionComponent = case playerLastRunDirection of
+            RunLeft  -> -1
+            RunRight -> 1
+        maybeAnimation = lookup playerDescription playerAnimations
+        Animation {..} =
+            playerToAnimation $ fromMaybe defaultPlayerAnimation maybeAnimation
+    in
+        translate (blockSize * x) (blockSize * y + blockSize / 2)
+        $ color inGamePlayerColor
+        $ scale (0.6 * directionComponent)
+                0.6
+                (animationPictures `indexEx` picInd)
+
+
 projectileToPicture :: Projectile -> Picture -> Picture
-projectileToPicture p = translate (x * blockSize) (y * blockSize) . scale 0.2 0.2
+projectileToPicture p = translate (x * blockSize) (y * blockSize)
+    . scale 0.2 0.2
     where Location (x, y) = projectileLocation p
 
 animateAnimation :: Animation -> Picture
-animateAnimation Animation {..} = img
-  where
-    img             = animationPictures `indexEx` picInd
+animateAnimation Animation {..} = animationPictures `indexEx` picInd

@@ -61,7 +61,7 @@ modifyPlayerByAction player = execState player $ do
     doShootAction action
     modify
         ( modifyPlayerShootCooldown
-        . modifyPlayerByRunAction isOnGround action -- TODO: use local reader here?
+        . modifyPlayerByRunAction  isOnGround action -- TODO: use local reader here?
         . modifyPlayerByJumpAction isOnGround action
         )
 
@@ -81,7 +81,7 @@ modifyPlayerByRunAction onGround action player@InGamePlayer {..} =
             $  runVector onGround runDirection
             ++ playerVelocity
             )
-            player
+            player { playerLastRunDirection = runDirection }
 
 -- decrease cooldown
 modifyPlayerShootCooldown :: InGamePlayer -> InGamePlayer
@@ -101,8 +101,8 @@ doShootAction
     :: (Member (State GameState) e, Member (State InGamePlayer) e)
     => Action
     -> Eff e ()
-doShootAction Action{shootAction} = do
-    InGamePlayer{..} <- get
+doShootAction Action { shootAction } = do
+    InGamePlayer {..} <- get
     when (playerShootCooldown == 0) $ whenJust shootAction $ \angle -> do
         addProjectile $ newProjectileFromAngle playerLocation angle
         modify setPlayerCooldown
@@ -117,3 +117,4 @@ modifyPlayerByEnvironment p = do
         . verticalDragPlayer isOnGround
         . gravityPlayer isOnGround
         $ p
+

@@ -26,7 +26,7 @@ gravityVector = VelocityVector 0 (-gravityForce)
 blockLocationBelowFeet :: InGamePlayer -> BlockLocation
 blockLocationBelowFeet InGamePlayer { playerLocation } =
     let Location (x, y) = playerLocation
-    in  BlockLocation (round x, round $ y - 0.001)
+    in  BlockLocation (round x, round $ y - 0.001 {- TODO: this should be a constant-})
 
 gravityPlayer :: Bool -> InGamePlayer -> InGamePlayer
 gravityPlayer True = id
@@ -47,7 +47,7 @@ isPlayerOnGround :: Member (Reader GameMap) e => InGamePlayer -> Eff e Bool
 isPlayerOnGround InGamePlayer {..} = do
     blocks <- asks gameTerrain
     let Location (x, y) = playerLocation
-    let blockBelowFeet  = BlockLocation (round x, round $ y - 0.001)
+    let blockBelowFeet  = BlockLocation (round x, round $ y - 0.001 {- TODO: this should be a constant-})
     return $ isSolidAt blocks blockBelowFeet
 
 movePlayer :: Member (Reader GameMap) e => InGamePlayer -> Eff e InGamePlayer

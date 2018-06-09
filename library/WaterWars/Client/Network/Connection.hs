@@ -105,7 +105,7 @@ extractGameAction world =
                | otherwise = Nothing
         jmpCmd   = if jump then Just JumpAction else Nothing
         shootCmd = if shoot
-            then Just $ angleForRunDirection lastDirection
+            then angleForRunDirection . playerLastRunDirection <$> player
             else Nothing
         playerAction = Action
             { runAction   = runCmd

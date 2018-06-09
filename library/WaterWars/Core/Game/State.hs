@@ -7,8 +7,8 @@ module WaterWars.Core.Game.State
     )
 where
 
-import           ClassyPrelude
-import           WaterWars.Core.Game.Base
+import ClassyPrelude
+import WaterWars.Core.Game.Base
 
 -- |Master-state of the whole game
 data GameState = GameState
