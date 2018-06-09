@@ -1,4 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
+
 module Main where
 
 import ClassyPrelude
@@ -62,23 +63,28 @@ websocketServer
     => TVar (Map Text ClientConnection)
     -> TChan EventMessage
     -> m ()
-websocketServer sessionMapTvar broadcastChan =
-    liftIO $ runServer "localhost" 1234 $ \websocketConn -> do
-        connHandle <- acceptRequest websocketConn
-        commChan   <- newTChanIO -- to receive messages
-        sessionId  <- toText <$> nextRandom -- uniquely identify connections
-        let conn =
-                newClientConnection sessionId connHandle commChan broadcastChan
-        atomically $ modifyTVar' sessionMapTvar (insertMap sessionId conn)
-        runStdoutLoggingT $ clientGameThread
-            conn
-            ( atomically
-            . writeTChan broadcastChan
-            . EventClientMessage sessionId
-            )
-            (atomically $ readTChan commChan)
-        -- ! Should be used for cleanup code
-        return ()
+websocketServer sessionMapTvar broadcastChan = liftIO $ runServer
+    "localhost"
+    1234
+    (handleConnection sessionMapTvar broadcastChan)
+
+handleConnection
+    :: TVar (Map Text ClientConnection)
+    -> TChan EventMessage
+    -> PendingConnection
+    -> IO ()
+handleConnection sessionMapTvar broadcastChan websocketConn = do
+    connHandle <- acceptRequest websocketConn
+    commChan   <- newTChanIO -- to receive messages
+    sessionId  <- toText <$> nextRandom -- uniquely identify connections
+    let conn = newClientConnection sessionId connHandle commChan broadcastChan
+    atomically $ modifyTVar' sessionMapTvar (insertMap sessionId conn)
+    runStdoutLoggingT $ clientGameThread
+        conn
+        (atomically . writeTChan broadcastChan . EventClientMessage sessionId)
+        (atomically $ readTChan commChan)
+    -- ! Should be used for cleanup code
+    return ()
 
 gameLoopServer
     :: (MonadIO m, MonadLogger m, MonadUnliftIO m)

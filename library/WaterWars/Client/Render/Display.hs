@@ -25,16 +25,22 @@ render World {..} = Gloss.pictures
     ++ [mantaPicture]
     )
   where
+    allPlayers :: [InGamePlayer]
     allPlayers =
         maybeToList (player worldInfo) ++ toList (otherPlayers worldInfo)
+        
     playerPictures :: [Picture]
     playerPictures = map (inGamePlayerToPicture renderInfo) allPlayers
-    projectilePictures =
-        map (\p -> projectileToPicture p $ projectileTexture renderInfo)
-            (projectiles worldInfo) :: Seq Picture
 
+    projectilePictures :: Seq Picture
+    projectilePictures =
+        map (projectileToPicture renderInfo) (projectiles worldInfo)
+
+    solidPictures :: Seq Picture
     solidPictures = map solidToPicture (solids renderInfo)
-    mantaPicture  = animateAnimation (mantaAnimation renderInfo)
+
+    mantaPicture :: Picture
+    mantaPicture = animateAnimation (mantaAnimation renderInfo)
 
 inGamePlayerColor :: Color
 inGamePlayerColor = red
@@ -45,26 +51,26 @@ solidToPicture solid =
 
 inGamePlayerToPicture :: RenderInfo -> InGamePlayer -> Picture
 inGamePlayerToPicture RenderInfo {..} InGamePlayer {..} =
-    let
-        Location (x, y)    = playerLocation
+    let Location (x, y)    = playerLocation
         directionComponent = case playerLastRunDirection of
             RunLeft  -> -1
             RunRight -> 1
         maybeAnimation = lookup playerDescription playerAnimations
         Animation {..} =
             playerToAnimation $ fromMaybe defaultPlayerAnimation maybeAnimation
-    in
-        translate (blockSize * x) (blockSize * y + blockSize)
+    in  translate (blockSize * x) (blockSize * y + blockSize)
         $ color inGamePlayerColor
         $ scale (0.624 * directionComponent)
                 0.624
                 (animationPictures `indexEx` picInd)
 
 
-projectileToPicture :: Projectile -> Picture -> Picture
-projectileToPicture p = translate (x * blockSize) (y * blockSize)
-    . scale 0.2 0.2
+projectileToPicture :: RenderInfo -> Projectile -> Picture
+projectileToPicture RenderInfo {..} p = translate (x * blockSize)
+                                                  (y * blockSize)
+                                                  projectileTexture
     where Location (x, y) = projectileLocation p
 
 animateAnimation :: Animation -> Picture
 animateAnimation Animation {..} = animationPictures `indexEx` picInd
+
