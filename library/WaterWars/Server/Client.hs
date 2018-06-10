@@ -34,14 +34,14 @@ clientReceive
     -> (ClientMessage -> m ()) -- ^Send Message to Eventloop
     -> m ()
 clientReceive conn sendAction = forever $ do
-    $logInfo "Wait for data message" 
+    $logDebug "Wait for data message" 
     msg <- receive conn
     case msg of
         Left msg_ -> do
-            $logInfo "Could not read message"
+            $logWarn "Could not read message"
             $logDebug $ "Could not read message: " ++ msg_
         Right playerAction -> do
-            $logInfo $ "Read a message: " ++ tshow playerAction
+            $logDebug $ "Read a message: " ++ tshow playerAction
             sendAction playerAction
             return ()
     -- TODO: should i sleep here for some time to avoid DOS-attack? yes

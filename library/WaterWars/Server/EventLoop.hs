@@ -4,6 +4,7 @@ module WaterWars.Server.EventLoop where
 
 import ClassyPrelude
 
+import Control.Concurrent (threadDelay)
 import Control.Monad.Logger
 
 import WaterWars.Network.Protocol
@@ -17,8 +18,9 @@ eventLoop
     -> TVar PlayerActions
     -> TVar (Map Text ClientConnection)
     -> TVar (Map Text InGamePlayer)
+    -> TVar (Set Text)
     -> m ()
-eventLoop broadcastChan gameLoopTvar playerActionTvar sessionMapTvar playerMapTVar
+eventLoop broadcastChan gameLoopTvar playerActionTvar sessionMapTvar playerMapTVar readyPlayers
     = forever $ do
         message <- atomically $ readTChan broadcastChan
         $logDebug $ "Read a new event loop message: " ++ tshow message
@@ -31,6 +33,7 @@ eventLoop broadcastChan gameLoopTvar playerActionTvar sessionMapTvar playerMapTV
                 playerActionTvar
                 sessionMapTvar
                 playerMapTVar
+                readyPlayers
 
             -- handle messages sent from the gameloop
             EventGameLoopMessage gameStateUpdate ->
@@ -39,25 +42,29 @@ eventLoop broadcastChan gameLoopTvar playerActionTvar sessionMapTvar playerMapTV
         -- TODO: handle messages sent from websocket app
 
 handleGameLoopMessages
-    :: MonadIO m => GameState -> TVar (Map Text ClientConnection) -> m ()
+    :: (MonadIO m, MonadLogger m)
+    => GameState
+    -> TVar (Map Text ClientConnection)
+    -> m ()
 handleGameLoopMessages gameStateUpdate sessionMapTvar = do
     sessionMap <- readTVarIO sessionMapTvar
-    forM_ sessionMap $ \conn -> atomically
-        $ writeTChan (readChannel conn) (GameStateMessage gameStateUpdate)
+    broadcastMessage (GameStateMessage gameStateUpdate) sessionMap
 
 handleClientMessages
-    :: MonadIO m
+    :: (MonadIO m, MonadLogger m)
     => Text
     -> ClientMessage
     -> TVar GameLoopState
     -> TVar PlayerActions
     -> TVar (Map Text ClientConnection)
     -> TVar (Map Text InGamePlayer)
+    -> TVar (Set Text)
     -> m ()
-handleClientMessages sessionId clientMsg gameLoopTvar playerActionTvar sessionMapTvar playerMapTVar
+handleClientMessages sessionId clientMsg gameLoopTvar playerActionTvar sessionMapTvar playerMapTVar readyPlayers
     = case clientMsg of
         LoginMessage _ -> do
             -- TODO: Handle reconnects
+            $logInfo ("Login message from \"" ++ sessionId ++ "\"")
             -- Create new Player
             let player = newInGamePlayer (Player sessionId) (Location (0, 0))
             -- Tell the game loop engine about the newly connected player
@@ -80,6 +87,7 @@ handleClientMessages sessionId clientMsg gameLoopTvar playerActionTvar sessionMa
             return ()
 
         LogoutMessage Logout -> do
+            $logInfo ("Logout message from \"" ++ sessionId ++ "\"")
             playerMay <- lookup sessionId <$> readTVarIO playerMapTVar
             case playerMay of
                 Nothing     -> return ()
@@ -90,6 +98,7 @@ handleClientMessages sessionId clientMsg gameLoopTvar playerActionTvar sessionMa
                     writeTVar   gameLoopTvar   serverState'
                     modifyTVar' sessionMapTvar (deleteMap sessionId)
                     modifyTVar' playerMapTVar  (deleteMap sessionId)
+                    modifyTVar' readyPlayers   (deleteSet sessionId)
             return ()
 
         GameSetupMessage _ ->
@@ -99,7 +108,9 @@ handleClientMessages sessionId clientMsg gameLoopTvar playerActionTvar sessionMa
         PlayerActionMessage playerAction -> do
             playerMay <- lookup sessionId <$> readTVarIO playerMapTVar
             case playerMay of
-                Nothing                -> return () -- TODO: add logging facilities
+                Nothing -> do 
+                    $logWarn "Received a message that did not belong to any player"
+                    return ()
                 Just InGamePlayer {..} -> atomically $ do
                     PlayerActions {..} <- readTVar playerActionTvar
                     let getPlayerActions' = insertWith
@@ -110,6 +121,34 @@ handleClientMessages sessionId clientMsg gameLoopTvar playerActionTvar sessionMa
                     writeTVar playerActionTvar (PlayerActions getPlayerActions')
             return ()
 
+        ClientReadyMessage ClientReady -> do
+            $logInfo ("Player \"" ++ sessionId ++ "\" is ready")
+            allPlayersReady <- atomically $ do
+                readySet  <- readTVar readyPlayers
+                playerMap <- readTVar playerMapTVar
+                if member sessionId readySet then
+                    return False 
+                else do
+                    let readySet' = insertSet sessionId readySet
+                    writeTVar readyPlayers readySet'
+                    if keysSet playerMap == readySet'
+                        then do
+                            modifyTVar' gameLoopTvar startGame
+                            return True
+                        else return False
+
+            when allPlayersReady $ do
+                $logInfo ("Everyone is ready. \"" ++ sessionId ++ "\" was the last one.")
+                sessionMap <- readTVarIO sessionMapTvar
+                broadcastMessage (GameStartMessage (GameStart 5)) sessionMap
+                -- Start the game in 5 seconds
+                _ <- liftIO $ async $ do
+                    threadDelay (1000000 * 5)
+                    atomically (modifyTVar' gameLoopTvar startGame)
+                    return ()
+                return ()
+
+            return ()
 
 -- utility functions for creation
 newInGamePlayer :: Player -> Location -> InGamePlayer
@@ -124,3 +163,8 @@ newInGamePlayer player location = InGamePlayer
     , playerWidth            = 0.95
     , playerHeight           = 1.52
     }
+
+broadcastMessage
+    :: MonadIO m => ServerMessage -> Map Text ClientConnection -> m ()
+broadcastMessage serverMessage sessionMap = forM_ sessionMap
+    $ \conn -> atomically $ writeTChan (readChannel conn) serverMessage

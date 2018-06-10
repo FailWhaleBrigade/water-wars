@@ -21,21 +21,18 @@ import WaterWars.Server.GameLoop
 import WaterWars.Server.Client
 import WaterWars.Server.EventLoop
 
-defaultState :: GameLoopState
-defaultState =
-    GameLoopState {gameMap = defaultGameMap, gameState = defaultGameState}
-
 defaultGameSetup :: GameSetup
 defaultGameSetup = GameSetup {numberOfPlayers = 4, terrainMap = "default"}
 
 serverStateWithTerrain :: Terrain -> GameLoopState
 serverStateWithTerrain terrain = GameLoopState
-    { gameMap   = GameMap
+    { gameMap     = GameMap
         { gameTerrain       = terrain
         , gamePlayers       = empty
         , terrainBackground = "default"
         }
-    , gameState = defaultGameState
+    , gameState   = defaultGameState
+    , gameRunning = False
     }
 
 main :: IO ()
@@ -54,6 +51,7 @@ runLoop = do
     _                 <- async (websocketServer sessionMapTvar broadcastChan)
     forever
         ( runStdoutLoggingT
+        $ filterLogger (\_ level -> level /= LevelDebug)
         $ gameLoopServer gameLoopStateTvar sessionMapTvar broadcastChan
         )
 
@@ -79,10 +77,15 @@ handleConnection sessionMapTvar broadcastChan websocketConn = do
     sessionId  <- toText <$> nextRandom -- uniquely identify connections
     let conn = newClientConnection sessionId connHandle commChan broadcastChan
     atomically $ modifyTVar' sessionMapTvar (insertMap sessionId conn)
-    runStdoutLoggingT $ clientGameThread
-        conn
-        (atomically . writeTChan broadcastChan . EventClientMessage sessionId)
-        (atomically $ readTChan commChan)
+    runStdoutLoggingT
+        $ filterLogger (\_ level -> level /= LevelDebug)
+        $ clientGameThread
+              conn
+              ( atomically
+              . writeTChan broadcastChan
+              . EventClientMessage sessionId
+              )
+              (atomically $ readTChan commChan)
     -- ! Should be used for cleanup code
     return ()
 
@@ -95,11 +98,19 @@ gameLoopServer
 gameLoopServer gameLoopStateTvar sessionMapTvar broadcastChan = do
     readBroadcastChan <- atomically $ dupTChan broadcastChan
     playerActionTvar  <- newTVarIO (PlayerActions (mapFromList empty))
-    playerInGameTVar  <- newTVarIO $ mapFromList []
-    _                 <- async $ eventLoop readBroadcastChan
-                                           gameLoopStateTvar
-                                           playerActionTvar
-                                           sessionMapTvar
-                                           playerInGameTVar
+    playerInGameTvar  <- newTVarIO $ mapFromList []
+    readyPlayersTvar  <- newTVarIO mempty
+
+    _                 <- async
+        (eventLoop readBroadcastChan
+                   gameLoopStateTvar
+                   playerActionTvar
+                   sessionMapTvar
+                   playerInGameTvar
+                   readyPlayersTvar
+        )
     $logInfo "Start game loop"
     runGameLoop gameLoopStateTvar broadcastChan playerActionTvar
+    return ()
+
+

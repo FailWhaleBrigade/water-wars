@@ -57,6 +57,7 @@ data WorldInfo = WorldInfo
     , shoot     :: Bool
     , duck      :: Bool
     , exitGame  :: Bool
+    , readyUp   :: Bool
     , player    :: Maybe CoreState.InGamePlayer
     , otherPlayers :: Seq CoreState.InGamePlayer
     , projectiles  :: Seq CoreState.Projectile
@@ -112,6 +113,7 @@ initializeState bmpBg bmpPrj playerTex playerRunningTexs bmpsMan blockMap' =
             , duck         = False
             , shoot        = False
             , exitGame     = False
+            , readyUp      = False
             , player       = Nothing
             , otherPlayers = empty
             , projectiles  = empty
@@ -154,3 +156,4 @@ blockLocationToSolid mapWidthHalf mapHeightHalf size (BlockLocation (x, y)) pict
                          )
         , solidTexture = picture
         }
+

@@ -4,7 +4,7 @@ import ClassyPrelude
 
 import Control.Monad.Logger
 
-import Control.Concurrent
+import Control.Concurrent (threadDelay)
 
 import WaterWars.Core.Game
 

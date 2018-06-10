@@ -20,8 +20,8 @@ import WaterWars.Core.Game as CoreState
 
 connectionThread
     :: MonadIO m => Maybe NetworkInfo -> NetworkConfig -> WorldSTM -> m ()
-connectionThread _ NetworkConfig {..} world = forever $ do 
-    ret :: Either WS.ConnectionException () <- liftIO $ try $ WS.runClient
+connectionThread _ NetworkConfig {..} world = forever $ do
+    ret :: Either SomeException () <- liftIO $ try $ WS.runClient
         hostName
         portId
         ""
@@ -34,40 +34,53 @@ connectionThread _ NetworkConfig {..} world = forever $ do
             sendUpdates world connection
         )
 
-    case ret of 
-        Left (WS.CloseRequest _ _) -> say "Server requested to close the conenction"
-        Left WS.ConnectionClosed -> say "Connection has been closed"
-        Left (WS.ParseException _) -> say "Client sent impressive garbage"
-        Left (WS.UnicodeException _)  -> say "Weird unicode error"
-        Right () -> say "Altoough weird, the connection was a success, whatever that means"
-    say "Connection failed, retry in some time" 
+    --case ret of
+    --    Left (WS.CloseRequest _ _) ->
+    --        say "Server requested to close the conenction"
+    --    Left WS.ConnectionClosed     -> say "Connection has been closed"
+    --    Left (WS.ParseException   _) -> say "Client sent impressive garbage"
+    --    Left (WS.UnicodeException _) -> say "Weird unicode error"
+    --    Right () ->
+    --        say
+    --            "Altoough weird, the connection was a success, whatever that means"
+    say "Connection failed, retry in some time"
     liftIO $ threadDelay (1000000 * 5)
-    
+
 
 
 receiveUpdates :: MonadIO m => WorldSTM -> Connection -> m ()
-receiveUpdates (WorldSTM tvar) conn = runStdoutLoggingT $ forever $ do
-    $logInfo "Wait for Game Update"
-    serverMsg <- receive conn
-    case serverMsg of
-        Left  msg_ -> $logWarn $ "Could not read message: " ++ tshow msg_
+receiveUpdates (WorldSTM tvar) conn =
+    runStdoutLoggingT
+        $ filterLogger (\_ level -> level /= LevelDebug)
+        $ forever
+        $ do
+              $logDebug "Wait for Game Update"
+              serverMsg <- receive conn
+              case serverMsg of
+                  Left msg_ ->
+                      $logWarn $ "Could not read message: " ++ tshow msg_
 
-        Right msg  -> atomically $ do
-            world <- readTVar tvar
-            let world' = updateWorld msg world
-            writeTVar tvar world'
+                  Right msg -> atomically $ do
+                      world <- readTVar tvar
+                      let world' = updateWorld msg world
+                      writeTVar tvar world'
 
-    return ()
+              return ()
 
 sendUpdates :: MonadIO m => WorldSTM -> Connection -> m ()
-sendUpdates (WorldSTM tvar) conn = runStdoutLoggingT $ forever $ do
-    $logDebug $ "Send an update to the Server"
-    world <- readTVarIO tvar
-    let action = extractGameAction world
-    $logDebug $ "Message: " ++ tshow action
-    send conn (PlayerActionMessage action)
-    liftIO $ threadDelay (1000000 `div` 60)
-    return ()
+sendUpdates (WorldSTM tvar) conn =
+    runStdoutLoggingT
+        $ filterLogger (\_ level -> level /= LevelDebug)
+        $ forever
+        $ do
+              $logDebug $ "Send an update to the Server"
+              world <- readTVarIO tvar
+              let action = extractGameAction world
+              $logDebug $ "Message: " ++ tshow action
+              send conn (PlayerActionMessage action)
+              when (readyUp $ worldInfo world) (send conn (ClientReadyMessage ClientReady))
+              liftIO $ threadDelay (1000000 `div` 60)
+              return ()
 
 
 updateWorld :: Protocol.ServerMessage -> World -> World
@@ -108,6 +121,9 @@ updateWorld serverMsg world@World {..} = case serverMsg of
             worldInfo_     = WorldInfo {player = newPlayer, ..}
         in  World {worldInfo = worldInfo_, ..}
 
+    GameStartMessage (GameStart n) -> world
+
+
 extractGameAction :: World -> Protocol.PlayerAction
 extractGameAction world =
     let
@@ -126,3 +142,6 @@ extractGameAction world =
             }
     in
         PlayerAction {getAction = playerAction}
+
+
+

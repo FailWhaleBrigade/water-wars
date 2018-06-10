@@ -13,6 +13,7 @@ data EventMessage
 data GameLoopState = GameLoopState
     { gameMap     :: GameMap
     , gameState   :: GameState
+    , gameRunning :: Bool
     } deriving (Show, Eq)
 
 newtype PlayerActions = PlayerActions
@@ -27,3 +28,9 @@ modifyGameState
     -> GameLoopState
 modifyGameState f GameLoopState {..} a =
     GameLoopState {gameState = f gameState a, ..}
+
+startGame :: GameLoopState -> GameLoopState
+startGame GameLoopState {..} = GameLoopState { gameRunning = True,..}
+
+stopGame :: GameLoopState -> GameLoopState
+stopGame GameLoopState {..} = GameLoopState { gameRunning = False,..}

@@ -48,11 +48,18 @@ data SetupError
 -- |If players are logging out, for completeness, not neccessarily used.
 data Logout = Logout deriving (Show, Read, Eq)
 
+-- |Signals the server that a client is ready
+data ClientReady = ClientReady deriving (Show, Read, Eq)
+
+-- |Inform client that the game is about to start n seconds
+newtype GameStart = GameStart Int deriving (Show, Read, Eq)
+
 data ServerMessage
     = GameSetupResponseMessage GameSetupResponse
     | LoginResponseMessage LoginResponse
     | GameMapMessage CoreState.GameMap
     | GameStateMessage CoreState.GameState
+    | GameStartMessage GameStart
     deriving (Show, Eq, Read)
 
 instance Serializable ServerMessage where
@@ -65,6 +72,7 @@ data ClientMessage
     | LogoutMessage Logout
     | GameSetupMessage GameSetup
     | PlayerActionMessage PlayerAction
+    | ClientReadyMessage ClientReady
     deriving (Show, Eq, Read)
 
 instance Serializable ClientMessage where
