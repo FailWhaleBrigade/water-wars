@@ -84,6 +84,8 @@ handleClientMessages sessionId clientMsg gameLoopTvar playerActionTvar sessionMa
                         (LoginResponseMessage (LoginResponse sessionId player))
                     writeTChan (readChannel connection)
                                (GameMapMessage gameMap_)
+                    writeTChan (readChannel connection)
+                               (GameMapMessage gameMap_)
             return ()
 
         LogoutMessage Logout -> do
@@ -108,8 +110,9 @@ handleClientMessages sessionId clientMsg gameLoopTvar playerActionTvar sessionMa
         PlayerActionMessage playerAction -> do
             playerMay <- lookup sessionId <$> readTVarIO playerMapTVar
             case playerMay of
-                Nothing -> do 
-                    $logWarn "Received a message that did not belong to any player"
+                Nothing -> do
+                    $logWarn
+                        "Received a message that did not belong to any player"
                     return ()
                 Just InGamePlayer {..} -> atomically $ do
                     PlayerActions {..} <- readTVar playerActionTvar
@@ -126,19 +129,23 @@ handleClientMessages sessionId clientMsg gameLoopTvar playerActionTvar sessionMa
             allPlayersReady <- atomically $ do
                 readySet  <- readTVar readyPlayers
                 playerMap <- readTVar playerMapTVar
-                if member sessionId readySet then
-                    return False 
-                else do
-                    let readySet' = insertSet sessionId readySet
-                    writeTVar readyPlayers readySet'
-                    if keysSet playerMap == readySet'
-                        then do
-                            modifyTVar' gameLoopTvar startGame
-                            return True
-                        else return False
+                if member sessionId readySet
+                    then return False
+                    else do
+                        let readySet' = insertSet sessionId readySet
+                        writeTVar readyPlayers readySet'
+                        if keysSet playerMap == readySet'
+                            then do
+                                modifyTVar' gameLoopTvar startGame
+                                return True
+                            else return False
 
             when allPlayersReady $ do
-                $logInfo ("Everyone is ready. \"" ++ sessionId ++ "\" was the last one.")
+                $logInfo
+                    (  "Everyone is ready. \""
+                    ++ sessionId
+                    ++ "\" was the last one."
+                    )
                 sessionMap <- readTVarIO sessionMapTvar
                 broadcastMessage (GameStartMessage (GameStart 5)) sessionMap
                 -- Start the game in 5 seconds
@@ -160,9 +167,12 @@ newInGamePlayer player location = InGamePlayer
     , playerLastRunDirection = RunLeft
     , playerVelocity         = VelocityVector 0 0
     , playerShootCooldown    = 0
-    , playerWidth            = 0.95
-    , playerHeight           = 1.52
+    , playerWidth            = newPlayerWidth
+    , playerHeight           = newPlayerHeight
     }
+  where
+    newPlayerWidth  = 3
+    newPlayerHeight = 1.6 * newPlayerWidth
 
 broadcastMessage
     :: MonadIO m => ServerMessage -> Map Text ClientConnection -> m ()

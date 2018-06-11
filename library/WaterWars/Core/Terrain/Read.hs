@@ -13,16 +13,18 @@ readTerrainFromFile terrainFilePath = do
     return $ charMatrixToTerrain . lines . unpack . decodeUtf8 $ content
 
 -- TODO: make bounds generic
-charMatrixToTerrain :: [[Char]] -> Terrain
+charMatrixToTerrain :: [String] -> Terrain
 charMatrixToTerrain x =
-    Terrain $ listArray (BlockLocation (-8, -8), BlockLocation (8, 8))
+    Terrain
+        $ listArray (BlockLocation (-8, -8), BlockLocation (8, 8))
         . map charToBlock
         . concat
         . transpose
-        . reverse $ x
+        . reverse
+        $ x
 
 charToBlock :: Char -> Block
 charToBlock 'x' = SolidBlock Middle
 charToBlock '_' = SolidBlock Ceil
 charToBlock '-' = SolidBlock Floor
-charToBlock _ = NoBlock
+charToBlock _   = NoBlock

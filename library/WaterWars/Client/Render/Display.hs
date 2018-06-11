@@ -28,16 +28,18 @@ render World {..} = Gloss.pictures
     allPlayers :: [InGamePlayer]
     allPlayers =
         maybeToList (player worldInfo) ++ toList (otherPlayers worldInfo)
-        
+
     playerPictures :: [Picture]
     playerPictures = map (inGamePlayerToPicture renderInfo) allPlayers
 
     projectilePictures :: Seq Picture
+
     projectilePictures =
         map (projectileToPicture renderInfo) (projectiles worldInfo)
 
     solidPictures :: Seq Picture
     solidPictures = map solidToPicture (solids renderInfo)
+
 
     mantaPicture :: Picture
     mantaPicture = animateAnimation (mantaAnimation renderInfo)
@@ -47,7 +49,10 @@ inGamePlayerColor = red
 
 solidToPicture :: Solid -> Picture
 solidToPicture solid =
-    uncurry translate (solidCenter solid) (solidTexture solid)
+    uncurry translate (solidCenter solid)
+        $ scale blockSize           blockSize
+        $ scale (1 / blockImgWidth) (1 / blockImgHeight)
+        $ solidTexture solid
 
 inGamePlayerToPicture :: RenderInfo -> InGamePlayer -> Picture
 inGamePlayerToPicture RenderInfo {..} InGamePlayer {..} =
@@ -58,11 +63,12 @@ inGamePlayerToPicture RenderInfo {..} InGamePlayer {..} =
         maybeAnimation = lookup playerDescription playerAnimations
         Animation {..} =
             playerToAnimation $ fromMaybe defaultPlayerAnimation maybeAnimation
-    in  translate (blockSize * x) (blockSize * y + blockSize)
+    in  translate (blockSize * x) (blockSize * y + blockSize * playerHeight / 2)
         $ color inGamePlayerColor
-        $ scale (0.624 * directionComponent)
-                0.624
-                (animationPictures `indexEx` picInd)
+        $ scale blockSize           blockSize
+        $ scale playerWidth         playerHeight
+        $ scale (1 / mermaidHeight) (1 / mermaidHeight)
+        $ scale directionComponent 1 (animationPictures `indexEx` picInd)
 
 
 projectileToPicture :: RenderInfo -> Projectile -> Picture
@@ -73,4 +79,3 @@ projectileToPicture RenderInfo {..} p = translate (x * blockSize)
 
 animateAnimation :: Animation -> Picture
 animateAnimation Animation {..} = animationPictures `indexEx` picInd
-
