@@ -42,7 +42,8 @@ update _ World {..} =
     let
         worldAnimated = World
             { renderInfo = renderInfo
-                { mantaAnimation   = updateAnimation (mantaAnimation renderInfo)
+                { mantaAnimation   = updateBackgroundAnimation
+                    (mantaAnimation renderInfo)
                 , playerAnimations = mapFromList $ map
                     (updatePlayerInformation renderInfo)
                     (  maybeToList (player worldInfo)

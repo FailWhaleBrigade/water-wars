@@ -171,7 +171,7 @@ newInGamePlayer player location = InGamePlayer
     , playerHeight           = newPlayerHeight
     }
   where
-    newPlayerWidth  = 3
+    newPlayerWidth  = 2
     newPlayerHeight = 1.6 * newPlayerWidth
 
 broadcastMessage

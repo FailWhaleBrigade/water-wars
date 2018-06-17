@@ -19,10 +19,10 @@ renderIO (WorldSTM tvar) = render <$> readTVarIO tvar
 render :: World -> Picture
 render World {..} = Gloss.pictures
     (  [backgroundTexture renderInfo]
+    ++ [mantaPicture]
     ++ toList solidPictures
     ++ playerPictures
     ++ toList projectilePictures
-    ++ [mantaPicture]
     )
   where
     allPlayers :: [InGamePlayer]
@@ -33,16 +33,15 @@ render World {..} = Gloss.pictures
     playerPictures = map (inGamePlayerToPicture renderInfo) allPlayers
 
     projectilePictures :: Seq Picture
-
     projectilePictures =
         map (projectileToPicture renderInfo) (projectiles worldInfo)
 
     solidPictures :: Seq Picture
     solidPictures = map solidToPicture (solids renderInfo)
 
-
     mantaPicture :: Picture
-    mantaPicture = animateAnimation (mantaAnimation renderInfo)
+    mantaPicture =
+        backgroundAnimationToPicture renderInfo (mantaAnimation renderInfo)
 
 inGamePlayerColor :: Color
 inGamePlayerColor = red
@@ -65,10 +64,10 @@ inGamePlayerToPicture RenderInfo {..} InGamePlayer {..} =
             playerToAnimation $ fromMaybe defaultPlayerAnimation maybeAnimation
     in  translate (blockSize * x) (blockSize * y + blockSize * playerHeight / 2)
         $ color inGamePlayerColor
-        $ scale blockSize           blockSize
-        $ scale playerWidth         playerHeight
-        $ scale (1 / mermaidHeight) (1 / mermaidHeight)
-        $ scale directionComponent 1 (animationPictures `indexEx` picInd)
+        $ scale blockSize          blockSize
+        $ scale playerWidth        playerHeight
+        $ scale (1 / mermaidWidth) (1 / mermaidHeight)
+        $ scale directionComponent 1 (headEx animationPictures)
 
 
 projectileToPicture :: RenderInfo -> Projectile -> Picture
@@ -77,5 +76,14 @@ projectileToPicture RenderInfo {..} p = translate (x * blockSize)
                                                   projectileTexture
     where Location (x, y) = projectileLocation p
 
-animateAnimation :: Animation -> Picture
-animateAnimation Animation {..} = animationPictures `indexEx` picInd
+backgroundAnimationToPicture :: RenderInfo -> BackgroundAnimation -> Picture
+backgroundAnimationToPicture _ BackgroundAnimation {..} = translate x y
+    $ scale scaleFactor 1 pic
+  where
+    scaleFactor | direction == RightDir = -1
+                | direction == LeftDir  = 1
+    pic             = displayAnimation animation
+    Location (x, y) = location
+
+displayAnimation :: Animation -> Picture
+displayAnimation Animation {..} = headEx animationPictures

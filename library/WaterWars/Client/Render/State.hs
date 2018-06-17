@@ -47,8 +47,8 @@ data RenderInfo = RenderInfo
     , newPlayerRunnningAnimation :: PlayerAnimation
     , playerAnimations :: Map Player PlayerAnimation
     , solids :: Seq Solid
-    , mantaAnimation :: Animation
-    } deriving Show
+    , mantaAnimation :: BackgroundAnimation
+    }
 
 data WorldInfo = WorldInfo
     { jump      :: Bool
@@ -84,25 +84,26 @@ initializeState bmpBg bmpPrj playerTex playerRunningTexs bmpsMan blockMap' =
                 { countDownTilNext  = 30
                 , countDownMax      = 30
                 , animationPictures = repeat playerTex
-                , picInd            = 0
                 }
             , newPlayerIdleAnimation     = PlayerIdleAnimation Animation
                 { countDownTilNext  = 30
                 , countDownMax      = 30
                 , animationPictures = repeat playerTex
-                , picInd            = 0
                 }
             , newPlayerRunnningAnimation = PlayerIdleAnimation Animation
                 { countDownTilNext  = 5
                 , countDownMax      = 5
                 , animationPictures = cycle playerRunningTexs
-                , picInd            = 0
                 }
-            , mantaAnimation             = Animation
-                { countDownTilNext  = 30
-                , countDownMax      = 30
-                , animationPictures = cycle bmpsMan
-                , picInd            = 0
+            , mantaAnimation             = BackgroundAnimation
+                { animation       = Animation
+                    { countDownTilNext  = 30
+                    , countDownMax      = 30
+                    , animationPictures = cycle bmpsMan
+                    }
+                , location        = Location (0, 0)
+                , updateOperation = mantaUpdateOperation
+                , direction       = RightDir
                 }
             , solids                     = empty
             }
@@ -157,3 +158,16 @@ blockLocationToSolid mapWidthHalf mapHeightHalf size (BlockLocation (x, y)) pict
         , solidTexture = picture
         }
 
+mantaUpdateOperation :: BackgroundAnimation -> BackgroundAnimation
+mantaUpdateOperation ba@BackgroundAnimation {..} = ba
+    { location  = Location (newX, newY)
+    , direction = dir
+    }
+  where
+    Location (x, _) = location
+    dir | (direction == RightDir) && (x >= fieldWidth) = LeftDir
+        | (direction == LeftDir) && (x <= -fieldWidth) = RightDir
+        | otherwise = direction
+    newX | dir == RightDir = x + 0.5
+         | dir == LeftDir  = x - 0.5
+    newY = 10 * sin (x / 15)
