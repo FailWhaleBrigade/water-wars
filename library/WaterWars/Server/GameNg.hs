@@ -43,6 +43,7 @@ gameTick = do
     mapMOverProjectiles (return . moveProjectile)
     filterMOverProjectiles boundProjectile
     mapMOverPlayers movePlayer
+    modify incrementGameTick
     return ()
 
 -- | Function that includes the actions into a player-state
@@ -61,7 +62,7 @@ modifyPlayerByAction player = execState player $ do
     doShootAction action
     modify
         ( modifyPlayerShootCooldown
-        . modifyPlayerByRunAction  isOnGround action -- TODO: use local reader here?
+        . modifyPlayerByRunAction isOnGround action -- TODO: use local reader here?
         . modifyPlayerByJumpAction isOnGround action
         )
 
@@ -117,4 +118,3 @@ modifyPlayerByEnvironment p = do
         . verticalDragPlayer isOnGround
         . gravityPlayer isOnGround
         $ p
-

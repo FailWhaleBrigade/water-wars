@@ -14,6 +14,7 @@ import WaterWars.Core.Game.Base
 data GameState = GameState
     { inGamePlayers :: InGamePlayers
     , gameProjectiles :: Projectiles
+    , gameTicks :: Integer
     } deriving (Show, Read, Eq)
 
 newtype InGamePlayers = InGamePlayers

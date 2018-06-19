@@ -166,3 +166,6 @@ filterMOverProjectiles predicate = do
     Projectiles projectiles <- gets gameProjectiles
     newProjectiles          <- filterM predicate projectiles
     modify $ \s -> s { gameProjectiles = Projectiles newProjectiles }
+
+incrementGameTick :: GameState -> GameState
+incrementGameTick s@GameState{gameTicks} = s {gameTicks = gameTicks + 1}
