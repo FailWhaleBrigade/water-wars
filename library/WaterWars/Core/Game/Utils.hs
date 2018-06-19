@@ -6,18 +6,21 @@ module WaterWars.Core.Game.Utils
     )
 where
 
-import ClassyPrelude hiding (Reader, ask)
+import           ClassyPrelude                     hiding ( Reader
+                                                          , ask
+                                                          )
 
-import Control.Eff
-import Control.Eff.Reader.Strict
-import Control.Eff.State.Strict
+import           Control.Eff
+import           Control.Eff.Reader.Strict
+import           Control.Eff.State.Strict
 
-import Data.Array.IArray
+import           Data.Array.IArray
 
-import WaterWars.Core.Game.State
-import WaterWars.Core.Game.Map
-import WaterWars.Core.Game.Action
-import WaterWars.Core.Physics.Constants
+import           WaterWars.Core.Game.State
+import           WaterWars.Core.Game.Map
+import           WaterWars.Core.Game.Action
+import           WaterWars.Core.Physics.Constants
+import           WaterWars.Core.Game.Constants
 
 
 -- TODO: refactor?
@@ -85,6 +88,10 @@ addProjectile projectile = do
     Projectiles projectiles <- gets gameProjectiles
     let newProjectiles = projectile `cons` projectiles
     modify $ \s -> s { gameProjectiles = Projectiles newProjectiles }
+
+playerHeadLocation :: InGamePlayer -> Location
+playerHeadLocation p@InGamePlayer { playerLocation = Location (x, y) } =
+    Location (x, y + playerHeadHeight)
 
 angleForRunDirection :: RunDirection -> Angle
 angleForRunDirection RunRight = Angle 0
@@ -167,5 +174,20 @@ filterMOverProjectiles predicate = do
     newProjectiles          <- filterM predicate projectiles
     modify $ \s -> s { gameProjectiles = Projectiles newProjectiles }
 
+
+-- utility functions for creation
+newInGamePlayer :: Player -> Location -> InGamePlayer
+newInGamePlayer player location = InGamePlayer
+    { playerDescription      = player
+    , playerLocation         = location
+    , playerHealth           = 10
+    , playerMaxHealth        = 10
+    , playerLastRunDirection = RunLeft
+    , playerVelocity         = VelocityVector 0 0
+    , playerShootCooldown    = 0
+    , playerWidth            = defaultPlayerWidth
+    , playerHeight           = defaultPlayerHeight
+    }
+
 incrementGameTick :: GameState -> GameState
-incrementGameTick s@GameState{gameTicks} = s {gameTicks = gameTicks + 1}
+incrementGameTick s@GameState { gameTicks } = s { gameTicks = gameTicks + 1 }

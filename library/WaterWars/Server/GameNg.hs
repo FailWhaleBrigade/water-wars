@@ -93,8 +93,13 @@ modifyPlayerShootCooldown player@InGamePlayer {..} =
 
 boundProjectile :: Member (Reader GameMap) e => Projectile -> Eff e Bool
 boundProjectile Projectile {..} = do
-    mapBounds <- asks $ bounds . terrainBlocks . gameTerrain
-    return $ inRange mapBounds (getBlock projectileLocation)
+    terrain <- asks gameTerrain
+    let block = getBlock projectileLocation
+    let mapBounds = bounds . terrainBlocks $ terrain
+    let inBounds = inRange mapBounds block
+    let isSolid = isSolidAt terrain block
+
+    return $ not isSolid && inBounds
 
 
 -- apply any shoot action, if possible
@@ -103,9 +108,9 @@ doShootAction
     => Action
     -> Eff e ()
 doShootAction Action { shootAction } = do
-    InGamePlayer {..} <- get
+    p@InGamePlayer {..} <- get
     when (playerShootCooldown == 0) $ whenJust shootAction $ \angle -> do
-        addProjectile $ newProjectileFromAngle playerLocation angle
+        addProjectile $ newProjectileFromAngle (playerHeadLocation p) angle
         modify setPlayerCooldown
 
 -- do gravity, bounding, ...

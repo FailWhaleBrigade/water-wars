@@ -157,23 +157,6 @@ handleClientMessages sessionId clientMsg gameLoopTvar playerActionTvar sessionMa
 
             return ()
 
--- utility functions for creation
-newInGamePlayer :: Player -> Location -> InGamePlayer
-newInGamePlayer player location = InGamePlayer
-    { playerDescription      = player
-    , playerLocation         = location
-    , playerHealth           = 10
-    , playerMaxHealth        = 10
-    , playerLastRunDirection = RunLeft
-    , playerVelocity         = VelocityVector 0 0
-    , playerShootCooldown    = 0
-    , playerWidth            = newPlayerWidth
-    , playerHeight           = newPlayerHeight
-    }
-  where
-    newPlayerWidth  = 2
-    newPlayerHeight = 1.6 * newPlayerWidth
-
 broadcastMessage
     :: MonadIO m => ServerMessage -> Map Text ClientConnection -> m ()
 broadcastMessage serverMessage sessionMap = forM_ sessionMap
