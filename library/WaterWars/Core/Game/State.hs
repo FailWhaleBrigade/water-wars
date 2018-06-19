@@ -13,6 +13,7 @@ import WaterWars.Core.Game.Base
 -- |Master-state of the whole game
 data GameState = GameState
     { inGamePlayers :: InGamePlayers
+    , gameDeadPlayers :: DeadPlayers
     , gameProjectiles :: Projectiles
     , gameTicks :: Integer
     } deriving (Show, Read, Eq)
@@ -20,7 +21,7 @@ data GameState = GameState
 newtype InGamePlayers = InGamePlayers
     { getInGamePlayers :: Seq InGamePlayer
     }
-    deriving (Read, Show, Eq, MonoFunctor)
+    deriving (Read, Show, Eq, MonoFunctor, Monoid)
 
 type instance Element InGamePlayers = InGamePlayer
 
@@ -41,6 +42,20 @@ newtype Player = Player
     { playerId :: Text
     }
     deriving (Show, Read, Eq, Ord)
+
+newtype DeadPlayers = DeadPlayers
+    { getDeadPlayers :: Seq DeadPlayer
+    }
+    deriving (Read, Show, Eq, MonoFunctor, Monoid)
+
+type instance Element DeadPlayers = DeadPlayer
+
+data DeadPlayer = DeadPlayer
+    { deadPlayerDescription :: Player
+    , deadPlayerLocation :: Location
+    , playerDeathTick :: Integer
+    }
+    deriving (Show, Read, Eq)
 
 newtype Projectiles = Projectiles { getProjectiles :: Seq Projectile } deriving (Show, Eq, Read)
 

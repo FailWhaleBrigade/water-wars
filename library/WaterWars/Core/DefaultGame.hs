@@ -14,7 +14,9 @@ defaultGameMap = GameMap
 
 defaultDecoration :: TerrainDecoration
 defaultDecoration =
-    TerrainDecoration $ listArray (BlockLocation (-8, -8), BlockLocation (8, 8)) $ repeat []
+    TerrainDecoration
+        $ listArray (BlockLocation (-8, -8), BlockLocation (8, 8))
+        $ repeat []
 
 defaultTerrain :: Terrain
 defaultTerrain = Terrain
@@ -304,8 +306,9 @@ defaultTerrain = Terrain
 defaultGameState :: GameState
 defaultGameState = GameState
     { inGamePlayers   = defaultInGamePlayers
+    , gameDeadPlayers = mempty
     , gameProjectiles = defaultProjectiles
-    , gameTicks = 0
+    , gameTicks       = 0
     }
 
 defaultInGamePlayers :: InGamePlayers

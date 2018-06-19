@@ -44,6 +44,7 @@ gameTick = do
     mapMOverProjectiles modifyProjectileByEnvironment
     filterMOverProjectiles boundProjectile
     mapMOverProjectiles (return . moveProjectile)
+    checkProjectilePlayerCollision
     mapMOverPlayers movePlayer
     modify incrementGameTick
     return ()
@@ -130,3 +131,10 @@ modifyProjectileByEnvironment =
     return
         . modifyProjectileVelocity (boundVelocityVector maxVelocity)
         . gravityProjectile
+
+checkProjectilePlayerCollision :: (Member (State GameState) r) => Eff r ()
+checkProjectilePlayerCollision = do
+    players <- gets inGamePlayers
+    projectiles <- gets gameProjectiles
+
+    return () -- TODO: implement collision check, remove players and projectiles

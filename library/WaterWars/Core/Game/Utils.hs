@@ -180,8 +180,8 @@ newInGamePlayer :: Player -> Location -> InGamePlayer
 newInGamePlayer player location = InGamePlayer
     { playerDescription      = player
     , playerLocation         = location
-    , playerHealth           = 10
-    , playerMaxHealth        = 10
+    , playerHealth           = 1
+    , playerMaxHealth        = 1
     , playerLastRunDirection = RunLeft
     , playerVelocity         = VelocityVector 0 0
     , playerShootCooldown    = 0
