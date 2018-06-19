@@ -13,6 +13,7 @@ import           ClassyPrelude                     hiding ( Reader
                                                           , ask
                                                           , asks
                                                           )
+
 import           WaterWars.Core.Game
 import           WaterWars.Core.Physics
 import           WaterWars.Core.Physics.Constants
@@ -40,8 +41,9 @@ gameTick
 gameTick = do
     mapMOverPlayers modifyPlayerByAction
     mapMOverPlayers modifyPlayerByEnvironment
-    mapMOverProjectiles (return . moveProjectile)
+    mapMOverProjectiles modifyProjectileByEnvironment
     filterMOverProjectiles boundProjectile
+    mapMOverProjectiles (return . moveProjectile)
     mapMOverPlayers movePlayer
     modify incrementGameTick
     return ()
@@ -94,13 +96,12 @@ modifyPlayerShootCooldown player@InGamePlayer {..} =
 boundProjectile :: Member (Reader GameMap) e => Projectile -> Eff e Bool
 boundProjectile Projectile {..} = do
     terrain <- asks gameTerrain
-    let block = getBlock projectileLocation
-    let mapBounds = bounds . terrainBlocks $ terrain
-    let inBounds = inRange mapBounds block
-    let isSolid = isSolidAt terrain block
+    let block            = getBlock projectileLocation
+    let mapBounds        = bounds . terrainBlocks $ terrain
+    let inBounds         = inRange mapBounds block
+    let entersSolidBlock = isSolidAt terrain block
 
-    return $ not isSolid && inBounds
-
+    return $ not entersSolidBlock && inBounds
 
 -- apply any shoot action, if possible
 doShootAction
@@ -123,3 +124,9 @@ modifyPlayerByEnvironment p = do
         . verticalDragPlayer isOnGround
         . gravityPlayer isOnGround
         $ p
+
+modifyProjectileByEnvironment :: Projectile -> Eff r Projectile
+modifyProjectileByEnvironment =
+    return
+        . modifyProjectileVelocity (boundVelocityVector maxVelocity)
+        . gravityProjectile

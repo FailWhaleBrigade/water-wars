@@ -35,7 +35,6 @@ gravityPlayer False = acceleratePlayer gravityVector
 gravityProjectile :: Projectile -> Projectile
 gravityProjectile = accelerateProjectile gravityVector
 
-
 verticalDragPlayer :: Bool -> InGamePlayer -> InGamePlayer
 verticalDragPlayer onGround player@InGamePlayer {..} =
     let VelocityVector vx vy = playerVelocity

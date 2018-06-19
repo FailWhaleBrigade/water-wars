@@ -59,7 +59,7 @@ getBlock :: Location -> BlockLocation
 getBlock (Location (x, y)) = BlockLocation (round x, round $ y + 0.001)
 
 moveProjectile :: Projectile -> Projectile
-moveProjectile (projectile@Projectile {..}) = projectile
+moveProjectile projectile@Projectile {..} = projectile
     { projectileLocation = moveLocation projectileVelocity projectileLocation
     }
 
@@ -90,12 +90,12 @@ addProjectile projectile = do
     modify $ \s -> s { gameProjectiles = Projectiles newProjectiles }
 
 playerHeadLocation :: InGamePlayer -> Location
-playerHeadLocation p@InGamePlayer { playerLocation = Location (x, y) } =
+playerHeadLocation InGamePlayer { playerLocation = Location (x, y) } =
     Location (x, y + playerHeadHeight)
 
 angleForRunDirection :: RunDirection -> Angle
-angleForRunDirection RunRight = Angle 0
-angleForRunDirection RunLeft  = Angle pi
+angleForRunDirection RunRight = 0 + pi/8
+angleForRunDirection RunLeft  = pi - pi/8
 
 get4NeighborBlocks
     :: (BlockLocation, BlockLocation) -> BlockLocation -> [BlockLocation]
