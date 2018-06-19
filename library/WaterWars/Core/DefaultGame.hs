@@ -9,9 +9,12 @@ import           Data.List                                ( transpose )
 defaultGameMap :: GameMap
 defaultGameMap = GameMap
     { gameTerrain       = defaultTerrain
-    , gamePlayers       = empty
-    , terrainBackground = "default"
+    , terrainDecoration = defaultDecoration
     }
+
+defaultDecoration :: TerrainDecoration
+defaultDecoration =
+    TerrainDecoration $ listArray (BlockLocation (-8, -8), BlockLocation (8, 8)) []
 
 defaultTerrain :: Terrain
 defaultTerrain = Terrain
@@ -302,6 +305,7 @@ defaultGameState :: GameState
 defaultGameState = GameState
     { inGamePlayers   = defaultInGamePlayers
     , gameProjectiles = defaultProjectiles
+    , gameTicks = 0
     }
 
 defaultInGamePlayers :: InGamePlayers

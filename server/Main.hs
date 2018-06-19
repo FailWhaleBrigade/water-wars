@@ -28,8 +28,7 @@ serverStateWithTerrain :: Terrain -> GameLoopState
 serverStateWithTerrain terrain = GameLoopState
     { gameMap     = GameMap
         { gameTerrain       = terrain
-        , gamePlayers       = empty
-        , terrainBackground = "default"
+        , terrainDecoration = defaultDecoration
         }
     , gameState   = defaultGameState
     , gameRunning = False
@@ -112,5 +111,3 @@ gameLoopServer gameLoopStateTvar sessionMapTvar broadcastChan = do
     $logInfo "Start game loop"
     runGameLoop gameLoopStateTvar broadcastChan playerActionTvar
     return ()
-
-

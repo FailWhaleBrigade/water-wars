@@ -1,28 +1,31 @@
 module WaterWars.Core.Game.Map
     ( module WaterWars.Core.Game.Map
     , module WaterWars.Core.Terrain.Block
+    , module WaterWars.Core.Terrain.Decoration
     )
 where
 
 import           ClassyPrelude
 import           WaterWars.Core.Terrain.Block
 import           Data.Array.IArray
-import           WaterWars.Core.Game.State
-
+import           WaterWars.Core.Terrain.Decoration
 
 data GameMap = GameMap
-  { gameTerrain :: Terrain
-  , gamePlayers :: Seq Player -- TODO: what is this for
-  , terrainBackground :: String -- TODO: how to send info about background?
-  }
-  deriving (Show, Read, Eq)
-
+    { gameTerrain :: Terrain
+    , terrainDecoration :: TerrainDecoration
+    }
+    deriving (Show, Read, Eq)
 
 -- |Terrain description of theBlockId
 newtype Terrain = Terrain
-  { terrainBlocks :: Array BlockLocation Block
-  }
-  deriving (Show, Read, Eq)
+    { terrainBlocks :: Array BlockLocation Block
+    }
+    deriving (Show, Read, Eq)
+
+newtype TerrainDecoration = TerrainDecoration
+    { terrainDecorationArray :: Array BlockLocation [Decoration]
+    }
+    deriving (Eq, Read, Show)
 
 terrainBounds :: Terrain -> (BlockLocation, BlockLocation)
 terrainBounds Terrain {..} = bounds terrainBlocks
