@@ -58,6 +58,8 @@ data WorldInfo = WorldInfo
     , duck      :: Bool
     , exitGame  :: Bool
     , readyUp   :: Bool
+    , countdown :: Int
+    , gameRunning :: Bool
     , player    :: Maybe CoreState.InGamePlayer
     , otherPlayers :: Seq CoreState.InGamePlayer
     , projectiles  :: Seq CoreState.Projectile
@@ -168,8 +170,7 @@ mantaUpdateOperation ba@BackgroundAnimation {..} = ba
     dir | (direction == RightDir) && (x >= fieldWidth + 60) = LeftDir
         | (direction == LeftDir) && (x <= -fieldWidth - 60) = RightDir
         | otherwise = direction
-    newX | dir == RightDir = x + 0.5
-         | dir == LeftDir  = x - 0.5
+    newX = case dir of
+        RightDir -> x + 0.5
+        LeftDir  -> x - 0.5
     newY = 10 * sin (x / 15)
-
-

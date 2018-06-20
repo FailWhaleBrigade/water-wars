@@ -84,11 +84,3 @@ updatePlayerInformation RenderInfo {..} InGamePlayer {..} =
 calculateAngle :: Location -> Location -> Angle
 calculateAngle (Location (x1, y1)) (Location (x2, y2)) =
     Angle (atan2 (y2 - y1) (x2 - x1))
-
-
-
-
-
-
-
-
