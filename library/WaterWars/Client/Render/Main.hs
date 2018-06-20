@@ -29,7 +29,7 @@ backgroundColor = white
 
 setup
     :: (MonadIO m, MonadError String m)
-    => m (Picture, Picture, Picture, [Picture], [Picture], BlockMap)
+    => m (Picture, Picture, Picture, [Picture], [Picture], [Picture], BlockMap)
 setup = do
     bgTex     <- loadPngAsBmp "resources/textures/background/background.png"
     prjTex    <- loadPngAsBmp "resources/textures/decoration/bubble.png"
@@ -42,8 +42,14 @@ setup = do
         , "resources/textures/manta_animation/manta3.png"
         , "resources/textures/manta_animation/manta4.png"
         ]
+    countdownTexs <- bulkLoad $ fromList
+        [ "resources/textures/writing/3.png"
+        , "resources/textures/writing/2.png"
+        , "resources/textures/writing/1.png"
+        , "resources/textures/writing/GO.png"
+        ]
     blockMap <- loadBlockMap
-    return (bgTex, prjTex, playerTex, toList playerRunningTexs, toList mantaTexs, blockMap)
+    return (bgTex, prjTex, playerTex, toList playerRunningTexs, toList mantaTexs, toList countdownTexs, blockMap)
 
 getMermaidPaths :: String -> Int -> [String]
 getMermaidPaths _ 15 = []
@@ -54,8 +60,8 @@ main = do
     resources <- runExceptT setup
     case resources of
         Left  err -> putStrLn $ "Could not load texture. Cause: " ++ tshow err
-        Right (bgTex, prjTex, playerTex, playerRunningTexs, mantaTexs, blocks) -> do
-            worldStm <- initializeState bgTex prjTex playerTex playerRunningTexs mantaTexs blocks
+        Right (bgTex, prjTex, playerTex, playerRunningTexs, mantaTexs, countdownTexs, blocks) -> do
+            worldStm <- initializeState bgTex prjTex playerTex playerRunningTexs mantaTexs countdownTexs blocks
             _        <-
                 async {- Should never terminate -}
                     (connectionThread Nothing

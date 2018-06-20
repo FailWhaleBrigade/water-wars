@@ -76,6 +76,15 @@ projectileToPicture RenderInfo {..} p = translate (x * blockSize)
                                                   projectileTexture
     where Location (x, y) = projectileLocation p
 
+countdownToPicture :: RenderInfo -> Int -> Picture
+countdownToPicture RenderInfo {..} tick = translate 0 100 pic
+    where 
+        pic
+            | tick >= 150 = countdownTextures `indexEx` 0
+            | tick >= 100 = countdownTextures `indexEx` 1
+            | tick >= 50 = countdownTextures `indexEx` 2
+            | tick >= 0  = countdownTextures `indexEx` 3
+
 backgroundAnimationToPicture :: RenderInfo -> BackgroundAnimation -> Picture
 backgroundAnimationToPicture _ BackgroundAnimation {..} = translate x y
     $ scale scaleFactor 1 pic
