@@ -44,6 +44,7 @@ data RenderInfo = RenderInfo
     , projectileTexture :: Picture
     , playerRunningTextures :: [Picture]
     , playerIdleTextures :: [Picture]
+    , countdownTextures :: [Picture]
     , defaultPlayerAnimation :: PlayerAnimation
     , newPlayerIdleAnimation :: PlayerAnimation
     , newPlayerRunnningAnimation :: PlayerAnimation
@@ -73,10 +74,11 @@ initializeState
     -> Picture
     -> [Picture]
     -> [Picture]
+    -> [Picture]
     -> BlockMap
     -> IO WorldSTM
-initializeState bmpBg bmpPrj playerTex playerRunningTexs bmpsMan blockMap' =
-    WorldSTM <$> newTVarIO World
+initializeState bmpBg bmpPrj playerTex playerRunningTexs bmpsMan countdownTexs blockMap'
+    = WorldSTM <$> newTVarIO World
         { renderInfo  = RenderInfo
             { blockMap                   = blockMap'
             , backgroundTexture          = bmpBg
@@ -84,6 +86,7 @@ initializeState bmpBg bmpPrj playerTex playerRunningTexs bmpsMan blockMap' =
             , playerRunningTextures      = playerRunningTexs
             , playerIdleTextures         = singleton playerTex
             , playerAnimations           = mapFromList []
+            , countdownTextures          = countdownTexs
             , defaultPlayerAnimation     = PlayerIdleAnimation Animation
                 { countDownTilNext  = 30
                 , countDownMax      = 30
@@ -178,3 +181,5 @@ mantaUpdateOperation ba@BackgroundAnimation {..} = ba
         RightDir -> x + 0.5
         LeftDir  -> x - 0.5
     newY = 10 * sin (x / 15)
+
+
