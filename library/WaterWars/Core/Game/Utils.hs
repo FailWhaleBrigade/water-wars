@@ -94,8 +94,8 @@ playerHeadLocation InGamePlayer { playerLocation = Location (x, y) } =
     Location (x, y + playerHeadHeight)
 
 angleForRunDirection :: RunDirection -> Angle
-angleForRunDirection RunRight = 0 + pi/8
-angleForRunDirection RunLeft  = pi - pi/8
+angleForRunDirection RunRight = 0
+angleForRunDirection RunLeft  = pi
 
 get4NeighborBlocks
     :: (BlockLocation, BlockLocation) -> BlockLocation -> [BlockLocation]

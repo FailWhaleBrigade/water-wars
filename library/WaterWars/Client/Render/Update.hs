@@ -3,10 +3,12 @@ module WaterWars.Client.Render.Update where
 import           ClassyPrelude
 
 import           Graphics.Gloss.Interface.IO.Game
-import qualified Graphics.Gloss.Interface.IO.Game as Gloss
+import qualified Graphics.Gloss.Interface.IO.Game
+                                               as Gloss
 import           WaterWars.Client.Render.State
 import           WaterWars.Client.Render.Animation
 import           WaterWars.Core.Game
+import           WaterWars.Client.Render.Config
 
 handleKeys :: Event -> World -> World
 handleKeys (EventKey (Char c) Gloss.Down _ _) world@World {..}
@@ -15,21 +17,20 @@ handleKeys (EventKey (Char c) Gloss.Down _ _) world@World {..}
     | c == 's' = world { worldInfo = worldInfo { duck = True } }
     | c == 'd' = world { worldInfo = worldInfo { walkRight = True } }
     | c == 'p' = world { worldInfo = worldInfo { readyUp = True } }
-handleKeys (EventKey (SpecialKey KeySpace) Gloss.Down _ _) world@World {..} =
-    world { worldInfo = worldInfo { shoot = True } }
 handleKeys (EventKey (Char c) Gloss.Up _ _) world@World {..}
     | c == 'a' = world { worldInfo = worldInfo { walkLeft = False } }
     | c == 'w' = world { worldInfo = worldInfo { jump = False } }
     | c == 's' = world { worldInfo = worldInfo { duck = False } }
     | c == 'd' = world { worldInfo = worldInfo { walkRight = False } }
     | c == 'p' = world { worldInfo = worldInfo { readyUp = False } }
-handleKeys (EventKey (SpecialKey KeySpace) Gloss.Up _ _) world@World {..} =
-    world { worldInfo = worldInfo { shoot = False } }
 handleKeys (EventKey (SpecialKey KeyEnter) Gloss.Up _ _) world@World {..} =
     world { worldInfo = worldInfo { readyUp = False } }
-handleKeys (EventKey (MouseButton LeftButton) Gloss.Up _ _) world@World {..} =
-    world { worldInfo = worldInfo { shoot = True } }
-handleKeys _ world = world 
+handleKeys (EventKey (MouseButton LeftButton) Gloss.Up _ (x, y)) world@World {..}
+    = world
+        { worldInfo =
+            worldInfo { shoot = Just $ Location (x / blockSize, y / blockSize) }
+        }
+handleKeys _ world = world
 
 handleKeysIO :: Event -> WorldSTM -> IO WorldSTM
 handleKeysIO e world@(WorldSTM tvar) = atomically $ do
@@ -39,21 +40,22 @@ handleKeysIO e world@(WorldSTM tvar) = atomically $ do
     return world
 
 update :: Float -> World -> World
-update _ World {..} =
-    let
-        worldAnimated = World
-            { renderInfo = renderInfo
-                { mantaAnimation   = updateBackgroundAnimation
-                    (mantaAnimation renderInfo)
-                , playerAnimations = mapFromList $ map
-                    (updatePlayerInformation renderInfo)
-                    (  maybeToList (player worldInfo)
-                    ++ toList (otherPlayers worldInfo)
-                    )
-                }
-            , ..
-            }
-    in  worldAnimated
+update _ World {..}
+    = let
+          worldAnimated = World
+              { renderInfo = renderInfo
+                  { mantaAnimation   = updateBackgroundAnimation
+                                           (mantaAnimation renderInfo)
+                  , playerAnimations =
+                      mapFromList $ map
+                          (updatePlayerInformation renderInfo)
+                          (  maybeToList (player worldInfo)
+                          ++ toList (otherPlayers worldInfo)
+                          )
+                  }
+              , ..
+              }
+      in  worldAnimated
 
 updateIO :: Float -> WorldSTM -> IO WorldSTM
 updateIO diff world@(WorldSTM tvar) = do
@@ -80,7 +82,3 @@ updatePlayerInformation RenderInfo {..} InGamePlayer {..} =
             = updatePlayerAnimation playerAnim
     in
         (playerDescription, newAnim playerAnim)
-
-calculateAngle :: Location -> Location -> Angle
-calculateAngle (Location (x1, y1)) (Location (x2, y2)) =
-    Angle (atan2 (y2 - y1) (x2 - x1))

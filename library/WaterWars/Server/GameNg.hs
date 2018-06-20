@@ -130,7 +130,7 @@ modifyProjectileByEnvironment :: Projectile -> Eff r Projectile
 modifyProjectileByEnvironment =
     return
         . modifyProjectileVelocity (boundVelocityVector maxVelocity)
-        . gravityProjectile
+        -- . gravityProjectile
 
 checkProjectilePlayerCollision :: (Member (State GameState) r) => Eff r ()
 checkProjectilePlayerCollision = do

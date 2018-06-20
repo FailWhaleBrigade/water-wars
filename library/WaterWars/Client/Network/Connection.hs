@@ -1,38 +1,49 @@
 {-# LANGUAGE TemplateHaskell #-}
 
-module WaterWars.Client.Network.Connection (module WaterWars.Client.Network.State, connectionThread) where
+module WaterWars.Client.Network.Connection
+    ( module WaterWars.Client.Network.State
+    , connectionThread
+    )
+where
 
-import ClassyPrelude
+import           ClassyPrelude
 
-import qualified Network.WebSockets as WS
+import qualified Network.WebSockets            as WS
 
-import Control.Monad.Logger
+import           Control.Monad.Logger
 
-import Control.Concurrent
+import           Control.Concurrent
 
-import WaterWars.Client.Render.State
-import WaterWars.Client.Network.State (NetworkConfig(..), NetworkInfo(..), Connection, newConnection)
+import           WaterWars.Client.Render.State
+import           WaterWars.Client.Network.State           ( NetworkConfig(..)
+                                                          , NetworkInfo(..)
+                                                          , Connection
+                                                          , newConnection
+                                                          )
 
-import WaterWars.Network.Protocol as Protocol
-import WaterWars.Network.Connection
+import           WaterWars.Network.Protocol    as Protocol
+import           WaterWars.Network.Connection
 
-import WaterWars.Core.Game as CoreState
+import           WaterWars.Core.Game           as CoreState
 
 connectionThread
     :: MonadIO m => Maybe NetworkInfo -> NetworkConfig -> WorldSTM -> m ()
 connectionThread _ NetworkConfig {..} world = forever $ do
-    ret :: Either SomeException () <- liftIO $ try $ WS.runClient
-        hostName
-        portId
-        ""
-        (\conn -> do
-            say "Connection has been opened"
-            let connection = newConnection conn
-            -- TODO: this setup code should be refactored soon-ish
-            send connection (LoginMessage (Login Nothing))
-            _ <- async $ receiveUpdates world connection
-            sendUpdates world connection
-        )
+    ret :: Either SomeException () <-
+        liftIO
+        $ try
+        $ WS.runClient
+              hostName
+              portId
+              ""
+              (\conn -> do
+                  say "Connection has been opened"
+                  let connection = newConnection conn
+                  -- TODO: this setup code should be refactored soon-ish
+                  send connection (LoginMessage (Login Nothing))
+                  _ <- async $ receiveUpdates world connection
+                  sendUpdates world connection
+              )
 
     --case ret of
     --    Left (WS.CloseRequest _ _) ->
@@ -73,12 +84,15 @@ sendUpdates (WorldSTM tvar) conn =
         $ filterLogger (\_ level -> level /= LevelDebug)
         $ forever
         $ do
-              $logDebug $ "Send an update to the Server"
-              world <- readTVarIO tvar
-              let action = extractGameAction world
+              $logDebug "Send an update to the Server"
+              (action, world) <- atomically $ do
+                  action <- extractGameAction tvar
+                  world  <- readTVar tvar
+                  return (action, world)
               $logDebug $ "Message: " ++ tshow action
               send conn (PlayerActionMessage action)
-              when (readyUp $ worldInfo world) (send conn (ClientReadyMessage ClientReady))
+              when (readyUp $ worldInfo world)
+                   (send conn (ClientReadyMessage ClientReady))
               liftIO $ threadDelay (1000000 `div` 60)
               return ()
 
@@ -88,30 +102,32 @@ updateWorld serverMsg world@World {..} = case serverMsg of
     GameMapMessage gameMap ->
         setTerrain (blockMap renderInfo) (gameTerrain gameMap) world
 
-    GameStateMessage gameState ->
-        let
-            WorldInfo {..} = worldInfo
-            inGamePlayers_ = getInGamePlayers $ inGamePlayers gameState
-            newPlayer =
-                (\currentPlayer -> headMay $ filter
-                        ((== playerDescription currentPlayer) . playerDescription)
-                        inGamePlayers_
-                    )
-                    <$> player
+    GameStateMessage gameState
+        -> let
+               WorldInfo {..} = worldInfo
+               inGamePlayers_ = getInGamePlayers $ inGamePlayers gameState
+               newPlayer =
+                   (\currentPlayer -> headMay $ filter
+                           ((== playerDescription currentPlayer) . playerDescription
+                           )
+                           inGamePlayers_
+                       )
+                       <$> player
 
-            newOtherPlayers =
-                maybe inGamePlayers_ (flip filter inGamePlayers_ . (/=)) player
+               newOtherPlayers = maybe inGamePlayers_
+                                       (flip filter inGamePlayers_ . (/=))
+                                       player
 
-            newProjectiles = getProjectiles $ gameProjectiles gameState
+               newProjectiles = getProjectiles $ gameProjectiles gameState
 
-            worldInfo_     = WorldInfo
-                { player       = join newPlayer -- TODO: can we express this better?
-                , otherPlayers = newOtherPlayers
-                , projectiles  = newProjectiles
-                , ..
-                }
-        in
-            World {worldInfo = worldInfo_, ..}
+               worldInfo_     = WorldInfo
+                   { player       = join newPlayer -- TODO: can we express this better?
+                   , otherPlayers = newOtherPlayers
+                   , projectiles  = newProjectiles
+                   , ..
+                   }
+           in
+               World {worldInfo = worldInfo_, ..}
 
     GameSetupResponseMessage _ -> world
 
@@ -124,24 +140,30 @@ updateWorld serverMsg world@World {..} = case serverMsg of
     GameStartMessage (GameStart n) -> world
 
 
-extractGameAction :: World -> Protocol.PlayerAction
-extractGameAction world =
-    let
-        WorldInfo {..} = worldInfo world
-        runCmd | walkLeft  = Just (RunAction RunLeft)
+extractGameAction :: TVar World -> STM Protocol.PlayerAction
+extractGameAction worldTvar = do
+    world <- readTVar worldTvar
+    let WorldInfo {..} = worldInfo world
+    let runCmd | walkLeft  = Just (RunAction RunLeft)
                | walkRight = Just (RunAction RunRight)
                | otherwise = Nothing
-        jmpCmd   = if jump then Just JumpAction else Nothing
-        shootCmd = if shoot
-            then angleForRunDirection . playerLastRunDirection <$> player
-            else Nothing
-        playerAction = Action
+    let jmpCmd = if jump then Just JumpAction else Nothing
+    let shootCmd = do -- maybe monad
+            shootTarget <- shoot
+            p <- player
+            let shootLocation = playerHeadLocation p
+            return $ calculateAngle shootLocation shootTarget
+    when (isJust shoot) $ writeTVar worldTvar
+        $ world { worldInfo = WorldInfo {shoot = Nothing, ..} }
+
+    let playerAction = Action
             { runAction   = runCmd
             , jumpAction  = jmpCmd
             , shootAction = shootCmd
             }
-    in
-        PlayerAction {getAction = playerAction}
+    return PlayerAction {getAction = playerAction}
 
 
-
+calculateAngle :: Location -> Location -> Angle
+calculateAngle (Location (x1, y1)) (Location (x2, y2)) =
+    Angle (atan2 (y2 - y1) (x2 - x1))

@@ -7,25 +7,27 @@ module WaterWars.Client.Render.State
     , PlayerAnimation(..)
     , initializeState
     , setTerrain
-    ) where
+    )
+where
 
-import ClassyPrelude
-import Graphics.Gloss
-import Data.Array.IArray
+import           ClassyPrelude
+import           Graphics.Gloss
+import           Data.Array.IArray
 
-import Data.List (cycle)
+import           Data.List                                ( cycle )
 
-import WaterWars.Client.Render.Terrain.Solid
-import WaterWars.Client.Render.Config
-import WaterWars.Client.Resources.Block
+import           WaterWars.Client.Render.Terrain.Solid
+import           WaterWars.Client.Render.Config
+import           WaterWars.Client.Resources.Block
 
-import qualified WaterWars.Client.Network.State as NetworkState
+import qualified WaterWars.Client.Network.State
+                                               as NetworkState
 
-import qualified WaterWars.Core.Game.State as CoreState
-import qualified WaterWars.Core.Game.Map as CoreState
+import qualified WaterWars.Core.Game.State     as CoreState
+import qualified WaterWars.Core.Game.Map       as CoreState
 
-import WaterWars.Core.Game
-import WaterWars.Client.Render.Animation
+import           WaterWars.Core.Game
+import           WaterWars.Client.Render.Animation
 
 newtype WorldSTM = WorldSTM (TVar World)
 
@@ -54,11 +56,11 @@ data WorldInfo = WorldInfo
     { jump      :: Bool
     , walkLeft  :: Bool
     , walkRight :: Bool
-    , shoot     :: Bool
+    , shoot     :: Maybe Location
     , duck      :: Bool
     , exitGame  :: Bool
     , readyUp   :: Bool
-    , countdown :: Int
+    , countdown :: Maybe Int
     , gameRunning :: Bool
     , player    :: Maybe CoreState.InGamePlayer
     , otherPlayers :: Seq CoreState.InGamePlayer
@@ -114,9 +116,11 @@ initializeState bmpBg bmpPrj playerTex playerRunningTexs bmpsMan blockMap' =
             , walkLeft     = False
             , walkRight    = False
             , duck         = False
-            , shoot        = False
+            , shoot        = Nothing
             , exitGame     = False
             , readyUp      = False
+            , countdown    = Nothing
+            , gameRunning  = False
             , player       = Nothing
             , otherPlayers = empty
             , projectiles  = empty
