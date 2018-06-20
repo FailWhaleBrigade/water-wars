@@ -22,13 +22,14 @@ handleKeys (EventKey (Char c) Gloss.Up _ _) world@World {..}
     | c == 'w' = world { worldInfo = worldInfo { jump = False } }
     | c == 's' = world { worldInfo = worldInfo { duck = False } }
     | c == 'd' = world { worldInfo = worldInfo { walkRight = False } }
-    | c == ' ' = world { worldInfo = worldInfo { shoot = False } }
     | c == 'p' = world { worldInfo = worldInfo { readyUp = False } }
 handleKeys (EventKey (SpecialKey KeySpace) Gloss.Up _ _) world@World {..} =
     world { worldInfo = worldInfo { shoot = False } }
 handleKeys (EventKey (SpecialKey KeyEnter) Gloss.Up _ _) world@World {..} =
     world { worldInfo = worldInfo { readyUp = False } }
-handleKeys _ world = world
+handleKeys (EventKey (MouseButton LeftButton) Gloss.Up _ _) world@World {..} =
+    world { worldInfo = worldInfo { shoot = True } }
+handleKeys _ world = world 
 
 handleKeysIO :: Event -> WorldSTM -> IO WorldSTM
 handleKeysIO e world@(WorldSTM tvar) = atomically $ do
@@ -79,3 +80,15 @@ updatePlayerInformation RenderInfo {..} InGamePlayer {..} =
             = updatePlayerAnimation playerAnim
     in
         (playerDescription, newAnim playerAnim)
+
+calculateAngle :: Location -> Location -> Angle
+calculateAngle (Location (x1, y1)) (Location (x2, y2)) =
+    Angle (atan2 (y2 - y1) (x2 - x1))
+
+
+
+
+
+
+
+

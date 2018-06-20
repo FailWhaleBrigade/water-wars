@@ -165,9 +165,11 @@ mantaUpdateOperation ba@BackgroundAnimation {..} = ba
     }
   where
     Location (x, _) = location
-    dir | (direction == RightDir) && (x >= fieldWidth) = LeftDir
-        | (direction == LeftDir) && (x <= -fieldWidth) = RightDir
+    dir | (direction == RightDir) && (x >= fieldWidth + 60) = LeftDir
+        | (direction == LeftDir) && (x <= -fieldWidth - 60) = RightDir
         | otherwise = direction
     newX | dir == RightDir = x + 0.5
          | dir == LeftDir  = x - 0.5
     newY = 10 * sin (x / 15)
+
+
