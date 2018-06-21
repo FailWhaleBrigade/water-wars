@@ -18,7 +18,7 @@ hostnameParser = strOption
     (  long "hostname"
     ++ short 'h'
     ++ metavar "Hostname"
-    ++ help "Hostname where to run"
+    ++ help "Hostname of the Server Instance"
     ++ value "localhost"
     )
 
@@ -28,6 +28,6 @@ portParser = option
     (  long "port"
     ++ short 'p'
     ++ metavar "Port"
-    ++ help "Port forthe Server"
+    ++ help "Port to connect to"
     ++ value 1234
     )

@@ -28,6 +28,6 @@ portParser = option
     (  long "port"
     ++ short 'p'
     ++ metavar "Port"
-    ++ help "Port forthe Server"
+    ++ help "Port for the Server to listen to"
     ++ value 1234
     )
