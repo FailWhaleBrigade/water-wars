@@ -29,21 +29,18 @@ import           WaterWars.Core.Game           as CoreState
 connectionThread
     :: MonadIO m => Maybe NetworkInfo -> NetworkConfig -> WorldSTM -> m ()
 connectionThread _ NetworkConfig {..} world = forever $ do
-    ret :: Either SomeException () <-
-        liftIO
-        $ try
-        $ WS.runClient
-              hostName
-              portId
-              ""
-              (\conn -> do
-                  say "Connection has been opened"
-                  let connection = newConnection conn
-                  -- TODO: this setup code should be refactored soon-ish
-                  send connection (LoginMessage (Login Nothing))
-                  _ <- async $ receiveUpdates world connection
-                  sendUpdates world connection
-              )
+    ret :: Either SomeException () <- liftIO $ try $ WS.runClient
+        hostName
+        portId
+        ""
+        (\conn -> do
+            say "Connection has been opened"
+            let connection = newConnection conn
+            -- TODO: this setup code should be refactored soon-ish
+            send connection (LoginMessage (Login Nothing))
+            _ <- async $ receiveUpdates world connection
+            sendUpdates world connection
+        )
 
     --case ret of
     --    Left (WS.CloseRequest _ _) ->
@@ -88,6 +85,20 @@ sendUpdates (WorldSTM tvar) conn =
               (action, world) <- atomically $ do
                   action <- extractGameAction tvar
                   world  <- readTVar tvar
+                  -- If the player wants to ready up, the message will be sent
+                  -- outside of the STM block.
+                  -- In order to avoid multiple sending of the message,
+                  -- we set the readyUp key press to false
+                  when
+                      (readyUp $ worldInfo world)
+                      (writeTVar
+                          tvar
+                          (world
+                              { worldInfo = (worldInfo world) { readyUp = False
+                                                              }
+                              }
+                          )
+                      )
                   return (action, world)
               $logDebug $ "Message: " ++ tshow action
               send conn (PlayerActionMessage action)
@@ -102,32 +113,30 @@ updateWorld serverMsg world@World {..} = case serverMsg of
     GameMapMessage gameMap ->
         setTerrain (blockMap renderInfo) (gameTerrain gameMap) world
 
-    GameStateMessage gameState
-        -> let
-               WorldInfo {..} = worldInfo
-               inGamePlayers_ = getInGamePlayers $ inGamePlayers gameState
-               newPlayer =
-                   (\currentPlayer -> headMay $ filter
-                           ((== playerDescription currentPlayer) . playerDescription
-                           )
-                           inGamePlayers_
-                       )
-                       <$> player
+    GameStateMessage gameState ->
+        let
+            WorldInfo {..} = worldInfo
+            inGamePlayers_ = getInGamePlayers $ inGamePlayers gameState
+            newPlayer =
+                (\currentPlayer -> headMay $ filter
+                        ((== playerDescription currentPlayer) . playerDescription)
+                        inGamePlayers_
+                    )
+                    <$> player
 
-               newOtherPlayers = maybe inGamePlayers_
-                                       (flip filter inGamePlayers_ . (/=))
-                                       player
+            newOtherPlayers =
+                maybe inGamePlayers_ (flip filter inGamePlayers_ . (/=)) player
 
-               newProjectiles = getProjectiles $ gameProjectiles gameState
+            newProjectiles = getProjectiles $ gameProjectiles gameState
 
-               worldInfo_     = WorldInfo
-                   { player       = join newPlayer -- TODO: can we express this better?
-                   , otherPlayers = newOtherPlayers
-                   , projectiles  = newProjectiles
-                   , ..
-                   }
-           in
-               World {worldInfo = worldInfo_, ..}
+            worldInfo_     = WorldInfo
+                { player       = join newPlayer -- TODO: can we express this better?
+                , otherPlayers = newOtherPlayers
+                , projectiles  = newProjectiles
+                , ..
+                }
+        in
+            World {worldInfo = worldInfo_, ..}
 
     GameSetupResponseMessage _ -> world
 
@@ -150,11 +159,12 @@ extractGameAction worldTvar = do
     let jmpCmd = if jump then Just JumpAction else Nothing
     let shootCmd = do -- maybe monad
             shootTarget <- shoot
-            p <- player
+            p           <- player
             let shootLocation = playerHeadLocation p
             return $ calculateAngle shootLocation shootTarget
-    when (isJust shoot) $ writeTVar worldTvar
-        $ world { worldInfo = WorldInfo {shoot = Nothing, ..} }
+    when (isJust shoot) $ writeTVar worldTvar $ world
+        { worldInfo = WorldInfo {shoot = Nothing, ..}
+        }
 
     let playerAction = Action
             { runAction   = runCmd
