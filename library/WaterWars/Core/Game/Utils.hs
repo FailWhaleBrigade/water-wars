@@ -24,16 +24,16 @@ import           WaterWars.Core.Game.Constants
 
 
 -- TODO: refactor?
-addPlayer :: GameState -> InGamePlayer -> GameState
-addPlayer GameState {..} igp = GameState
+addInGamePlayer :: GameState -> InGamePlayer -> GameState
+addInGamePlayer GameState {..} igp = GameState
     { inGamePlayers = InGamePlayers (igp `cons` getInGamePlayers inGamePlayers)
     , ..
     }
 
-removePlayer :: GameState -> InGamePlayer -> GameState
-removePlayer GameState {..} igp = GameState
+removePlayer :: GameState -> Player -> GameState
+removePlayer GameState {..} p = GameState
     { inGamePlayers = InGamePlayers
-        (filter (/= igp) $ getInGamePlayers inGamePlayers)
+        (filter ((/= p) . playerDescription) $ getInGamePlayers inGamePlayers)
     , ..
     }
 

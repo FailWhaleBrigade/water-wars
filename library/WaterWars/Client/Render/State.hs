@@ -38,7 +38,6 @@ data World = World
     }
 
 data RenderInfo = RenderInfo
-    -- TODO: more render information, e.g. Player textures, animation textures, ...
     { blockMap :: BlockMap
     , backgroundTexture :: Picture
     , projectileTexture :: Picture
@@ -181,5 +180,3 @@ mantaUpdateOperation ba@BackgroundAnimation {..} = ba
         RightDir -> x + 0.5
         LeftDir  -> x - 0.5
     newY = 10 * sin (x / 15)
-
-

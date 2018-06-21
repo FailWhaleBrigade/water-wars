@@ -88,7 +88,7 @@ sendUpdates (WorldSTM tvar) conn =
                   -- If the player wants to ready up, the message will be sent
                   -- outside of the STM block.
                   -- In order to avoid multiple sending of the message,
-                  -- we set the readyUp key press to false
+                  -- we set the readyUp key press to false.
                   when
                       (readyUp $ worldInfo world)
                       (writeTVar

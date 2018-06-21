@@ -77,14 +77,19 @@ handleConnection sessionMapTvar broadcastChan websocketConn = do
     let conn = newClientConnection sessionId connHandle commChan broadcastChan
     atomically $ modifyTVar' sessionMapTvar (insertMap sessionId conn)
     runStdoutLoggingT
-        $ filterLogger (\_ level -> level /= LevelDebug)
-        $ clientGameThread
-              conn
-              ( atomically
-              . writeTChan broadcastChan
-              . EventClientMessage sessionId
-              )
-              (atomically $ readTChan commChan)
+        $         filterLogger (\_ level -> level /= LevelDebug)
+        $         clientGameThread
+                      conn
+                      ( atomically
+                      . writeTChan broadcastChan
+                      . EventClientMessage sessionId
+                      )
+                      (atomically $ readTChan commChan)
+        `finally` ( atomically
+                  . writeTChan broadcastChan
+                  . EventClientMessage sessionId
+                  $ LogoutMessage Logout
+                  )
     -- ! Should be used for cleanup code
     return ()
 

@@ -70,7 +70,7 @@ handleClientMessages sessionId clientMsg gameLoopTvar playerActionTvar sessionMa
             -- Tell the game loop engine about the newly connected player
             (connectionMay, gameMap_) <- atomically $ do
                 serverState <- readTVar gameLoopTvar
-                let serverState' = modifyGameState addPlayer serverState player
+                let serverState' = modifyGameState addInGamePlayer serverState player
                 writeTVar gameLoopTvar serverState'
                 sessionMap <- readTVar sessionMapTvar
                 modifyTVar' playerMapTVar (insertMap sessionId player)
@@ -84,8 +84,6 @@ handleClientMessages sessionId clientMsg gameLoopTvar playerActionTvar sessionMa
                         (LoginResponseMessage (LoginResponse sessionId player))
                     writeTChan (readChannel connection)
                                (GameMapMessage gameMap_)
-                    writeTChan (readChannel connection)
-                               (GameMapMessage gameMap_)
             return ()
 
         LogoutMessage Logout -> do
@@ -96,7 +94,7 @@ handleClientMessages sessionId clientMsg gameLoopTvar playerActionTvar sessionMa
                 Just player -> atomically $ do
                     serverState <- readTVar gameLoopTvar
                     let serverState' =
-                            modifyGameState removePlayer serverState player
+                            modifyGameState removePlayer serverState (playerDescription player)
                     writeTVar   gameLoopTvar   serverState'
                     modifyTVar' sessionMapTvar (deleteMap sessionId)
                     modifyTVar' playerMapTVar  (deleteMap sessionId)

@@ -3,8 +3,7 @@ module WaterWars.Client.Render.Update where
 import           ClassyPrelude
 
 import           Graphics.Gloss.Interface.IO.Game
-import qualified Graphics.Gloss.Interface.IO.Game
-                                               as Gloss
+import qualified Graphics.Gloss.Interface.IO.Game as Gloss
 import           WaterWars.Client.Render.State
 import           WaterWars.Client.Render.Animation
 import           WaterWars.Core.Game
