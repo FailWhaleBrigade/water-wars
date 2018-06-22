@@ -1,7 +1,6 @@
 module WaterWars.Client.Render.Display where
 
 import ClassyPrelude
-
 import Graphics.Gloss as Gloss
 import Sound.ProteaAudio
 
@@ -16,7 +15,7 @@ import WaterWars.Core.Game
 renderIO :: WorldSTM -> IO Picture
 renderIO (WorldSTM tvar) = do
     world <- readTVarIO tvar
-    when (isJust $ shoot (worldInfo world)) $ do
+    when (isJust $ shoot (worldInfo world)) $ 
         soundLoop (shootSound $ renderInfo world) 1 1 0 1
     return $ render world
 

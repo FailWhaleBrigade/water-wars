@@ -102,6 +102,9 @@ opts = info
 
 main :: IO ()
 main = do
+    result <- initAudio 64 44100 1024 -- max channels, mixing frequency, mixing buffer size
+    unless result $ fail "failed to initialize the audio system"
+    
     Arguments {..} <- execParser opts
     resources      <- runExceptT setup
     case resources of
@@ -123,8 +126,6 @@ main = do
                                           (NetworkConfig 1234 "localhost")
                                           worldStm
                         )
-                result <- initAudio 64 44100 512 -- max channels, mixing frequency, mixing buffer size
-                unless result $ fail "failed to initialize the audio system"
                 sample <- sampleFromFile "resources/sounds/Bubble_Game.ogg" 1.0
                 soundLoop sample 1 1 0 1
                 playIO window
