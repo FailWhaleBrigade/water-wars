@@ -13,6 +13,7 @@ where
 import           ClassyPrelude
 import           Graphics.Gloss
 import           Data.Array.IArray
+import           Sound.ProteaAudio
 
 import           Data.List                                ( cycle )
 
@@ -52,6 +53,7 @@ data RenderInfo = RenderInfo
     , playerAnimations :: Map Player PlayerAnimation
     , solids :: Seq Solid
     , mantaAnimation :: BackgroundAnimation
+    , shootSound :: Sample
     }
 
 data WorldInfo = WorldInfo
@@ -78,8 +80,9 @@ initializeState
     -> [Picture]
     -> [Picture]
     -> BlockMap
+    -> Sample
     -> IO WorldSTM
-initializeState bmpBg bmpPrj playerTex playerRunningTexs playerDeathTexs bmpsMan countdownTexs blockMap'
+initializeState bmpBg bmpPrj playerTex playerRunningTexs playerDeathTexs bmpsMan countdownTexs blockMap' shootSound
     = WorldSTM <$> newTVarIO World
         { renderInfo  = RenderInfo
             { blockMap                   = blockMap'
@@ -105,10 +108,11 @@ initializeState bmpBg bmpPrj playerTex playerRunningTexs playerDeathTexs bmpsMan
                 , countDownMax      = 5
                 , animationPictures = cycle playerRunningTexs
                 }
-            , newPlayerDeathAnimation = PlayerDeathAnimation Animation
-                { countDownTilNext = 9
-                , countDownMax = 9
-                , animationPictures = (take 2 playerDeathTexs) ++ (cycle (drop 2 playerDeathTexs))
+            , newPlayerDeathAnimation    = PlayerDeathAnimation Animation
+                { countDownTilNext  = 9
+                , countDownMax      = 9
+                , animationPictures = (take 2 playerDeathTexs)
+                    ++ (cycle (drop 2 playerDeathTexs))
                 }
             , mantaAnimation             = BackgroundAnimation
                 { animation       = Animation
@@ -121,6 +125,7 @@ initializeState bmpBg bmpPrj playerTex playerRunningTexs playerDeathTexs bmpsMan
                 , direction       = RightDir
                 }
             , solids                     = empty
+            , shootSound = shootSound
             }
         , worldInfo   = WorldInfo
             { jump         = False
@@ -189,3 +194,4 @@ mantaUpdateOperation ba@BackgroundAnimation {..} = ba
         RightDir -> x + 0.5
         LeftDir  -> x - 0.5
     newY = 10 * sin (x / 15)
+

@@ -3,6 +3,7 @@ module WaterWars.Client.Render.Display where
 import ClassyPrelude
 
 import Graphics.Gloss as Gloss
+import Sound.ProteaAudio
 
 import WaterWars.Client.Render.Config
 import WaterWars.Client.Render.Animation
@@ -13,7 +14,11 @@ import WaterWars.Core.Game
 
 -- |Convert a game state into a picture
 renderIO :: WorldSTM -> IO Picture
-renderIO (WorldSTM tvar) = render <$> readTVarIO tvar
+renderIO (WorldSTM tvar) = do
+    world <- readTVarIO tvar
+    when (isJust $ shoot (worldInfo world)) $ do
+        soundLoop (shootSound $ renderInfo world) 1 1 0 1
+    return $ render world
 
 -- TODO: render WorldInfo in combination with RenderInfo
 render :: World -> Picture
@@ -24,6 +29,7 @@ render World {..} = Gloss.pictures
     ++ playerPictures
     ++ toList projectilePictures
     )
+
   where
     allPlayers :: [InGamePlayer]
     allPlayers =
