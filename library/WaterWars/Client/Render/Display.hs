@@ -16,7 +16,7 @@ renderIO :: WorldSTM -> IO Picture
 renderIO (WorldSTM tvar) = do
     world <- readTVarIO tvar
     when (isJust $ shoot (worldInfo world)) $ 
-        soundLoop (shootSound $ renderInfo world) 1 1 0 1
+        soundPlay (shootSound $ renderInfo world) 1 1 0 1
     return $ render world
 
 -- TODO: render WorldInfo in combination with RenderInfo
