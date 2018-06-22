@@ -9,6 +9,7 @@ addons:
   apt:
     packages:
     - libgmp-dev
+    - libpulse-dev
 
 before_install:
 # Download and unpack the stack executable

@@ -20,4 +20,3 @@ nix:
   - pcre
   - gmp
   - libpulseaudio
-  - apulse
