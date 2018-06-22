@@ -93,6 +93,38 @@ executables:
     - ScopedTypeVariables
     - RecordWildCards
     - FlexibleContexts
+  water-wars-debug-client:
+    source-dirs: debug
+    main: Main.hs
+    dependencies: 
+    - base
+    - water-wars
+    - classy-prelude
+    - gloss
+    - websockets
+    - JuicyPixels
+    - array
+    - transformers
+    - mtl
+    - websockets
+    - extensible-effects >= 2.6.0.1
+    - stm
+    - extra
+    - either
+    - uuid
+    - monad-logger
+    - optparse-applicative
+    ghc-options:
+    - -rtsopts
+    - -threaded
+    - -with-rtsopts=-N
+    default-extensions:
+    - NamedFieldPuns
+    - OverloadedStrings
+    - NoImplicitPrelude
+    - ScopedTypeVariables
+    - RecordWildCards
+    - FlexibleContexts
 
 benchmarks:
   water-wars-benchmarks:
