@@ -41,11 +41,13 @@ data RenderInfo = RenderInfo
     , backgroundTexture :: Picture
     , projectileTexture :: Picture
     , playerRunningTextures :: [Picture]
+    , playerDeathTextures :: [Picture]
     , playerIdleTextures :: [Picture]
     , countdownTextures :: [Picture]
     , defaultPlayerAnimation :: PlayerAnimation
     , newPlayerIdleAnimation :: PlayerAnimation
     , newPlayerRunnningAnimation :: PlayerAnimation
+    , newPlayerDeathAnimation :: PlayerAnimation
     , playerAnimations :: Map Player PlayerAnimation
     , solids :: Seq Solid
     , mantaAnimation :: BackgroundAnimation
@@ -73,15 +75,17 @@ initializeState
     -> [Picture]
     -> [Picture]
     -> [Picture]
+    -> [Picture]
     -> BlockMap
     -> IO WorldSTM
-initializeState bmpBg bmpPrj playerTex playerRunningTexs bmpsMan countdownTexs blockMap'
+initializeState bmpBg bmpPrj playerTex playerRunningTexs playerDeathTexs bmpsMan countdownTexs blockMap'
     = WorldSTM <$> newTVarIO World
         { renderInfo  = RenderInfo
             { blockMap                   = blockMap'
             , backgroundTexture          = bmpBg
             , projectileTexture          = scale 0.2 0.2 bmpPrj
             , playerRunningTextures      = playerRunningTexs
+            , playerDeathTextures        = playerDeathTexs
             , playerIdleTextures         = singleton playerTex
             , playerAnimations           = mapFromList []
             , countdownTextures          = countdownTexs
@@ -99,6 +103,11 @@ initializeState bmpBg bmpPrj playerTex playerRunningTexs bmpsMan countdownTexs b
                 { countDownTilNext  = 5
                 , countDownMax      = 5
                 , animationPictures = cycle playerRunningTexs
+                }
+            , newPlayerDeathAnimation = PlayerDeathAnimation Animation
+                { countDownTilNext = 9
+                , countDownMax = 9
+                , animationPictures = (take 2 playerDeathTexs) ++ (cycle (drop 2 playerDeathTexs))
                 }
             , mantaAnimation             = BackgroundAnimation
                 { animation       = Animation
@@ -177,5 +186,3 @@ mantaUpdateOperation ba@BackgroundAnimation {..} = ba
         RightDir -> x + 0.5
         LeftDir  -> x - 0.5
     newY = 10 * sin (x / 15)
-
-

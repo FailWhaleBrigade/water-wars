@@ -29,13 +29,15 @@ backgroundColor = white
 
 setup
     :: (MonadIO m, MonadError String m)
-    => m (Picture, Picture, Picture, [Picture], [Picture], [Picture], BlockMap)
+    => m (Picture, Picture, Picture, [Picture], [Picture], [Picture], [Picture], BlockMap)
 setup = do
     bgTex     <- loadPngAsBmp "resources/textures/background/background.png"
     prjTex    <- loadPngAsBmp "resources/textures/decoration/bubble.png"
     playerTex <- loadPngAsBmp "resources/textures/mermaid/idle/mermaid1.png"
     playerRunningTexs <- bulkLoad $ fromList
         (getMermaidPaths "resources/textures/mermaid/running/mermaid" 1)
+    playerDeathTexs <- bulkLoad $ fromList
+        (getMermaidPaths "resources/textures/mermaid/death/mermaid_death" 1)
     mantaTexs <- bulkLoad $ fromList
         [ "resources/textures/manta_animation/manta1.png"
         , "resources/textures/manta_animation/manta2.png"
@@ -49,7 +51,7 @@ setup = do
         , "resources/textures/writing/GO.png"
         ]
     blockMap <- loadBlockMap
-    return (bgTex, prjTex, playerTex, toList playerRunningTexs, toList mantaTexs, toList countdownTexs, blockMap)
+    return (bgTex, prjTex, playerTex, toList playerRunningTexs,toList playerDeathTexs, toList mantaTexs, toList countdownTexs, blockMap)
 
 getMermaidPaths :: String -> Int -> [String]
 getMermaidPaths _ 15 = []
@@ -60,8 +62,8 @@ main = do
     resources <- runExceptT setup
     case resources of
         Left  err -> putStrLn $ "Could not load texture. Cause: " ++ tshow err
-        Right (bgTex, prjTex, playerTex, playerRunningTexs, mantaTexs, countdownTexs, blocks) -> do
-            worldStm <- initializeState bgTex prjTex playerTex playerRunningTexs mantaTexs countdownTexs blocks
+        Right (bgTex, prjTex, playerTex, playerRunningTexs, playerDeathTexs, mantaTexs, countdownTexs, blocks) -> do
+            worldStm <- initializeState bgTex prjTex playerTex playerRunningTexs playerDeathTexs mantaTexs countdownTexs blocks
             _        <-
                 async {- Should never terminate -}
                     (connectionThread Nothing
