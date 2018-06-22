@@ -10,6 +10,8 @@ import Control.Monad.Logger
 import Data.UUID
 import Data.UUID.V4
 
+import Options.Applicative
+
 import WaterWars.Core.DefaultGame
 import WaterWars.Core.Game
 import WaterWars.Core.Terrain.Read
@@ -20,6 +22,7 @@ import WaterWars.Server.ConnectionMgnt
 import WaterWars.Server.GameLoop
 import WaterWars.Server.Client
 import WaterWars.Server.EventLoop
+import WaterWars.Server.OptParse
 
 defaultGameSetup :: GameSetup
 defaultGameSetup = GameSetup {numberOfPlayers = 4, terrainMap = "default"}
@@ -35,10 +38,17 @@ serverStateWithTerrain terrain = GameLoopState
     }
 
 main :: IO ()
-main = runLoop
+main = execParser opts >>= runLoop
+  where
+    opts = info
+        (argumentsParser <**> helper)
+        (  fullDesc
+        <> progDesc "Start an instance of the water-wars server."
+        <> header "Fail Whale Brigade presents Water Wars."
+        )
 
-runLoop :: (MonadIO m, MonadUnliftIO m) => m ()
-runLoop = do
+runLoop :: (MonadIO m, MonadUnliftIO m) => Arguments -> m ()
+runLoop arguments = do
     -- read resources
     terrain           <- readTerrainFromFile "resources/game1.txt"
 
@@ -47,7 +57,7 @@ runLoop = do
     gameLoopStateTvar <- newTVarIO $ serverStateWithTerrain terrain
     sessionMapTvar    <- newTVarIO $ mapFromList []
     -- start to accept connections
-    _                 <- async (websocketServer sessionMapTvar broadcastChan)
+    _ <- async (websocketServer arguments sessionMapTvar broadcastChan)
     forever
         ( runStdoutLoggingT
         $ filterLogger (\_ level -> level /= LevelDebug)
@@ -57,13 +67,14 @@ runLoop = do
 
 websocketServer
     :: (MonadIO m, MonadUnliftIO m)
-    => TVar (Map Text ClientConnection)
+    => Arguments
+    -> TVar (Map Text ClientConnection)
     -> TChan EventMessage
     -> m ()
-websocketServer sessionMapTvar broadcastChan = liftIO $ runServer
-    "localhost"
-    1234
-    (handleConnection sessionMapTvar broadcastChan)
+websocketServer Arguments {..} sessionMapTvar broadcastChan =
+    liftIO $ runServer (unpack hostname)
+                       port
+                       (handleConnection sessionMapTvar broadcastChan)
 
 handleConnection
     :: TVar (Map Text ClientConnection)
@@ -77,14 +88,19 @@ handleConnection sessionMapTvar broadcastChan websocketConn = do
     let conn = newClientConnection sessionId connHandle commChan broadcastChan
     atomically $ modifyTVar' sessionMapTvar (insertMap sessionId conn)
     runStdoutLoggingT
-        $ filterLogger (\_ level -> level /= LevelDebug)
-        $ clientGameThread
-              conn
-              ( atomically
-              . writeTChan broadcastChan
-              . EventClientMessage sessionId
-              )
-              (atomically $ readTChan commChan)
+        $         filterLogger (\_ level -> level /= LevelDebug)
+        $         clientGameThread
+                      conn
+                      ( atomically
+                      . writeTChan broadcastChan
+                      . EventClientMessage sessionId
+                      )
+                      (atomically $ readTChan commChan)
+        `finally` ( atomically
+                  . writeTChan broadcastChan
+                  . EventClientMessage sessionId
+                  $ LogoutMessage Logout
+                  )
     -- ! Should be used for cleanup code
     return ()
 

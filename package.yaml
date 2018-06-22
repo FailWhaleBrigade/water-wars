@@ -38,6 +38,7 @@ library:
   - either
   - uuid
   - monad-logger
+  - optparse-applicative
   source-dirs: library
   default-extensions:
   - NamedFieldPuns
@@ -63,6 +64,7 @@ executables:
     - websockets
     - uuid
     - monad-logger
+    - optparse-applicative
     ghc-options:
     - -rtsopts
     - -threaded

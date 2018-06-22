@@ -29,6 +29,3 @@ maxVelocity = (0.25, 0.5)
 
 projectileSpeed :: Speed
 projectileSpeed = 0.5
-
-shootCooldown :: Int
-shootCooldown = 10

@@ -8,6 +8,10 @@ import Control.Monad.Logger
 import Graphics.Gloss
 import Graphics.Gloss.Interface.IO.Game
 
+import Options.Applicative
+
+import WaterWars.Client.OptParse
+
 import WaterWars.Client.Codec.Resource (loadPngAsBmp, bulkLoad)
 import WaterWars.Client.Resources.Block (loadBlockMap, BlockMap)
 
@@ -30,9 +34,10 @@ backgroundColor = white
 setup
     :: (MonadIO m, MonadError String m)
     => m (Picture, Picture, Picture, [Picture], [Picture], [Picture], [Picture], BlockMap)
+
 setup = do
-    bgTex     <- loadPngAsBmp "resources/textures/background/background.png"
-    prjTex    <- loadPngAsBmp "resources/textures/decoration/bubble.png"
+    bgTex <- loadPngAsBmp "resources/textures/background/background.png"
+    prjTex <- loadPngAsBmp "resources/textures/decoration/bubble.png"
     playerTex <- loadPngAsBmp "resources/textures/mermaid/idle/mermaid1.png"
     playerRunningTexs <- bulkLoad $ fromList
         (getMermaidPaths "resources/textures/mermaid/running/mermaid" 1)
@@ -51,15 +56,28 @@ setup = do
         , "resources/textures/writing/GO.png"
         ]
     blockMap <- loadBlockMap
-    return (bgTex, prjTex, playerTex, toList playerRunningTexs,toList playerDeathTexs, toList mantaTexs, toList countdownTexs, blockMap)
+    return (bgTex, prjTex, playerTex, toList playerRunningTexs, toList playerDeathTexs, toList mantaTexs, toList countdownTexs, blockMap)
+
 
 getMermaidPaths :: String -> Int -> [String]
 getMermaidPaths _ 15 = []
-getMermaidPaths pathStart ind = (pathStart ++ show ind ++ ".png") : (getMermaidPaths pathStart (ind + 1))
+getMermaidPaths pathStart ind =
+    (pathStart ++ show ind ++ ".png") : getMermaidPaths pathStart (ind + 1)
+
+
+opts :: ParserInfo Arguments
+opts = info
+    (argumentsParser <**> helper)
+    (  fullDesc
+    <> progDesc "Start an instance of the water-wars client."
+    <> header "Fail Whale Brigade presents Water Wars."
+    )
+
 
 main :: IO ()
 main = do
-    resources <- runExceptT setup
+    Arguments {..} <- execParser opts
+    resources      <- runExceptT setup
     case resources of
         Left  err -> putStrLn $ "Could not load texture. Cause: " ++ tshow err
         Right (bgTex, prjTex, playerTex, playerRunningTexs, playerDeathTexs, mantaTexs, countdownTexs, blocks) -> do
@@ -79,3 +97,4 @@ main = do
                    updateIO
             -- Will never be reached
             putStrLn "Goodbye, shutting down the Server!"
+

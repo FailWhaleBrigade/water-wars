@@ -5,7 +5,7 @@ module WaterWars.Server.ConnectionMgnt
     ( PlayerActions(..)
     , ClientConnection(..)
     , newClientConnection
-    , addPlayer
+    , addInGamePlayer
     , removePlayer
     , module WaterWars.Server.EventQueue
     ) where

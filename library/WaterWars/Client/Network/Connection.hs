@@ -1,22 +1,30 @@
 {-# LANGUAGE TemplateHaskell #-}
 
-module WaterWars.Client.Network.Connection (module WaterWars.Client.Network.State, connectionThread) where
+module WaterWars.Client.Network.Connection
+    ( module WaterWars.Client.Network.State
+    , module WaterWars.Client.Network.Connection
+    )
+where
 
-import ClassyPrelude
+import           ClassyPrelude
 
-import qualified Network.WebSockets as WS
+import qualified Network.WebSockets            as WS
 
-import Control.Monad.Logger
+import           Control.Monad.Logger
 
-import Control.Concurrent
+import           Control.Concurrent
 
-import WaterWars.Client.Render.State
-import WaterWars.Client.Network.State (NetworkConfig(..), NetworkInfo(..), Connection, newConnection)
+import           WaterWars.Client.Render.State
+import           WaterWars.Client.Network.State           ( NetworkConfig(..)
+                                                          , NetworkInfo(..)
+                                                          , Connection
+                                                          , newConnection
+                                                          )
 
-import WaterWars.Network.Protocol as Protocol
-import WaterWars.Network.Connection
+import           WaterWars.Network.Protocol    as Protocol
+import           WaterWars.Network.Connection
 
-import WaterWars.Core.Game as CoreState
+import           WaterWars.Core.Game           as CoreState
 
 connectionThread
     :: MonadIO m => Maybe NetworkInfo -> NetworkConfig -> WorldSTM -> m ()
@@ -73,12 +81,29 @@ sendUpdates (WorldSTM tvar) conn =
         $ filterLogger (\_ level -> level /= LevelDebug)
         $ forever
         $ do
-              $logDebug $ "Send an update to the Server"
-              world <- readTVarIO tvar
-              let action = extractGameAction world
+              $logDebug "Send an update to the Server"
+              (action, world) <- atomically $ do
+                  action <- extractGameAction tvar
+                  world  <- readTVar tvar
+                  -- If the player wants to ready up, the message will be sent
+                  -- outside of the STM block.
+                  -- In order to avoid multiple sending of the message,
+                  -- we set the readyUp key press to false.
+                  when
+                      (readyUp $ worldInfo world)
+                      (writeTVar
+                          tvar
+                          (world
+                              { worldInfo = (worldInfo world) { readyUp = False
+                                                              }
+                              }
+                          )
+                      )
+                  return (action, world)
               $logDebug $ "Message: " ++ tshow action
               send conn (PlayerActionMessage action)
-              when (readyUp $ worldInfo world) (send conn (ClientReadyMessage ClientReady))
+              when (readyUp $ worldInfo world)
+                   (send conn (ClientReadyMessage ClientReady))
               liftIO $ threadDelay (1000000 `div` 60)
               return ()
 
@@ -124,24 +149,31 @@ updateWorld serverMsg world@World {..} = case serverMsg of
     GameStartMessage (GameStart n) -> world
 
 
-extractGameAction :: World -> Protocol.PlayerAction
-extractGameAction world =
-    let
-        WorldInfo {..} = worldInfo world
-        runCmd | walkLeft  = Just (RunAction RunLeft)
+extractGameAction :: TVar World -> STM Protocol.PlayerAction
+extractGameAction worldTvar = do
+    world <- readTVar worldTvar
+    let WorldInfo {..} = worldInfo world
+    let runCmd | walkLeft  = Just (RunAction RunLeft)
                | walkRight = Just (RunAction RunRight)
                | otherwise = Nothing
-        jmpCmd   = if jump then Just JumpAction else Nothing
-        shootCmd = if shoot
-            then angleForRunDirection . playerLastRunDirection <$> player
-            else Nothing
-        playerAction = Action
+    let jmpCmd = if jump then Just JumpAction else Nothing
+    let shootCmd = do -- maybe monad
+            shootTarget <- shoot
+            p           <- player
+            let shootLocation = playerHeadLocation p
+            return $ calculateAngle shootLocation shootTarget
+    when (isJust shoot) $ writeTVar worldTvar $ world
+        { worldInfo = WorldInfo {shoot = Nothing, ..}
+        }
+
+    let playerAction = Action
             { runAction   = runCmd
             , jumpAction  = jmpCmd
             , shootAction = shootCmd
             }
-    in
-        PlayerAction {getAction = playerAction}
+    return PlayerAction {getAction = playerAction}
 
 
-
+calculateAngle :: Location -> Location -> Angle
+calculateAngle (Location (x1, y1)) (Location (x2, y2)) =
+    Angle (atan2 (y2 - y1) (x2 - x1))

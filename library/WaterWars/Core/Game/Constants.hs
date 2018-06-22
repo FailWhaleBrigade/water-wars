@@ -10,3 +10,6 @@ defaultPlayerWidth = 2
 
 playerHeadHeight :: Float
 playerHeadHeight = 1 / 2 * defaultPlayerHeight
+
+shootCooldown :: Int
+shootCooldown = 20
