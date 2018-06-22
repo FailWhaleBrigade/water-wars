@@ -19,3 +19,5 @@ nix:
   - zlib
   - pcre
   - gmp
+  - libpulseaudio
+  - apulse

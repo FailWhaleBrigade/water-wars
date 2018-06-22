@@ -34,8 +34,6 @@ library:
   - websockets
   - extensible-effects >= 2.6.0.1
   - stm
-  - OpenAL
-  - ALUT
   - proteaaudio
   - extra
   - either
@@ -49,6 +47,7 @@ library:
   - NoImplicitPrelude
   - ScopedTypeVariables
   - RecordWildCards
+  - LambdaCase
   - FlexibleContexts
   - MonoLocalBinds
 
@@ -86,7 +85,6 @@ executables:
     - base
     - water-wars
     - classy-prelude
-    - proteaaudio
     ghc-options:
     - -rtsopts
     - -threaded

@@ -84,13 +84,15 @@ countdownToPicture RenderInfo {..} tick = translate 0 100 pic
             | tick >= 100 = countdownTextures `indexEx` 1
             | tick >= 50 = countdownTextures `indexEx` 2
             | tick >= 0  = countdownTextures `indexEx` 3
+            | otherwise = error "countdownToPicture: tick is negative"
 
 backgroundAnimationToPicture :: RenderInfo -> BackgroundAnimation -> Picture
 backgroundAnimationToPicture _ BackgroundAnimation {..} = translate x y
     $ scale scaleFactor 1 pic
   where
-    scaleFactor | direction == RightDir = -1
-                | direction == LeftDir  = 1
+    scaleFactor = case direction of 
+        RightDir -> -1
+        LeftDir -> 1
     pic             = displayAnimation animation
     Location (x, y) = location
 
