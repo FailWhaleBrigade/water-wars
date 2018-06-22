@@ -8,7 +8,7 @@ Map contains water
 
 ## Software Architecture
 
-The game is implemented via a server-client archtecture.
+The game is implemented via a server-client architecture.
 
 ### Used technologies
 

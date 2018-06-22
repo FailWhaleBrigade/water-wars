@@ -86,6 +86,7 @@ executables:
     - water-wars
     - classy-prelude
     ghc-options:
+    - -fprof-auto
     - -rtsopts
     - -threaded
     - -with-rtsopts=-N
