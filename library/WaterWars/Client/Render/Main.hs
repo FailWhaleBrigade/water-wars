@@ -82,7 +82,7 @@ opts = info
     (argumentsParser <**> helper)
     (  fullDesc
     <> progDesc "Start an instance of the water-wars client."
-    <> header "Fail Whale Brigade presents the Water Wars."
+    <> header "Fail Whale Brigade presents Water Wars."
     )
 
 

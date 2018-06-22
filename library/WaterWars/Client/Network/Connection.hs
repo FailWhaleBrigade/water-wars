@@ -2,7 +2,7 @@
 
 module WaterWars.Client.Network.Connection
     ( module WaterWars.Client.Network.State
-    , connectionThread
+    , module WaterWars.Client.Network.Connection
     )
 where
 

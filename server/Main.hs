@@ -44,7 +44,7 @@ main = execParser opts >>= runLoop
         (argumentsParser <**> helper)
         (  fullDesc
         <> progDesc "Start an instance of the water-wars server."
-        <> header "Fail Whale Brigade presents the Water Wars."
+        <> header "Fail Whale Brigade presents Water Wars."
         )
 
 runLoop :: (MonadIO m, MonadUnliftIO m) => Arguments -> m ()
