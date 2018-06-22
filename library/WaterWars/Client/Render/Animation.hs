@@ -52,4 +52,3 @@ updateBackgroundAnimation a = b { animation = newAnimation }
   where
     newAnimation = updateAnimation (animation a)
     b            = (updateOperation a) a
-

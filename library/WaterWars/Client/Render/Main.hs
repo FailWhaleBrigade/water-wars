@@ -8,6 +8,8 @@ import Control.Monad.Logger
 import Graphics.Gloss
 import Graphics.Gloss.Interface.IO.Game
 
+import Sound.ProteaAudio
+
 import Options.Applicative
 
 import WaterWars.Client.OptParse
@@ -40,9 +42,9 @@ setup = do
     prjTex <- loadPngAsBmp "resources/textures/decoration/bubble.png"
     playerTex <- loadPngAsBmp "resources/textures/mermaid/idle/mermaid1.png"
     playerRunningTexs <- bulkLoad $ fromList
-        (getMermaidPaths "resources/textures/mermaid/running/mermaid" 1)
+        (getMermaidPaths "resources/textures/mermaid/running/mermaid" 1 15)
     playerDeathTexs <- bulkLoad $ fromList
-        (getMermaidPaths "resources/textures/mermaid/death/mermaid_death" 1)
+        (getMermaidPaths "resources/textures/mermaid/death/mermaid_death" 1 9)
     mantaTexs <- bulkLoad $ fromList
         [ "resources/textures/manta_animation/manta1.png"
         , "resources/textures/manta_animation/manta2.png"
@@ -59,10 +61,10 @@ setup = do
     return (bgTex, prjTex, playerTex, toList playerRunningTexs, toList playerDeathTexs, toList mantaTexs, toList countdownTexs, blockMap)
 
 
-getMermaidPaths :: String -> Int -> [String]
-getMermaidPaths _ 15 = []
-getMermaidPaths pathStart ind =
-    (pathStart ++ show ind ++ ".png") : getMermaidPaths pathStart (ind + 1)
+getMermaidPaths :: String -> Int -> Int -> [String]
+getMermaidPaths pathStart ind mx
+    | ind == mx = []
+    | otherwise = (pathStart ++ show ind ++ ".png") : getMermaidPaths pathStart (ind + 1) mx
 
 
 opts :: ParserInfo Arguments
@@ -88,6 +90,10 @@ main = do
                                       (NetworkConfig 1234 "localhost")
                                       worldStm
                     )
+            result <- initAudio 64 44100 1024 -- max channels, mixing frequency, mixing buffer size
+            unless result $ fail "failed to initialize the audio system"
+            sample <- sampleFromFile "resources/sounds/Bubble_Game.ogg" 1.0
+            soundLoop sample 1 1 0 1
             playIO window
                    backgroundColor
                    fps
