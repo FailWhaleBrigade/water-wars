@@ -29,14 +29,14 @@ handleGameLoopMessages
     :: (MonadIO m, MonadLogger m) => SharedState -> GameState -> m ()
 handleGameLoopMessages SharedState {..} gameStateUpdate = do
     sessionMap <- readTVarIO connectionMapTvar
+    gameTick <- gameTicks . gameState <$> readTVarIO gameLoopTvar
     broadcastMessage (GameStateMessage gameStateUpdate) sessionMap
     isStarting <- readTVarIO startGameTvar
     case isStarting of 
         Nothing -> return ()
-        Just startingTick -> do 
-            gameTick <- gameTicks . gameState <$> readTVarIO gameLoopTvar
+        Just startingTick -> 
             when (startingTick <= gameTick) $ do
-                say "Send the Game start message"
+                say $ "Send the Game start message: " ++ tshow gameTick
                 atomically $ do  
                     writeTVar startGameTvar Nothing
                     modifyTVar gameLoopTvar startGame
@@ -134,11 +134,11 @@ handleClientMessages SharedState {..} sessionId clientMsg = case clientMsg of
                 ("Everyone is ready. \"" ++ sessionId ++ "\" was the last one.")
             sessionMap <- readTVarIO connectionMapTvar                
             gameTick <- gameTicks . gameState <$> readTVarIO gameLoopTvar
-            broadcastMessage (GameWillStartMessage (GameStart (gameTick + 1000))) sessionMap
+            broadcastMessage (GameWillStartMessage (GameStart (gameTick + 240))) sessionMap
             
             -- notify that the game will start
             atomically $ 
-                writeTVar startGameTvar (Just (gameTick + 1000))
+                writeTVar startGameTvar (Just (gameTick + 240))
             return ()
 
         return ()

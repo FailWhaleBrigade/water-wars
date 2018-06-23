@@ -88,7 +88,7 @@ projectileToPicture RenderInfo {..} p = translate
     where Location (x, y) = projectileLocation p
 
 countdownToPicture :: RenderInfo -> Integer -> Picture
-countdownToPicture RenderInfo {..} tick = trace ("Countdown is: " ++ show tick) $ translate 0 100 pic
+countdownToPicture RenderInfo {..} tick = translate 0 100 pic
   where
     Resources {..} = resources
     pic | tick >= 180 = countdownTextures `indexEx` 0
