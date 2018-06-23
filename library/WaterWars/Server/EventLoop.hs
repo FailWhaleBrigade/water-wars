@@ -36,7 +36,7 @@ handleGameLoopMessages SharedState {..} gameStateUpdate = do
         Nothing -> return ()
         Just startingTick -> 
             when (startingTick <= gameTick) $ do
-                say $ "Send the Game start message: " ++ tshow gameTick
+                $logInfo $ "Send the Game start message: " ++ tshow gameTick
                 atomically $ do  
                     writeTVar startGameTvar Nothing
                     modifyTVar gameLoopTvar startGame

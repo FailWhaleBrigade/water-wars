@@ -39,8 +39,9 @@ opts = info
 main :: IO ()
 main = do
     Arguments {..} <- execParser opts
-    result <- initAudio 64 44100 1024 -- max channels, mixing frequency, mixing buffer size
-    unless result $ fail "failed to initialize the audio system"
+    unless quiet $ do 
+        result <- initAudio 64 44100 1024 -- max channels, mixing frequency, mixing buffer size
+        unless result $ fail "failed to initialize the audio system"
 
     resourcesEither      <- runExceptT setup
     case resourcesEither of

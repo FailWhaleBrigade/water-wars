@@ -8,10 +8,11 @@ data Arguments =
     Arguments
         { hostname :: Text
         , port :: Int
+        , quiet :: Bool
         } deriving (Show, Eq, Ord, Read)
 
 argumentsParser :: Parser Arguments
-argumentsParser = Arguments <$> hostnameParser <*> portParser
+argumentsParser = Arguments <$> hostnameParser <*> portParser <*> quietParser
 
 hostnameParser :: Parser Text
 hostnameParser = strOption
@@ -31,3 +32,14 @@ portParser = option
     ++ help "Port to connect to"
     ++ value 1234
     )
+
+quietParser :: Parser Bool
+quietParser = option
+    auto
+    (  long "quiet"
+    ++ short 'q'
+    ++ metavar "Quiet"
+    ++ help "On true, silences the music of the game"
+    ++ value False
+    )
+        
