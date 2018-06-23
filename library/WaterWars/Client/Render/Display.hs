@@ -1,8 +1,8 @@
 module WaterWars.Client.Render.Display where
 
 import ClassyPrelude
-
 import Graphics.Gloss as Gloss
+import Sound.ProteaAudio
 
 import WaterWars.Client.Render.Config
 import WaterWars.Client.Render.Animation
@@ -15,33 +15,43 @@ import WaterWars.Core.Game
 renderIO :: WorldSTM -> IO Picture
 renderIO (WorldSTM tvar) = render <$> readTVarIO tvar
 
--- TODO: render WorldInfo in combination with RenderInfo
 render :: World -> Picture
-render World {..} = Gloss.pictures
-    (  [backgroundTexture renderInfo]
-    ++ [mantaPicture]
-    ++ toList solidPictures
-    ++ playerPictures
-    ++ toList projectilePictures
-    )
+render World {..} =
+    Gloss.pictures
+            (  [backgroundTexture]
+            ++ [mantaPicture]
+            ++ toList solidPictures
+            ++ playerPictures
+            ++ toList projectilePictures
+            ++ maybeToList readyPicture
+            )
   where
+    RenderInfo {..} = renderInfo
+    WorldInfo {..} = worldInfo
+    Resources {..}  = resources
+
     allPlayers :: [InGamePlayer]
     allPlayers =
-        maybeToList (player worldInfo) ++ toList (otherPlayers worldInfo)
+        maybeToList player ++ toList otherPlayers
 
     playerPictures :: [Picture]
     playerPictures = map (inGamePlayerToPicture renderInfo) allPlayers
 
     projectilePictures :: Seq Picture
     projectilePictures =
-        map (projectileToPicture renderInfo) (projectiles worldInfo)
+        map (projectileToPicture renderInfo) projectiles
 
     solidPictures :: Seq Picture
-    solidPictures = map solidToPicture (solids renderInfo)
+    solidPictures = map solidToPicture solids
 
     mantaPicture :: Picture
     mantaPicture =
-        backgroundAnimationToPicture renderInfo (mantaAnimation renderInfo)
+        backgroundAnimationToPicture renderInfo mantaAnimation 
+
+    readyPicture :: Maybe Picture
+    readyPicture = do 
+        down <- countdown
+        return $ countdownToPicture renderInfo (down - gameTick)
 
 inGamePlayerColor :: Color
 inGamePlayerColor = red
@@ -55,7 +65,8 @@ solidToPicture solid =
 
 inGamePlayerToPicture :: RenderInfo -> InGamePlayer -> Picture
 inGamePlayerToPicture RenderInfo {..} InGamePlayer {..} =
-    let Location (x, y)    = playerLocation
+    let Resources {..}     = resources
+        Location (x, y)    = playerLocation
         directionComponent = case playerLastRunDirection of
             RunLeft  -> -1
             RunRight -> 1
@@ -69,28 +80,29 @@ inGamePlayerToPicture RenderInfo {..} InGamePlayer {..} =
         $ scale (1 / mermaidWidth) (1 / mermaidHeight)
         $ scale directionComponent 1 (headEx animationPictures)
 
-
 projectileToPicture :: RenderInfo -> Projectile -> Picture
-projectileToPicture RenderInfo {..} p = translate (x * blockSize)
-                                                  (y * blockSize)
-                                                  projectileTexture
+projectileToPicture RenderInfo {..} p = translate
+    (x * blockSize)
+    (y * blockSize)
+    (projectileTexture resources)
     where Location (x, y) = projectileLocation p
 
-countdownToPicture :: RenderInfo -> Int -> Picture
+countdownToPicture :: RenderInfo -> Integer -> Picture
 countdownToPicture RenderInfo {..} tick = translate 0 100 pic
-    where 
-        pic
-            | tick >= 150 = countdownTextures `indexEx` 0
-            | tick >= 100 = countdownTextures `indexEx` 1
-            | tick >= 50 = countdownTextures `indexEx` 2
-            | tick >= 0  = countdownTextures `indexEx` 3
+  where
+    Resources {..} = resources
+    pic | tick >= 180 = countdownTextures `indexEx` 0
+        | tick >= 120 = countdownTextures `indexEx` 1
+        | tick >= 60  = countdownTextures `indexEx` 2
+        | otherwise {- tick >= 0 -}   = countdownTextures `indexEx` 3
 
 backgroundAnimationToPicture :: RenderInfo -> BackgroundAnimation -> Picture
 backgroundAnimationToPicture _ BackgroundAnimation {..} = translate x y
     $ scale scaleFactor 1 pic
   where
-    scaleFactor | direction == RightDir = -1
-                | direction == LeftDir  = 1
+    scaleFactor = case direction of
+        RightDir -> -1
+        LeftDir  -> 1
     pic             = displayAnimation animation
     Location (x, y) = location
 

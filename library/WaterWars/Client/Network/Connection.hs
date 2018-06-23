@@ -2,7 +2,7 @@
 
 module WaterWars.Client.Network.Connection
     ( module WaterWars.Client.Network.State
-    , connectionThread
+    , module WaterWars.Client.Network.Connection
     )
 where
 
@@ -111,7 +111,7 @@ sendUpdates (WorldSTM tvar) conn =
 updateWorld :: Protocol.ServerMessage -> World -> World
 updateWorld serverMsg world@World {..} = case serverMsg of
     GameMapMessage gameMap ->
-        setTerrain (blockMap renderInfo) (gameTerrain gameMap) world
+        setTerrain (blockMap $ resources renderInfo) (gameTerrain gameMap) world
 
     GameStateMessage gameState ->
         let
@@ -133,6 +133,7 @@ updateWorld serverMsg world@World {..} = case serverMsg of
                 { player       = join newPlayer -- TODO: can we express this better?
                 , otherPlayers = newOtherPlayers
                 , projectiles  = newProjectiles
+                , gameTick     = gameTicks gameState
                 , ..
                 }
         in
@@ -146,7 +147,9 @@ updateWorld serverMsg world@World {..} = case serverMsg of
             worldInfo_     = WorldInfo {player = newPlayer, ..}
         in  World {worldInfo = worldInfo_, ..}
 
-    GameStartMessage (GameStart n) -> world
+    GameWillStartMessage (GameStart n) -> world { worldInfo = worldInfo { countdown = Just n } }
+
+    GameStartMessage -> world { worldInfo = worldInfo { countdown = Nothing } }
 
 
 extractGameAction :: TVar World -> STM Protocol.PlayerAction

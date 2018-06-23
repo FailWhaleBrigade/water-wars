@@ -22,6 +22,7 @@ import WaterWars.Server.ConnectionMgnt
 import WaterWars.Server.GameLoop
 import WaterWars.Server.Client
 import WaterWars.Server.EventLoop
+import WaterWars.Server.State
 import WaterWars.Server.OptParse
 
 defaultGameSetup :: GameSetup
@@ -44,7 +45,7 @@ main = execParser opts >>= runLoop
         (argumentsParser <**> helper)
         (  fullDesc
         <> progDesc "Start an instance of the water-wars server."
-        <> header "Fail Whale Brigade presents the Water Wars."
+        <> header "Fail Whale Brigade presents Water Wars."
         )
 
 runLoop :: (MonadIO m, MonadUnliftIO m) => Arguments -> m ()
@@ -116,15 +117,17 @@ gameLoopServer gameLoopStateTvar sessionMapTvar broadcastChan = do
     playerActionTvar  <- newTVarIO (PlayerActions (mapFromList empty))
     playerInGameTvar  <- newTVarIO $ mapFromList []
     readyPlayersTvar  <- newTVarIO mempty
-
-    _                 <- async
-        (eventLoop readBroadcastChan
-                   gameLoopStateTvar
-                   playerActionTvar
-                   sessionMapTvar
-                   playerInGameTvar
-                   readyPlayersTvar
-        )
+    gameStartTvar     <- newTVarIO Nothing
+    let sharedState = SharedState readBroadcastChan
+                                  gameLoopStateTvar
+                                  playerActionTvar
+                                  sessionMapTvar
+                                  playerInGameTvar
+                                  readyPlayersTvar
+                                  gameStartTvar
+    _ <- async (eventLoop sharedState)
     $logInfo "Start game loop"
     runGameLoop gameLoopStateTvar broadcastChan playerActionTvar
     return ()
+
+

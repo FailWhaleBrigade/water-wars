@@ -8,6 +8,7 @@ extra-deps:
 - extra-1.6.8
 - heavy-logger-0.3.2.0
 - text-format-heavy-0.1.5.1
+- proteaaudio-0.7.0.1
 
 nix:
   pure: false
@@ -18,3 +19,4 @@ nix:
   - zlib
   - pcre
   - gmp
+  - libpulseaudio

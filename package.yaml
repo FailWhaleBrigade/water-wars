@@ -34,6 +34,7 @@ library:
   - websockets
   - extensible-effects >= 2.6.0.1
   - stm
+  - proteaaudio
   - extra
   - either
   - uuid
@@ -46,6 +47,7 @@ library:
   - NoImplicitPrelude
   - ScopedTypeVariables
   - RecordWildCards
+  - LambdaCase
   - FlexibleContexts
   - MonoLocalBinds
 
@@ -82,6 +84,7 @@ executables:
     dependencies:
     - base
     - water-wars
+    - classy-prelude
     ghc-options:
     - -rtsopts
     - -threaded
