@@ -47,7 +47,7 @@ setup = do
     shootSound <- liftIO
         $ sampleFromFile "resources/sounds/bubble_into_glass.ogg" 1.0
     return $ Resources bgTex
-                       prjTex
+                       (scale 0.2 0.2 prjTex)
                        playerTex
                        (toList playerRunningTexs)
                        (toList playerDeathTexs)
