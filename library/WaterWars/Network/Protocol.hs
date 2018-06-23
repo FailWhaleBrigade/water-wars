@@ -51,15 +51,16 @@ data Logout = Logout deriving (Show, Read, Eq)
 -- |Signals the server that a client is ready
 data ClientReady = ClientReady deriving (Show, Read, Eq)
 
--- |Inform client that the game is about to start n seconds
-newtype GameStart = GameStart Int deriving (Show, Read, Eq)
+-- |Inform client that the game is about to start at game tick n
+newtype GameStart = GameStart Integer deriving (Show, Read, Eq)
 
 data ServerMessage
     = GameSetupResponseMessage GameSetupResponse
     | LoginResponseMessage LoginResponse
     | GameMapMessage CoreState.GameMap
     | GameStateMessage CoreState.GameState
-    | GameStartMessage GameStart
+    | GameWillStartMessage GameStart
+    | GameStartMessage
     deriving (Show, Eq, Read)
 
 instance Serializable ServerMessage where

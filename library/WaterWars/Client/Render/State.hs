@@ -7,19 +7,20 @@ module WaterWars.Client.Render.State
     , PlayerAnimation(..)
     , initializeState
     , setTerrain
+    , module WaterWars.Client.Resources.Resources
     )
 where
 
 import           ClassyPrelude
 import           Graphics.Gloss
 import           Data.Array.IArray
-import           Sound.ProteaAudio
 
 import           Data.List                                ( cycle )
 
 import           WaterWars.Client.Render.Terrain.Solid
 import           WaterWars.Client.Render.Config
 import           WaterWars.Client.Resources.Block
+import           WaterWars.Client.Resources.Resources
 
 import qualified WaterWars.Client.Network.State
                                                as NetworkState
@@ -39,13 +40,7 @@ data World = World
     }
 
 data RenderInfo = RenderInfo
-    { blockMap :: BlockMap
-    , backgroundTexture :: Picture
-    , projectileTexture :: Picture
-    , playerRunningTextures :: [Picture]
-    , playerDeathTextures :: [Picture]
-    , playerIdleTextures :: [Picture]
-    , countdownTextures :: [Picture]
+    { resources :: Resources
     , defaultPlayerAnimation :: PlayerAnimation
     , newPlayerIdleAnimation :: PlayerAnimation
     , newPlayerRunnningAnimation :: PlayerAnimation
@@ -53,7 +48,6 @@ data RenderInfo = RenderInfo
     , playerAnimations :: Map Player PlayerAnimation
     , solids :: Seq Solid
     , mantaAnimation :: BackgroundAnimation
-    , shootSound :: Sample
     }
 
 data WorldInfo = WorldInfo
@@ -64,7 +58,8 @@ data WorldInfo = WorldInfo
     , duck      :: Bool
     , exitGame  :: Bool
     , readyUp   :: Bool
-    , countdown :: Maybe Int
+    , countdown :: Maybe Integer
+    , gameTick  :: Integer
     , gameRunning :: Bool
     , player    :: Maybe CoreState.InGamePlayer
     , otherPlayers :: Seq CoreState.InGamePlayer
@@ -72,60 +67,45 @@ data WorldInfo = WorldInfo
     } deriving Show
 
 initializeState
-    :: Picture
-    -> Picture
-    -> Picture
-    -> [Picture]
-    -> [Picture]
-    -> [Picture]
-    -> [Picture]
-    -> BlockMap
-    -> Sample
+    :: Resources
     -> IO WorldSTM
-initializeState bmpBg bmpPrj playerTex playerRunningTexs playerDeathTexs bmpsMan countdownTexs blockMap' shootSound
+initializeState resources@Resources {..}
     = WorldSTM <$> newTVarIO World
         { renderInfo  = RenderInfo
-            { blockMap                   = blockMap'
-            , backgroundTexture          = bmpBg
-            , projectileTexture          = scale 0.2 0.2 bmpPrj
-            , playerRunningTextures      = playerRunningTexs
-            , playerDeathTextures        = playerDeathTexs
-            , playerIdleTextures         = singleton playerTex
+            { resources = resources
             , playerAnimations           = mapFromList []
-            , countdownTextures          = countdownTexs
             , defaultPlayerAnimation     = PlayerIdleAnimation Animation
                 { countDownTilNext  = 30
                 , countDownMax      = 30
-                , animationPictures = repeat playerTex
+                , animationPictures = repeat idlePlayerTexture
                 }
             , newPlayerIdleAnimation     = PlayerIdleAnimation Animation
                 { countDownTilNext  = 30
                 , countDownMax      = 30
-                , animationPictures = repeat playerTex
+                , animationPictures = repeat idlePlayerTexture
                 }
             , newPlayerRunnningAnimation = PlayerIdleAnimation Animation
                 { countDownTilNext  = 5
                 , countDownMax      = 5
-                , animationPictures = cycle playerRunningTexs
+                , animationPictures = cycle runningPlayerTextures
                 }
             , newPlayerDeathAnimation    = PlayerDeathAnimation Animation
                 { countDownTilNext  = 9
                 , countDownMax      = 9
-                , animationPictures = (take 2 playerDeathTexs)
-                    ++ (cycle (drop 2 playerDeathTexs))
+                , animationPictures = (take 2 playerDeathTextures)
+                    ++ (cycle (drop 2 playerDeathTextures))
                 }
             , mantaAnimation             = BackgroundAnimation
                 { animation       = Animation
                     { countDownTilNext  = 30
                     , countDownMax      = 30
-                    , animationPictures = cycle bmpsMan
+                    , animationPictures = cycle mantaTextures
                     }
                 , location        = Location (0, 0)
                 , updateOperation = mantaUpdateOperation
                 , direction       = RightDir
                 }
             , solids                     = empty
-            , shootSound = shootSound
             }
         , worldInfo   = WorldInfo
             { jump         = False
@@ -136,6 +116,7 @@ initializeState bmpBg bmpPrj playerTex playerRunningTexs playerDeathTexs bmpsMan
             , exitGame     = False
             , readyUp      = False
             , countdown    = Nothing
+            , gameTick     = 0
             , gameRunning  = False
             , player       = Nothing
             , otherPlayers = empty
