@@ -63,7 +63,7 @@ runLoop arguments = do
     forever
         ( runStdoutLoggingT
         $ filterLogger (\_ level -> level /= LevelDebug)
-        $ gameLoopServer gameLoopStateTvar sessionMapTvar broadcastChan
+        $ gameLoopServer arguments gameLoopStateTvar sessionMapTvar broadcastChan
         )
 
 
@@ -108,11 +108,12 @@ handleConnection sessionMapTvar broadcastChan websocketConn = do
 
 gameLoopServer
     :: (MonadIO m, MonadLogger m, MonadUnliftIO m)
-    => TVar GameLoopState
+    => Arguments 
+    -> TVar GameLoopState
     -> TVar (Map Text ClientConnection)
     -> TChan EventMessage
     -> m ()
-gameLoopServer gameLoopStateTvar sessionMapTvar broadcastChan = do
+gameLoopServer arguments gameLoopStateTvar sessionMapTvar broadcastChan = do
     readBroadcastChan <- atomically $ dupTChan broadcastChan
     playerActionTvar  <- newTVarIO (PlayerActions (mapFromList empty))
     playerInGameTvar  <- newTVarIO $ mapFromList []
@@ -127,7 +128,7 @@ gameLoopServer gameLoopStateTvar sessionMapTvar broadcastChan = do
                                   gameStartTvar
     _ <- async (eventLoop sharedState)
     $logInfo "Start game loop"
-    runGameLoop gameLoopStateTvar broadcastChan playerActionTvar
+    runGameLoop arguments gameLoopStateTvar broadcastChan playerActionTvar
     return ()
 
 
