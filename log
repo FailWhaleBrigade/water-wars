@@ -1,0 +1,31 @@
+/home/baldr/Documents/haskell/water-wars/.stack-work/install/x86_64-linux-nix/lts-11.12/8.2.2/bin/water-wars-server +RTS -N -slog -p 
+     201,111,848 bytes allocated in the heap
+       3,884,464 bytes copied during GC
+         645,296 bytes maximum residency (4 sample(s))
+          28,496 bytes maximum slop
+               4 MB total memory in use (0 MB lost due to fragmentation)
+
+                                     Tot time (elapsed)  Avg pause  Max pause
+  Gen  0       186 colls,     0 par    0.023s   0.022s     0.0001s    0.0035s
+  Gen  1         4 colls,     0 par    0.001s   0.001s     0.0003s    0.0006s
+
+  TASKS: 5 (1 bound, 4 peak workers (4 total), using -N1)
+
+  SPARKS: 0 (0 converted, 0 overflowed, 0 dud, 0 GC'd, 0 fizzled)
+
+  INIT    time    0.001s  (  0.001s elapsed)
+  MUT     time    0.776s  ( 22.402s elapsed)
+  GC      time    0.024s  (  0.024s elapsed)
+  RP      time    0.000s  (  0.000s elapsed)
+  PROF    time    0.000s  (  0.000s elapsed)
+  EXIT    time    0.000s  (  0.001s elapsed)
+  Total   time    0.801s  ( 22.427s elapsed)
+
+  Alloc rate    259,131,957 bytes per MUT second
+
+  Productivity  96.9% of total user, 99.9% of total elapsed
+
+gc_alloc_block_sync: 0
+whitehole_spin: 0
+gen[0].sync: 0
+gen[1].sync: 0

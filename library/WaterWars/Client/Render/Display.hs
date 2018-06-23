@@ -9,6 +9,8 @@ import WaterWars.Client.Render.Animation
 import WaterWars.Client.Render.State
 import WaterWars.Client.Render.Terrain.Solid
 
+import WaterWars.Client.Resources.Resources
+
 import WaterWars.Core.Game
 
 -- |Convert a game state into a picture
@@ -16,13 +18,16 @@ renderIO :: WorldSTM -> IO Picture
 renderIO (WorldSTM tvar) = do
     world <- readTVarIO tvar
     when (isJust $ shoot (worldInfo world)) $ 
-        soundPlay (shootSound $ renderInfo world) 1 1 0 1
+        soundPlay (shootSound . resources $ renderInfo world) 1 1 0 1
     return $ render world
 
 -- TODO: render WorldInfo in combination with RenderInfo
 render :: World -> Picture
-render World {..} = Gloss.pictures
-    (  [backgroundTexture renderInfo]
+render World {..} = 
+    let RenderInfo {..} = renderInfo
+        Resources {..} = resources
+    in Gloss.pictures
+    (  [backgroundTexture]
     ++ [mantaPicture]
     ++ toList solidPictures
     ++ playerPictures
@@ -60,7 +65,8 @@ solidToPicture solid =
 
 inGamePlayerToPicture :: RenderInfo -> InGamePlayer -> Picture
 inGamePlayerToPicture RenderInfo {..} InGamePlayer {..} =
-    let Location (x, y)    = playerLocation
+    let Resources {..} = resources
+        Location (x, y)    = playerLocation
         directionComponent = case playerLastRunDirection of
             RunLeft  -> -1
             RunRight -> 1
@@ -78,12 +84,13 @@ inGamePlayerToPicture RenderInfo {..} InGamePlayer {..} =
 projectileToPicture :: RenderInfo -> Projectile -> Picture
 projectileToPicture RenderInfo {..} p = translate (x * blockSize)
                                                   (y * blockSize)
-                                                  projectileTexture
+                                                  (projectileTexture resources)
     where Location (x, y) = projectileLocation p
 
 countdownToPicture :: RenderInfo -> Int -> Picture
 countdownToPicture RenderInfo {..} tick = translate 0 100 pic
     where 
+        Resources {..} = resources
         pic
             | tick >= 150 = countdownTextures `indexEx` 0
             | tick >= 100 = countdownTextures `indexEx` 1
