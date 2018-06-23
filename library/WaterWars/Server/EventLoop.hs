@@ -39,7 +39,7 @@ handleGameLoopMessages SharedState {..} gameStateUpdate = do
                 $logInfo $ "Send the Game start message: " ++ tshow gameTick
                 atomically $ do  
                     writeTVar startGameTvar Nothing
-                    modifyTVar gameLoopTvar startGame
+                    modifyTVar' gameLoopTvar startGame
                 
                 broadcastMessage GameStartMessage sessionMap
 
@@ -114,6 +114,7 @@ handleClientMessages SharedState {..} sessionId clientMsg = case clientMsg of
 
     ClientReadyMessage ClientReady -> do
         $logInfo ("Player \"" ++ sessionId ++ "\" is ready")
+        
         allPlayersReady <- atomically $ do
             readySet  <- readTVar readyPlayersTvar
             playerMap <- readTVar playerMapTvar

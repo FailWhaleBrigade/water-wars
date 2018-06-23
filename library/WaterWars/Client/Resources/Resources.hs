@@ -56,12 +56,9 @@ setup = do
                        blockMap
                        shootSound
 
-
-
 getMermaidPaths :: String -> Int -> Int -> [String]
 getMermaidPaths pathStart ind mx
     | ind == mx
     = []
     | otherwise
     = (pathStart ++ show ind ++ ".png") : getMermaidPaths pathStart (ind + 1) mx
-

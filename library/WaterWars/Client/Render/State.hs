@@ -66,64 +66,61 @@ data WorldInfo = WorldInfo
     , projectiles  :: Seq CoreState.Projectile
     } deriving Show
 
-initializeState
-    :: Resources
-    -> IO WorldSTM
-initializeState resources@Resources {..}
-    = WorldSTM <$> newTVarIO World
-        { renderInfo  = RenderInfo
-            { resources = resources
-            , playerAnimations           = mapFromList []
-            , defaultPlayerAnimation     = PlayerIdleAnimation Animation
+initializeState :: Resources -> IO WorldSTM
+initializeState resources@Resources {..} = WorldSTM <$> newTVarIO World
+    { renderInfo  = RenderInfo
+        { resources                  = resources
+        , playerAnimations           = mapFromList []
+        , defaultPlayerAnimation     = PlayerIdleAnimation Animation
+            { countDownTilNext  = 30
+            , countDownMax      = 30
+            , animationPictures = repeat idlePlayerTexture
+            }
+        , newPlayerIdleAnimation     = PlayerIdleAnimation Animation
+            { countDownTilNext  = 30
+            , countDownMax      = 30
+            , animationPictures = repeat idlePlayerTexture
+            }
+        , newPlayerRunnningAnimation = PlayerIdleAnimation Animation
+            { countDownTilNext  = 5
+            , countDownMax      = 5
+            , animationPictures = cycle runningPlayerTextures
+            }
+        , newPlayerDeathAnimation    = PlayerDeathAnimation Animation
+            { countDownTilNext  = 9
+            , countDownMax      = 9
+            , animationPictures = (take 2 playerDeathTextures)
+                ++ (cycle (drop 2 playerDeathTextures))
+            }
+        , mantaAnimation             = BackgroundAnimation
+            { animation       = Animation
                 { countDownTilNext  = 30
                 , countDownMax      = 30
-                , animationPictures = repeat idlePlayerTexture
+                , animationPictures = cycle mantaTextures
                 }
-            , newPlayerIdleAnimation     = PlayerIdleAnimation Animation
-                { countDownTilNext  = 30
-                , countDownMax      = 30
-                , animationPictures = repeat idlePlayerTexture
-                }
-            , newPlayerRunnningAnimation = PlayerIdleAnimation Animation
-                { countDownTilNext  = 5
-                , countDownMax      = 5
-                , animationPictures = cycle runningPlayerTextures
-                }
-            , newPlayerDeathAnimation    = PlayerDeathAnimation Animation
-                { countDownTilNext  = 9
-                , countDownMax      = 9
-                , animationPictures = (take 2 playerDeathTextures)
-                    ++ (cycle (drop 2 playerDeathTextures))
-                }
-            , mantaAnimation             = BackgroundAnimation
-                { animation       = Animation
-                    { countDownTilNext  = 30
-                    , countDownMax      = 30
-                    , animationPictures = cycle mantaTextures
-                    }
-                , location        = Location (0, 0)
-                , updateOperation = mantaUpdateOperation
-                , direction       = RightDir
-                }
-            , solids                     = empty
+            , location        = Location (0, 0)
+            , updateOperation = mantaUpdateOperation
+            , direction       = RightDir
             }
-        , worldInfo   = WorldInfo
-            { jump         = False
-            , walkLeft     = False
-            , walkRight    = False
-            , duck         = False
-            , shoot        = Nothing
-            , exitGame     = False
-            , readyUp      = False
-            , countdown    = Nothing
-            , gameTick     = 0
-            , gameRunning  = False
-            , player       = Nothing
-            , otherPlayers = empty
-            , projectiles  = empty
-            }
-        , networkInfo = Nothing
+        , solids                     = empty
         }
+    , worldInfo   = WorldInfo
+        { jump         = False
+        , walkLeft     = False
+        , walkRight    = False
+        , duck         = False
+        , shoot        = Nothing
+        , exitGame     = False
+        , readyUp      = False
+        , countdown    = Nothing
+        , gameTick     = 0
+        , gameRunning  = False
+        , player       = Nothing
+        , otherPlayers = empty
+        , projectiles  = empty
+        }
+    , networkInfo = Nothing
+    }
 
 setTerrain :: BlockMap -> CoreState.Terrain -> World -> World
 setTerrain blockMap terrain World {..} = World
@@ -175,4 +172,3 @@ mantaUpdateOperation ba@BackgroundAnimation {..} = ba
         RightDir -> x + 0.5
         LeftDir  -> x - 0.5
     newY = 10 * sin (x / 15)
-
