@@ -51,7 +51,7 @@ blockBelow (Location (x, y)) =
 movePlayer :: Member (Reader GameMap) e => InGamePlayer -> Eff e InGamePlayer
 movePlayer player@InGamePlayer {..} = do
     terrain <- asks gameTerrain
-    let playerCornerPoints = cornerPointsOfPlayer player
+    let playerCornerPoints = collisionPointsOfPlayer player
     let newStates = map
             (\p -> (p, moveWithCollision terrain p playerVelocity))
             playerCornerPoints
