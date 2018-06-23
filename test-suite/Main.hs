@@ -5,8 +5,9 @@ module Main where
 import           ClassyPrelude
 import qualified Test.Tasty
 import           Test.Tasty.Hspec
-import           WaterWars.Core.PhysicsTest
+import           WaterWars.Core.CollisionTest
 import           WaterWars.Core.GeometryTest
+import           WaterWars.Core.GameUtilsTest
 
 main :: IO ()
 main = do
@@ -19,3 +20,6 @@ spec = parallel $ do
         True `shouldBe` True
     physicsTests
     geometryTests
+    gameUtilsTest
+
+-- TODO: fuzz tests on games / physics

@@ -1,4 +1,4 @@
-module WaterWars.Core.PhysicsTest where
+module WaterWars.Core.CollisionTest where
 
 import           Test.Hspec
 import           ClassyPrelude

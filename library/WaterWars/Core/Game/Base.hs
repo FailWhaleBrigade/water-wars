@@ -33,6 +33,4 @@ newtype Angle = Angle Float
 newtype Speed = Speed Float
     deriving (Show, Read, Num, Eq, Floating, Fractional)
 
-
-
-
+type MovementState = (Location, VelocityVector)

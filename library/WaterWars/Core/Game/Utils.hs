@@ -55,6 +55,13 @@ modifyPlayerVelocity
     :: (VelocityVector -> VelocityVector) -> InGamePlayer -> InGamePlayer
 modifyPlayerVelocity f p = setPlayerVelocity (f $ playerVelocity p) p
 
+setPlayerMovementState :: MovementState -> InGamePlayer -> InGamePlayer
+setPlayerMovementState (location, velocity) p =
+    p {playerLocation = location, playerVelocity = velocity}
+
+playerMovementState :: InGamePlayer -> MovementState
+playerMovementState InGamePlayer{..} = (playerLocation, playerVelocity)
+
 getApproximateBlock :: Location -> BlockLocation
 getApproximateBlock (Location (x, y)) = BlockLocation (round x, round y)
 
@@ -192,3 +199,16 @@ newInGamePlayer player location = InGamePlayer
 
 incrementGameTick :: GameState -> GameState
 incrementGameTick s@GameState { gameTicks } = s { gameTicks = gameTicks + 1 }
+
+-- TODO: test
+minimumVector :: [VelocityVector] -> VelocityVector
+minimumVector vs = fromMaybe (VelocityVector 0 0) $ do
+    minX <- minimumByMay (compare `on` abs) . map velocityX $ vs
+    minY <- minimumByMay (compare `on` abs) . map velocityY $ vs
+    return $ VelocityVector minX minY
+    -- TODO: what should happen if positive and negative vectors are given?
+
+-- TODO: test
+diffLocation :: Location -> Location -> VelocityVector
+diffLocation (Location (x1, y1)) (Location (x2, y2)) =
+    VelocityVector (x2 - x1) (y2 - y1)

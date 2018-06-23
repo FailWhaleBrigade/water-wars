@@ -9,7 +9,7 @@ import           System.IO.Unsafe                         ( unsafePerformIO )
 
 -- TODO: some assertion that player cannot be inside a block
 moveWithCollision
-    :: Terrain -> Location -> VelocityVector -> (Location, VelocityVector)
+    :: Terrain -> Location -> VelocityVector -> MovementState
 moveWithCollision terrain startLocation velocity =
     collisionMiddleware . fromMaybe noCollisionMovement $ do
         block <- collidingBlock terrain line
@@ -18,7 +18,7 @@ moveWithCollision terrain startLocation velocity =
     noCollisionMovement = (moveLocation velocity startLocation, velocity)
     line                = Line startLocation velocity
     collisionMiddleware
-        :: (Location, VelocityVector) -> (Location, VelocityVector)
+        :: MovementState -> MovementState
     collisionMiddleware = id
     -- collisionMiddleware collisionResult = unsafePerformIO $ do
         -- -- putStrLn $ tshow (line, collisionResult)
@@ -54,14 +54,14 @@ moveWithCollision terrain startLocation velocity =
         --     ++ collisionIndicator ++ solidBlockIndicator
         -- return collisionResult
 
-collideWithBlock :: Line -> BlockLocation -> Maybe (Location, VelocityVector)
+collideWithBlock :: Line -> BlockLocation -> Maybe MovementState
 collideWithBlock line block =
     headMay . mapMaybe (collideWithBlockBorder line) $ getPossibleCollisionLines
         line
         block
 
 
-collideWithBlockBorder :: Line -> Line -> Maybe (Location, VelocityVector)
+collideWithBlockBorder :: Line -> Line -> Maybe MovementState
 collideWithBlockBorder line borderLine@Line { lineVector = borderVector } = do
     i <- intersectionOfSegments line borderLine
     let collisionVelocity = lineVector line `truncateOnBorderLine` borderVector

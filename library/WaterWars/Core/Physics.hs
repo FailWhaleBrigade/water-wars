@@ -58,13 +58,22 @@ isPlayerOnGround InGamePlayer {..} = do
 
 movePlayer :: Member (Reader GameMap) e => InGamePlayer -> Eff e InGamePlayer
 movePlayer player@InGamePlayer {..} = do
-    blocks <- asks gameTerrain
+    terrain <- asks gameTerrain
     let playerCornerPoints = cornerPointsOfPlayer player
-    let (newLocation, newVelocity) = moveWithCollision
-            blocks
-            -- (playerCornerPoints `indexEx` 0)
-            playerLocation
-            playerVelocity
-    return player { playerLocation = newLocation
-                  , playerVelocity = newVelocity
-                  }
+    let newStates = map (\p -> moveWithCollision terrain p playerVelocity)
+                        playerCornerPoints
+    let newState = leastOfStates playerLocation newStates
+    return $ setPlayerMovementState newState player
+
+-- TODO: test
+leastMoveLocation :: Location -> [Location] -> Location
+leastMoveLocation startLocation =
+    (`moveLocation` startLocation) . minimumVector . map
+        (diffLocation startLocation)
+
+-- TODO: test
+leastOfStates :: Location -> [MovementState] -> MovementState
+leastOfStates startLocation successorStates =
+    (leastMoveLocation startLocation locations, minimumVector velocities)
+    where
+        (locations, velocities) = unzip successorStates
