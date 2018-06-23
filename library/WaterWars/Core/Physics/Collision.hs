@@ -19,39 +19,40 @@ moveWithCollision terrain startLocation velocity =
     line                = Line startLocation velocity
     collisionMiddleware
         :: (Location, VelocityVector) -> (Location, VelocityVector)
-    collisionMiddleware collisionResult = unsafePerformIO $ do
-        -- putStrLn $ tshow (line, collisionResult)
-        let Location (x, y)            = startLocation
-        let VelocityVector vx vy       = velocity
-        let (endLocation, endVelocity) = collisionResult
-        let Location (x', y')          = endLocation
-        let VelocityVector vx' vy'     = endVelocity
-        let collisionIndicator =
-                if collisionResult == noCollisionMovement then "N" else "C"
+    collisionMiddleware = id
+    -- collisionMiddleware collisionResult = unsafePerformIO $ do
+        -- -- putStrLn $ tshow (line, collisionResult)
+        -- let Location (x, y)            = startLocation
+        -- let VelocityVector vx vy       = velocity
+        -- let (endLocation, endVelocity) = collisionResult
+        -- let Location (x', y')          = endLocation
+        -- let VelocityVector vx' vy'     = endVelocity
+        -- let collisionIndicator =
+        --         if collisionResult == noCollisionMovement then "N" else "C"
+        --
+        -- let approximateBlock = getApproximateBlock endLocation
+        -- let insideSolidBlock = endLocation `isInsideBlock` approximateBlock && terrain `isSolidAt` approximateBlock
+        -- let solidBlockIndicator = if insideSolidBlock then "!" else ""
 
-        let approximateBlock = getApproximateBlock endLocation
-        let insideSolidBlock = endLocation `isInsideBlock` approximateBlock && terrain `isSolidAt` approximateBlock
-        let solidBlockIndicator = if insideSolidBlock then "!" else ""
-
-        putStrLn
-            $  tshow x
-            ++ ";"
-            ++ tshow y
-            ++ ";"
-            ++ tshow vx
-            ++ ";"
-            ++ tshow vy
-            ++ ";"
-            ++ tshow x'
-            ++ ";"
-            ++ tshow y'
-            ++ ";"
-            ++ tshow vx'
-            ++ ";"
-            ++ tshow vy'
-            ++ ";"
-            ++ collisionIndicator ++ solidBlockIndicator
-        return collisionResult
+        -- putStrLn
+        --     $  tshow x
+        --     ++ ";"
+        --     ++ tshow y
+        --     ++ ";"
+        --     ++ tshow vx
+        --     ++ ";"
+        --     ++ tshow vy
+        --     ++ ";"
+        --     ++ tshow x'
+        --     ++ ";"
+        --     ++ tshow y'
+        --     ++ ";"
+        --     ++ tshow vx'
+        --     ++ ";"
+        --     ++ tshow vy'
+        --     ++ ";"
+        --     ++ collisionIndicator ++ solidBlockIndicator
+        -- return collisionResult
 
 collideWithBlock :: Line -> BlockLocation -> Maybe (Location, VelocityVector)
 collideWithBlock line block =
