@@ -24,14 +24,6 @@ runVector False RunRight = VelocityVector runAccelerationAir 0
 gravityVector :: VelocityVector
 gravityVector = VelocityVector 0 (-gravityForce)
 
-blockLocationBelowFeet :: InGamePlayer -> BlockLocation
-blockLocationBelowFeet InGamePlayer { playerLocation } =
-    let Location (x, y) = playerLocation
-    in  BlockLocation
-            ( round x
-            , round $ y - 0.001 {- TODO: this should be a constant-}
-            )
-
 gravityPlayer :: Bool -> InGamePlayer -> InGamePlayer
 gravityPlayer True  = id
 gravityPlayer False = acceleratePlayer gravityVector
@@ -47,33 +39,34 @@ verticalDragPlayer onGround player@InGamePlayer {..} =
 
 
 isPlayerOnGround :: Member (Reader GameMap) e => InGamePlayer -> Eff e Bool
-isPlayerOnGround InGamePlayer {..} = do
-    blocks <- asks gameTerrain
-    let Location (x, y) = playerLocation
-    let blockBelowFeet = BlockLocation
-            ( round x
-            , round $ y - 0.001 {- TODO: this should be a constant-}
-            )
-    return $ isSolidAt blocks blockBelowFeet
+isPlayerOnGround player = do
+    terrain <- asks gameTerrain
+    let blocksBelowFeet = map blockBelow $ bottomPointsOfPlayer player
+    return $ any (terrain `isSolidAt`) blocksBelowFeet
+
+blockBelow :: Location -> BlockLocation
+blockBelow (Location (x, y)) =
+    BlockLocation (round x, round $ y - blockBelowTolerance)
 
 movePlayer :: Member (Reader GameMap) e => InGamePlayer -> Eff e InGamePlayer
 movePlayer player@InGamePlayer {..} = do
     terrain <- asks gameTerrain
     let playerCornerPoints = cornerPointsOfPlayer player
-    let newStates = map (\p -> moveWithCollision terrain p playerVelocity)
-                        playerCornerPoints
+    let newStates = map
+            (\p -> (p, moveWithCollision terrain p playerVelocity))
+            playerCornerPoints
     let newState = leastOfStates playerLocation newStates
     return $ setPlayerMovementState newState player
 
 -- TODO: test
-leastMoveLocation :: Location -> [Location] -> Location
+leastMoveLocation :: Location -> [(Location, Location)] -> Location
 leastMoveLocation startLocation =
-    (`moveLocation` startLocation) . minimumVector . map
-        (diffLocation startLocation)
+    (`moveLocation` startLocation) . minimumVector . map (uncurry diffLocation)
 
 -- TODO: test
-leastOfStates :: Location -> [MovementState] -> MovementState
+leastOfStates :: Location -> [(Location, MovementState)] -> MovementState
 leastOfStates startLocation successorStates =
     (leastMoveLocation startLocation locations, minimumVector velocities)
-    where
-        (locations, velocities) = unzip successorStates
+  where
+    (locations, velocities) =
+        unzip $ map (\(l, (l', v)) -> ((l, l'), v)) successorStates

@@ -30,6 +30,16 @@ cornerPointsOfPlayer InGamePlayer {..} =
         , Location (leftBorder, topBorder)
         ]
 
+bottomPointsOfPlayer :: InGamePlayer -> [Location]
+bottomPointsOfPlayer InGamePlayer {..} =
+    let Location (x, y) = playerLocation
+        leftBorder      = x - playerWidth / 2
+        rightBorder     = x + playerWidth / 2
+    in  [ Location (leftBorder, y)
+        , playerLocation
+        , Location (rightBorder, y)
+        ]
+
 -- TODO: test distance.
 
 velocityOnCollisionY :: VelocityVector -> VelocityVector

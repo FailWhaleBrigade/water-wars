@@ -29,3 +29,6 @@ maxVelocity = (0.25, 0.5)
 
 projectileSpeed :: Speed
 projectileSpeed = 0.5
+
+blockBelowTolerance :: Float
+blockBelowTolerance = 0.001
