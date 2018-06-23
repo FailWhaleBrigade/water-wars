@@ -21,5 +21,4 @@ class Deserializable c where
 
 class NetworkConnections c where
     type WriteType c :: *
-    type ReadType c :: *
     broadcast :: MonadIO m => c -> WriteType c -> m ()

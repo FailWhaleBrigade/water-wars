@@ -12,10 +12,8 @@ import Options.Applicative
 
 import WaterWars.Client.OptParse
 
-import WaterWars.Client.Resources.Resources (setup)
-
 import WaterWars.Client.Render.Update (handleKeysIO, updateIO)
-import WaterWars.Client.Render.State (initializeState)
+import WaterWars.Client.Render.State
 import WaterWars.Client.Render.Display (renderIO)
 
 import WaterWars.Client.Network.Connection (NetworkConfig(..), connectionThread)

@@ -59,7 +59,8 @@ data ServerMessage
     | LoginResponseMessage LoginResponse
     | GameMapMessage CoreState.GameMap
     | GameStateMessage CoreState.GameState
-    | GameStartMessage GameStart
+    | GameWillStartMessage GameStart
+    | GameStartMessage
     deriving (Show, Eq, Read)
 
 instance Serializable ServerMessage where

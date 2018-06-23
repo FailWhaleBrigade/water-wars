@@ -20,7 +20,7 @@ import           Data.List                                ( cycle )
 import           WaterWars.Client.Render.Terrain.Solid
 import           WaterWars.Client.Render.Config
 import           WaterWars.Client.Resources.Block
-import           WaterWars.Client.Resources.Resources (Resources(..))
+import           WaterWars.Client.Resources.Resources
 
 import qualified WaterWars.Client.Network.State
                                                as NetworkState

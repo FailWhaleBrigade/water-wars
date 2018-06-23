@@ -146,7 +146,7 @@ updateWorld serverMsg world@World {..} = case serverMsg of
             worldInfo_     = WorldInfo {player = newPlayer, ..}
         in  World {worldInfo = worldInfo_, ..}
 
-    GameStartMessage (GameStart n) -> world
+    GameWillStartMessage (GameStart n) -> world
 
 
 extractGameAction :: TVar World -> STM Protocol.PlayerAction

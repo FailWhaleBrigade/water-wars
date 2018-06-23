@@ -22,6 +22,7 @@ import WaterWars.Server.ConnectionMgnt
 import WaterWars.Server.GameLoop
 import WaterWars.Server.Client
 import WaterWars.Server.EventLoop
+import WaterWars.Server.State
 import WaterWars.Server.OptParse
 
 defaultGameSetup :: GameSetup
@@ -115,14 +116,9 @@ gameLoopServer gameLoopStateTvar sessionMapTvar broadcastChan = do
     playerActionTvar  <- newTVarIO (PlayerActions (mapFromList empty))
     playerInGameTvar  <- newTVarIO $ mapFromList []
     readyPlayersTvar  <- newTVarIO mempty
-
+    let sharedState = SharedState readBroadcastChan gameLoopStateTvar playerActionTvar sessionMapTvar playerInGameTvar readyPlayersTvar
     _                 <- async
-        (eventLoop readBroadcastChan
-                   gameLoopStateTvar
-                   playerActionTvar
-                   sessionMapTvar
-                   playerInGameTvar
-                   readyPlayersTvar
+        (eventLoop sharedState
         )
     $logInfo "Start game loop"
     runGameLoop gameLoopStateTvar broadcastChan playerActionTvar

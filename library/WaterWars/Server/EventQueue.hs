@@ -22,15 +22,12 @@ newtype PlayerActions = PlayerActions
 
 
 modifyGameState
-    :: (GameState -> a -> GameState)
-    -> GameLoopState
-    -> a
-    -> GameLoopState
+    :: (GameState -> a -> GameState) -> GameLoopState -> a -> GameLoopState
 modifyGameState f GameLoopState {..} a =
     GameLoopState {gameState = f gameState a, ..}
 
 startGame :: GameLoopState -> GameLoopState
-startGame GameLoopState {..} = GameLoopState { gameRunning = True,..}
+startGame GameLoopState {..} = GameLoopState {gameRunning = True, ..}
 
 stopGame :: GameLoopState -> GameLoopState
-stopGame GameLoopState {..} = GameLoopState { gameRunning = False,..}
+stopGame GameLoopState {..} = GameLoopState {gameRunning = False, ..}
