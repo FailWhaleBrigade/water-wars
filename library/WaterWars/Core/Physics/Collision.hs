@@ -3,116 +3,130 @@ module WaterWars.Core.Physics.Collision where
 import           ClassyPrelude
 import           WaterWars.Core.Game
 import           WaterWars.Core.Physics.Utils
-import           Data.Either.Combinators                  ( fromLeft )
-import           Control.Monad.Extra                      ( whenJust )
+import           WaterWars.Core.Physics.Geometry
+import           Data.List                                ( nub )
+import           System.IO.Unsafe                         ( unsafePerformIO )
 
+-- TODO: some assertion that player cannot be inside a block
 moveWithCollision
     :: Terrain -> Location -> VelocityVector -> (Location, VelocityVector)
 moveWithCollision terrain startLocation velocity =
-    if isSolidAt terrain (getBlock newLocation)
-        then error $ "player enters block " ++ show
-            (startLocation, velocity, newLocation, getBlock newLocation)
-        else (newLocation, newVelocity)
+    collisionMiddleware . fromMaybe noCollisionMovement $ do
+        block <- collidingBlock terrain line
+        collideWithBlock line block
   where
-    (newLocation, newVelocity) =
-        case collidingBlock terrain startLocation velocity of
-            Nothing -> (moveLocation velocity startLocation, velocity)
-            Just b  -> collideWithBlock startLocation velocity b
--- TODO: ensure that resulting location is not inside a block
+    noCollisionMovement = (moveLocation velocity startLocation, velocity)
+    line                = Line startLocation velocity
+    collisionMiddleware
+        :: (Location, VelocityVector) -> (Location, VelocityVector)
+    collisionMiddleware collisionResult = unsafePerformIO $ do
+        -- putStrLn $ tshow (line, collisionResult)
+        let Location (x, y)            = startLocation
+        let VelocityVector vx vy       = velocity
+        let (endLocation, endVelocity) = collisionResult
+        let Location (x', y')          = endLocation
+        let VelocityVector vx' vy'     = endVelocity
+        let collisionIndicator =
+                if collisionResult == noCollisionMovement then "N" else "C"
 
-collidingBlock :: Terrain -> Location -> VelocityVector -> Maybe BlockLocation
-collidingBlock _ _ (VelocityVector 0 0) = Nothing
-collidingBlock terrain startLocation velocity =
-    case (middleBlockSolid, endBlockSolid) of
-        (True, _   ) -> middleBlock -- garatueed to be Just
-        (_   , True) -> Just endBlock
-        _            -> Nothing
+        let approximateBlock = getApproximateBlock endLocation
+        let insideSolidBlock = endLocation `isInsideBlock` approximateBlock && terrain `isSolidAt` approximateBlock
+        let solidBlockIndicator = if insideSolidBlock then "!" else ""
+
+        putStrLn
+            $  tshow x
+            ++ ";"
+            ++ tshow y
+            ++ ";"
+            ++ tshow vx
+            ++ ";"
+            ++ tshow vy
+            ++ ";"
+            ++ tshow x'
+            ++ ";"
+            ++ tshow y'
+            ++ ";"
+            ++ tshow vx'
+            ++ ";"
+            ++ tshow vy'
+            ++ ";"
+            ++ collisionIndicator ++ solidBlockIndicator
+        return collisionResult
+
+collideWithBlock :: Line -> BlockLocation -> Maybe (Location, VelocityVector)
+collideWithBlock line block =
+    headMay . mapMaybe (collideWithBlockBorder line) $ getPossibleCollisionLines
+        line
+        block
+
+
+collideWithBlockBorder :: Line -> Line -> Maybe (Location, VelocityVector)
+collideWithBlockBorder line borderLine@Line { lineVector = borderVector } = do
+    i <- intersectionOfSegments line borderLine
+    let collisionVelocity = lineVector line `truncateOnBorderLine` borderVector
+    return (intersectionLocation i, collisionVelocity)
+
+
+-- | get a list of candidate-blocks that the line may traverse
+--
+-- This collects a list of blocks that go in the general direction
+getTraversedBlocksCandidates :: Line -> [BlockLocation]
+getTraversedBlocksCandidates Line {..} = nub
+    [ approximateBlock
+    , BlockLocation (bx + xDirection, by)
+    , BlockLocation (bx, by + yDirection)
+    , BlockLocation (bx + xDirection, by + yDirection)
+    ]
   where
-    startBlock    = getBlock startLocation
-    endLocation   = moveLocation velocity startLocation
-    endBlock      = getBlock endLocation
-    endBlockSolid = isSolidAt terrain endBlock
-    middleBlock   = if isBlockDiagonal startBlock endBlock
-        then
-            minimumByMay (compare `on` distanceFromLine' startLocation velocity)
-            $ tupleToList
-            $ getNextToDiagonal startBlock endBlock
-        else Nothing
-    middleBlockSolid = case middleBlock of
-        Just b  -> isSolidAt terrain b
-        Nothing -> False
-    tupleToList (a, b) = [a, b] -- TODO: refactor
+    approximateBlock@(BlockLocation (bx, by)) =
+        getApproximateBlock lineStartLocation
+    VelocityVector vx vy = lineVector
+    xDirection           = round $ signum vx
+    yDirection           = round $ signum vy
 
-collideWithBlock
-    :: Location -> VelocityVector -> BlockLocation -> (Location, VelocityVector)
-collideWithBlock startLocation@(Location (x, y)) velocity collideBlock =
-    fromLeft
-            -- (startLocation, velocity) -- TODO: moveLocation instead?
-            (error $ "contradiction if player collides with block " ++ show
-                ( startLocation
-                , velocity
-                , moveLocation velocity startLocation
-                , collideBlock
-                )
-            )
-        $ do
-              let leftX  = blockLeftX collideBlock
-              let rightX = blockRightX collideBlock
-              let botY   = blockBotY collideBlock
-              let topY   = blockTopY collideBlock
-              when (x <= leftX)
-                  . whenJust
-                        (cutBlockBorderX startLocation
-                                         velocity
-                                         collideBlock
-                                         leftX
-                        )
-                  $ \loc -> Left (loc, velocityOnCollisionX velocity)
-              when (x >= rightX)
-                  . whenJust
-                        (cutBlockBorderX startLocation
-                                         velocity
-                                         collideBlock
-                                         rightX
-                        )
-                  $ \loc -> Left (loc, velocityOnCollisionX velocity)
-              when (y <= botY)
-                  . whenJust
-                        (cutBlockBorderY startLocation
-                                         velocity
-                                         collideBlock
-                                         (botY - 0.002)
-                        )
-                  $ \loc -> Left (loc, velocityOnCollisionY velocity)
-              when (y >= topY - 0.001) -- TODO: constant for block-hover
-                  . whenJust
-                        (cutBlockBorderY startLocation
-                                         velocity
-                                         collideBlock
-                                         topY
-                        )
-                  $ \loc -> Left (loc, velocityOnCollisionY velocity)
+-- | get the blocks that are actually traversed by the line - in the order of
+-- traversal
+getTraversedBlocks :: Line -> [BlockLocation]
+getTraversedBlocks line =
+    sortBy (compareTraversedBlocks line)
+        . filter (line `traversesBlock`)
+        $ getTraversedBlocksCandidates line
 
-cutBlockBorderX
-    :: Location -> VelocityVector -> BlockLocation -> Float -> Maybe Location
-cutBlockBorderX (Location (x, y)) (VelocityVector vx vy) block bx = do
-    unless (t <= 1)                 Nothing
-    unless (inBlockRangeY block by) Nothing
-    Just $ Location (bx - corr, by)
-  where -- solve (x y) + t (vx vy) = (bx by)
-    t    = (bx - x) / vx
-    by   = y + t * vy
-    corr = 0.01 * signum vx -- correction term to avoid sticking to walls
-
-cutBlockBorderY
-    :: Location -> VelocityVector -> BlockLocation -> Float -> Maybe Location
-cutBlockBorderY (Location (x, y)) (VelocityVector vx vy) block by = do
-    unless (t <= 1)                 Nothing
-    unless (inBlockRangeX block bx) Nothing
-    Just $ Location (bx, by)
+-- | compare blocks by ordering in which they are traversed by the line
+compareTraversedBlocks :: Line -> BlockLocation -> BlockLocation -> Ordering
+compareTraversedBlocks Line { lineStartLocation = Location (x, y) } =
+    compare `on` absDistance
   where
-    t  = (by - y) / vy
-    bx = x + t * vx
+    absDistance (BlockLocation (bx, by)) =
+        abs (fromIntegral bx - x) + abs (fromIntegral by - y)
 
-isBlockDiagonal :: BlockLocation -> BlockLocation -> Bool
-isBlockDiagonal b1 b2 = manhattanDistance b1 b2 == 2
+-- TODO: test more??
+collidingBlock :: Terrain -> Line -> Maybe BlockLocation
+collidingBlock terrain =
+    headMay . filter (isSolidAt terrain) . getTraversedBlocks
+
+
+-- get a list of possible block-borders a line can pass through
+getPossibleCollisionLines :: Line -> BlockLocation -> [Line]
+getPossibleCollisionLines line block = catMaybes
+    [topLine, botLine, leftLine, rightLine]
+  where
+    Location (x, y) = lineStartLocation line
+    leftX           = blockLeftX block
+    rightX          = blockRightX block
+    botY            = blockBotY block
+    topY            = blockTopY block
+    topLine         = if y >= topY then Just $ blockTopLine block else Nothing
+    botLine         = if y <= botY then Just $ blockBotLine block else Nothing
+    leftLine        = if x <= leftX then Just $ blockLeftLine block else Nothing
+    rightLine = if x >= rightX then Just $ blockRightLine block else Nothing
+
+
+-- truncate the velocity vector if it hit the border of a block
+truncateOnBorderLine :: VelocityVector -> VelocityVector -> VelocityVector
+truncateOnBorderLine velocityVector borderVector = VelocityVector
+    (if by /= 0 then 0 else vx)
+    (if bx /= 0 then 0 else vy)
+  where
+    VelocityVector vx vy = velocityVector
+    VelocityVector bx by = borderVector

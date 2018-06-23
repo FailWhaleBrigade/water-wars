@@ -1,187 +1,207 @@
-{-# LANGUAGE TupleSections #-}
-
 module WaterWars.Core.PhysicsTest where
 
 import           Test.Hspec
 import           ClassyPrelude
 import           WaterWars.Core.Physics.Collision
 import           WaterWars.Core.Game
-import           WaterWars.Core.Terrains
-import           Data.Array.IArray
+import           WaterWars.Core.TerrainsUtils
+import           WaterWars.Core.Physics.Geometry
 
 
 physicsTests :: Spec
 physicsTests = parallel $ describe "collision tests" collisionTests
 
-smallBounds :: (BlockLocation, BlockLocation)
-smallBounds = (BlockLocation (-1, -1), BlockLocation (1, 1))
-
-terrainEmpty :: Terrain
-terrainEmpty = Terrain $ listArray smallBounds $ replicate 9 NoBlock
-
-terrainWithBlockAt :: BlockLocation -> Terrain
-terrainWithBlockAt location = Terrain $ accumArray
-    (flip const)
-    NoBlock
-    smallBounds
-    [(location, SolidBlock Middle)]
-
-terrainWithBlocksAt :: [BlockLocation] -> Terrain
-terrainWithBlocksAt locations =
-    Terrain $ accumArray (flip const) NoBlock smallBounds $ map
-        (, SolidBlock Middle)
-        locations
-
 collisionTests :: Spec
 collisionTests = do
-    collisionBlockFind
-    collisionTargetLocation
-
-collisionBlockFind :: Spec
-collisionBlockFind = describe "find collision block" $ do
-    it "should be no colliding block"
-        $ collidingBlock terrainEmpty (Location (0, 0)) (VelocityVector 0 0)
-        `shouldBe` Nothing
-    it "should collide with to block"
-        $          collidingBlock (terrainWithBlockAt $ BlockLocation (0, 1))
-                                  (Location (0, 0.3))
-                                  (VelocityVector 0 0.5)
-        `shouldBe` Just (BlockLocation (0, 1))
-    it "should collide with bottom block"
-        $          collidingBlock (terrainWithBlockAt $ BlockLocation (0, -1))
-                                  (Location (0, -0.3))
-                                  (VelocityVector 0 (-0.5))
-        `shouldBe` Just (BlockLocation (0, -1))
-    it "should collide with right block"
-        $          collidingBlock (terrainWithBlockAt $ BlockLocation (1, 0))
-                                  (Location (0.3, 0))
-                                  (VelocityVector 0.5 0)
-        `shouldBe` Just (BlockLocation (1, 0))
-    it "should collide with left block"
-        $          collidingBlock (terrainWithBlockAt $ BlockLocation (-1, 0))
-                                  (Location (-0.3, 0))
-                                  (VelocityVector (-0.5) 0)
-        `shouldBe` Just (BlockLocation (-1, 0))
-    it "should collide with top right corner"
-        $          collidingBlock (terrainWithBlockAt $ BlockLocation (1, 1))
-                                  (Location (0.3, 0.3))
-                                  (VelocityVector 0.5 0.5)
-        `shouldBe` Just (BlockLocation (1, 1))
-    it "should collide with top left corner"
-        $          collidingBlock (terrainWithBlockAt $ BlockLocation (-1, 1))
-                                  (Location (-0.3, 0.3))
-                                  (VelocityVector (-0.5) 0.5)
-        `shouldBe` Just (BlockLocation (-1, 1))
-    it "should collide with bottom right corner"
-        $          collidingBlock (terrainWithBlockAt $ BlockLocation (1, -1))
-                                  (Location (0.3, -0.3))
-                                  (VelocityVector 0.5 (-0.5))
-        `shouldBe` Just (BlockLocation (1, -1))
-    it "should collide with bottom left corner"
-        $          collidingBlock (terrainWithBlockAt $ BlockLocation (-1, -1))
-                                  (Location (-0.3, -0.3))
-                                  (VelocityVector (-0.5) (-0.5))
-        `shouldBe` Just (BlockLocation (-1, -1))
-    it "should collide with top block when going top right"
-        $          collidingBlock
-                       (terrainWithBlocksAt [BlockLocation (0, 1), BlockLocation (1, 1)])
-                       (Location (0.2, 0.4))
-                       (VelocityVector 0.5 0.5)
-        `shouldBe` Just (BlockLocation (0, 1))
-    mapM_ testForObservedGhostCollide observedGhostCollide
-    mapM_ testForObservedEnteredBlock observedEnteredBlocks
-
-testForObservedGhostCollide
-    :: (Terrain, Location, VelocityVector, Location, BlockLocation) -> Spec
-testForObservedGhostCollide (t, l, v, l1, b) =
-    it ("should not not collide : " ++ show (l, v, b, l1))
-        $          collidingBlock t l v
-        `shouldBe` Nothing
-
-testForObservedEnteredBlock
-    :: (Terrain, Location, VelocityVector, Location, BlockLocation) -> Spec
-testForObservedEnteredBlock (t, l, v, l1, b) =
-    it ("should not not enter block : " ++ show (l, v, l1, b))
-        $          collidingBlock t l v
-        `shouldBe` Just b
-
-observedGhostCollide :: [(Terrain, Location, VelocityVector, Location, BlockLocation)]
-observedGhostCollide = []
-
-observedEnteredBlocks
-    :: [(Terrain, Location, VelocityVector, Location, BlockLocation)]
-observedEnteredBlocks =
-    [ ( terrain2
-      , Location (-7, 1.4990239)
-      , VelocityVector 0 (-0.18999991)
-      , moveLocation (VelocityVector 0 (-0.18999991)) $ Location (-7, 1.4990239)
-      , BlockLocation (-7, 1)
-      )
-    ]
-
-
+    describe "check for traversal candidates" traversedBlocksCandidatesTest
+    describe "check for traversed blocks"     traversedBlocksTest
+    describe
+        "check that correct block-borders are selected for intersection"
+        possibleCollisionLinesTest
+    describe "check for colliding blocks" collidingBlockTest
+    describe "check that the velocityvector get truncated correctly"
+             truncateVelocityTest
+    describe "check for status after a collision" collideWithBlockTest
 
 -- TODO: detailled tests for middle-blocks
 
-collisionTargetLocation :: Spec
-collisionTargetLocation = describe "find location after collision with" $ do
-    it "should collide with top block"
-        $          collideWithBlock (Location (0, 0.3))
-                                    (VelocityVector 0 0.5)
-                                    (BlockLocation (0, 1))
-        `shouldBe` (Location (0, 0.498), VelocityVector 0 0)
-    it "should collide with bottom block"
-        $          collideWithBlock (Location (0, -0.3))
-                                    (VelocityVector 0 (-0.5))
-                                    (BlockLocation (0, -1))
-        `shouldBe` (Location (0, -0.5), VelocityVector 0 0)
+traversedBlocksCandidatesTest :: Spec
+traversedBlocksCandidatesTest = do
+    it "no velocity results in only one traversal candidate"
+        $          getTraversedBlocksCandidates
+                       (Line (Location (0, 0)) (VelocityVector 0 0))
+        `shouldBe` [BlockLocation (0, 0)]
+    it "velocity to right results in two traversal candidate"
+        $          getTraversedBlocksCandidates
+                       (Line (Location (0, 0)) (VelocityVector 0 1))
+        `shouldBe` [BlockLocation (0, 0), BlockLocation (0, 1)]
+    it "velocity to bottom left results in four traversal candidate"
+        $          getTraversedBlocksCandidates
+                       (Line (Location (0, 0)) (VelocityVector (-1) (-1)))
+        `shouldBe` [ BlockLocation (0, 0)
+                   , BlockLocation (-1, 0)
+                   , BlockLocation (0, -1)
+                   , BlockLocation (-1, -1)
+                   ]
+    it "diagonal down on edge of block results in two traversals"
+        $          getTraversedBlocksCandidates
+                       (Line (Location (0.2, 0.5)) (VelocityVector 0.4 (-0.3)))
+        `shouldBe` [ BlockLocation (0, 0)
+                   , BlockLocation (1, 0)
+                   , BlockLocation (0, -1)
+                   , BlockLocation (1, -1)
+                   ]
+
+traversedBlocksTest :: Spec
+traversedBlocksTest = do
+    it "no velocity results in only one traversed block"
+        $ getTraversedBlocks (Line (Location (0, 0)) (VelocityVector 0 0))
+        `shouldBe` [BlockLocation (0, 0)]
+    it "no velocity on edge results in only one traversed block"
+        $ getTraversedBlocks (Line (Location (0.5, 0.5)) (VelocityVector 0 0))
+        `shouldBe` []
+    it "should traverse center block if not leaving"
+        $ getTraversedBlocks (Line (Location (0, 0)) (VelocityVector 0.2 0.1))
+        `shouldBe` [BlockLocation (0, 0)]
+    it "should traverse only top block if moving out of center"
+        $ getTraversedBlocks (Line (Location (0, 0.3)) (VelocityVector 0 0.5))
+        `shouldBe` [BlockLocation (0, 1)]
+    it "should traverse only top block if starting from edge"
+        $ getTraversedBlocks (Line (Location (0, 0.5)) (VelocityVector 0.1 0.5))
+        `shouldBe` [BlockLocation (0, 1)]
+    it "should traverse bottom block"
+        $          getTraversedBlocks
+                       (Line (Location (0, -0.5)) (VelocityVector 0.1 (-0.5)))
+        `shouldBe` [BlockLocation (0, -1)]
+    it "should traverse right block"
+        $ getTraversedBlocks (Line (Location (0.5, 0)) (VelocityVector 0.5 0.2))
+        `shouldBe` [BlockLocation (1, 0)]
+    it "should traverse left block"
+        $          getTraversedBlocks
+                       (Line (Location (-0.5, 0)) (VelocityVector (-0.5) (-0.2)))
+        `shouldBe` [BlockLocation (-1, 0)]
+    it "diagonal down on edge of block results in two traversals"
+        $          getTraversedBlocks
+                       (Line (Location (0.2, 0.5)) (VelocityVector 0.4 (-0.3)))
+        `shouldBe` [BlockLocation (0, 0), BlockLocation (1, 0)]
+
+collidingBlockTest :: Spec
+collidingBlockTest = do
+    it "empty terrain gives no colliding block"
+        $          collidingBlock
+                       terrainEmpty
+                       (Line (Location (0.2, 0.2)) (VelocityVector 0.4 (-0.3)))
+        `shouldBe` Nothing
     it "should collide with right block"
-        $          collideWithBlock (Location (0.3, 0))
-                                    (VelocityVector 0.5 0)
-                                    (BlockLocation (1, 0))
-        `shouldBe` (Location (0.49, 0), VelocityVector 0 0)
+        $ collidingBlock (terrainWithBlockAt (1, 0))
+                         (Line (Location (0.2, 0.2)) (VelocityVector 0.4 0))
+        `shouldBe` Just (BlockLocation (1, 0))
+    it "should collide with right block when going through"
+        $          collidingBlock
+                       (terrainWithBlockAt (1, 0))
+                       (Line (Location (0.4, 0.2)) (VelocityVector 0.4 0.4))
+        `shouldBe` Just (BlockLocation (1, 0))
+    it "should collide with corner block"
+        $          collidingBlock
+                       (terrainWithBlockAt (1, 1))
+                       (Line (Location (0.4, 0.2)) (VelocityVector 0.4 0.4))
+        `shouldBe` Just (BlockLocation (1, 1))
+
+possibleCollisionLinesTest :: Spec
+possibleCollisionLinesTest = do
+    it "straight to right should give only left block-line"
+        $          getPossibleCollisionLines
+                       (Line (Location (0.2, 0.2)) (VelocityVector 0.4 (-0.3)))
+                       (BlockLocation (1, 0))
+        `shouldBe` [blockLeftLine $ BlockLocation (1, 0)]
+    it "straight to left should give only right block-line"
+        $          getPossibleCollisionLines
+                       (Line (Location (-1.4, 0.2)) (VelocityVector (-0.3) 0.1))
+                       (BlockLocation (-2, 0))
+        `shouldBe` [blockRightLine $ BlockLocation (-2, 0)]
+    it "diagonal to block should give 2 candidates"
+        $          getPossibleCollisionLines
+                       (Line (Location (-1.4, 0.8)) (VelocityVector (-0.3) (-0.4)))
+                       (BlockLocation (-2, 0))
+        `shouldBe` [ blockTopLine $ BlockLocation (-2, 0)
+                   , blockRightLine $ BlockLocation (-2, 0)
+                   ]
+
+truncateVelocityTest :: Spec
+truncateVelocityTest = do
+    let dummyBlock = BlockLocation (0, 0)
+    let topLine    = lineVector $ blockTopLine dummyBlock
+    let botLine    = lineVector $ blockBotLine dummyBlock
+    let leftLine   = lineVector $ blockLeftLine dummyBlock
+    it "should truncate y-velocity on top border line"
+        $          truncateOnBorderLine (VelocityVector 0.1 0.2) topLine
+        `shouldBe` VelocityVector 0.1 0
+    it "should truncate y-velocity on bottom border line"
+        $          truncateOnBorderLine (VelocityVector 0.1 0.2) botLine
+        `shouldBe` VelocityVector 0.1 0
+    it "should truncate x-velocity on left border line"
+        $          truncateOnBorderLine (VelocityVector 0.1 0.2) leftLine
+        `shouldBe` VelocityVector 0 0.2
+
+
+-- TODO: redo tests
+collideWithBlockTest :: Spec
+collideWithBlockTest = do
+    it "should stop at top-block border"
+        $ collideWithBlock (Line (Location (0, 0.3)) (VelocityVector 0 0.3))
+                           (BlockLocation (0, 1))
+        `shouldBe` Just (Location (0, 0.5), VelocityVector 0 0)
+    it "should collide with bottom block"
+        $          collideWithBlock
+                       (Line (Location (0, -0.3)) (VelocityVector 0 (-0.5)))
+                       (BlockLocation (0, -1))
+        `shouldBe` Just (Location (0, -0.5), VelocityVector 0 0)
+    it "should collide with right block"
+        $ collideWithBlock (Line (Location (0.3, 0)) (VelocityVector 0.5 0))
+                           (BlockLocation (1, 0))
+        `shouldBe` Just (Location (0.5, 0), VelocityVector 0 0)
     it "should collide with left block"
-        $          collideWithBlock (Location (-0.3, 0))
-                                    (VelocityVector (-0.5) 0)
-                                    (BlockLocation (-1, 0))
-        `shouldBe` (Location (-0.49, 0), VelocityVector 0 0)
+        $          collideWithBlock
+                       (Line (Location (-0.3, 0)) (VelocityVector (-0.5) 0))
+                       (BlockLocation (-1, 0))
+        `shouldBe` Just (Location (-0.5, 0), VelocityVector 0 0)
     it "should collide with top right corner up"
-        $          collideWithBlock (Location (0.3, 0.4))
-                                    (VelocityVector 0.5 0.5)
-                                    (BlockLocation (1, 1))
-        `shouldBe` (Location (0.49, 0.6), VelocityVector 0 0.5)
+        $          collideWithBlock
+                       (Line (Location (0.3, 0.4)) (VelocityVector 0.5 0.5))
+                       (BlockLocation (1, 1))
+        `shouldBe` Just (Location (0.5, 0.6), VelocityVector 0 0.5)
     it "should collide with top left corner up"
-        $          collideWithBlock (Location (-0.3, 0.4))
-                                    (VelocityVector (-0.5) 0.5)
-                                    (BlockLocation (-1, 1))
-        `shouldBe` (Location (-0.49, 0.6), VelocityVector 0 0.5)
+        $          collideWithBlock
+                       (Line (Location (-0.3, 0.4)) (VelocityVector (-0.5) 0.5))
+                       (BlockLocation (-1, 1))
+        `shouldBe` Just (Location (-0.5, 0.6), VelocityVector 0 0.5)
     it "should collide with top right corner down"
-        $          collideWithBlock (Location (0.4, 0.3))
-                                    (VelocityVector 0.5 0.5)
-                                    (BlockLocation (1, 1))
-        `shouldBe` (Location (0.598, 0.498), VelocityVector 0.5 0)
+        $          collideWithBlock
+                       (Line (Location (0.4, 0.3)) (VelocityVector 0.5 0.5))
+                       (BlockLocation (1, 1))
+        `shouldBe` Just (Location (0.6, 0.5), VelocityVector 0.5 0)
     it "should collide with top left corner down"
-        $          collideWithBlock (Location (-0.4, 0.3))
-                                    (VelocityVector (-0.5) 0.5)
-                                    (BlockLocation (-1, 1))
-        `shouldBe` (Location (-0.598, 0.498), VelocityVector (-0.5) 0)
+        $          collideWithBlock
+                       (Line (Location (-0.4, 0.3)) (VelocityVector (-0.5) 0.5))
+                       (BlockLocation (-1, 1))
+        `shouldBe` Just (Location (-0.6, 0.5), VelocityVector (-0.5) 0)
     it "should collide with bottom right corner down"
-        $          collideWithBlock (Location (0.3, -0.4))
-                                    (VelocityVector 0.5 (-0.5))
-                                    (BlockLocation (1, -1))
-        `shouldBe` (Location (0.49, -0.6), VelocityVector 0 (-0.5))
+        $          collideWithBlock
+                       (Line (Location (0.3, -0.4)) (VelocityVector 0.5 (-0.5)))
+                       (BlockLocation (1, -1))
+        `shouldBe` Just (Location (0.5, -0.6), VelocityVector 0 (-0.5))
     it "should collide with bottom left corner down"
-        $          collideWithBlock (Location (-0.3, -0.4))
-                                    (VelocityVector (-0.5) (-0.5))
-                                    (BlockLocation (-1, -1))
-        `shouldBe` (Location (-0.49, -0.6), VelocityVector 0 (-0.5))
+        $          collideWithBlock
+                       (Line (Location (-0.3, -0.4)) (VelocityVector (-0.5) (-0.5)))
+                       (BlockLocation (-1, -1))
+        `shouldBe` Just (Location (-0.5, -0.6), VelocityVector 0 (-0.5))
     it "should collide with bottom right corner up"
-        $          collideWithBlock (Location (0.4, -0.3))
-                                    (VelocityVector 0.5 (-0.5))
-                                    (BlockLocation (1, -1))
-        `shouldBe` (Location (0.6, -0.5), VelocityVector 0.5 0)
+        $          collideWithBlock
+                       (Line (Location (0.4, -0.3)) (VelocityVector 0.5 (-0.5)))
+                       (BlockLocation (1, -1))
+        `shouldBe` Just (Location (0.6, -0.5), VelocityVector 0.5 0)
     it "should collide with bottom left corner up"
-        $          collideWithBlock (Location (-0.4, -0.3))
-                                    (VelocityVector (-0.5) (-0.5))
-                                    (BlockLocation (-1, -1))
-        `shouldBe` (Location (-0.6, -0.5), VelocityVector (-0.5) 0)
+        $          collideWithBlock
+                       (Line (Location (-0.4, -0.3)) (VelocityVector (-0.5) (-0.5)))
+                       (BlockLocation (-1, -1))
+        `shouldBe` Just (Location (-0.6, -0.5), VelocityVector (-0.5) 0)

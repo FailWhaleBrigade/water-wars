@@ -11,7 +11,7 @@ import Data.UUID
 import Data.UUID.V4
 
 import Options.Applicative
-
+import Terrains
 import WaterWars.Core.DefaultGame
 import WaterWars.Core.Game
 import WaterWars.Core.Terrain.Read
@@ -51,6 +51,7 @@ runLoop :: (MonadIO m, MonadUnliftIO m) => Arguments -> m ()
 runLoop arguments = do
     -- read resources
     terrain           <- readTerrainFromFile "resources/game1.txt"
+    -- let terrain = terrain1
 
     -- Initialize server state
     broadcastChan     <- atomically newBroadcastTChan

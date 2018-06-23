@@ -47,7 +47,6 @@ gameTick = do
     checkProjectilePlayerCollision
     mapMOverPlayers movePlayer
     modify incrementGameTick
-    return ()
 
 -- | Function that includes the actions into a player-state
 modifyPlayerByAction
@@ -97,7 +96,7 @@ modifyPlayerShootCooldown player@InGamePlayer {..} =
 boundProjectile :: Member (Reader GameMap) e => Projectile -> Eff e Bool
 boundProjectile Projectile {..} = do
     terrain <- asks gameTerrain
-    let block            = getBlock projectileLocation
+    let block            = getApproximateBlock projectileLocation
     let mapBounds        = bounds . terrainBlocks $ terrain
     let inBounds         = inRange mapBounds block
     let entersSolidBlock = isSolidAt terrain block

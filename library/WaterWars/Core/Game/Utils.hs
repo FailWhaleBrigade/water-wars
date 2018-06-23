@@ -55,8 +55,9 @@ modifyPlayerVelocity
     :: (VelocityVector -> VelocityVector) -> InGamePlayer -> InGamePlayer
 modifyPlayerVelocity f p = setPlayerVelocity (f $ playerVelocity p) p
 
-getBlock :: Location -> BlockLocation
-getBlock (Location (x, y)) = BlockLocation (round x, round $ y + 0.001)
+getApproximateBlock :: Location -> BlockLocation
+getApproximateBlock (Location (x, y)) = BlockLocation (round x, round y)
+
 
 moveProjectile :: Projectile -> Projectile
 moveProjectile projectile@Projectile {..} = projectile
@@ -107,7 +108,11 @@ get4NeighborBlocks mapBounds (BlockLocation (x, y)) = filter
     , BlockLocation (x, y - 1)
     ]
 
--- TODO: comment
+blockLocationToLocation :: BlockLocation -> Location
+blockLocationToLocation (BlockLocation (x, y)) =
+    Location (fromIntegral x, fromIntegral y)
+
+-- TODO: remove
 getNextToDiagonal
     :: BlockLocation -> BlockLocation -> (BlockLocation, BlockLocation)
 getNextToDiagonal (BlockLocation (b1x, b1y)) (BlockLocation (b2x, b2y)) =
@@ -133,10 +138,6 @@ blockRangeX :: BlockLocation -> (Float, Float)
 blockRangeX b = (blockLeftX b, blockRightX b)
 blockRangeY :: BlockLocation -> (Float, Float)
 blockRangeY b = (blockBotY b, blockTopY b)
-inBlockRangeX :: BlockLocation -> Float -> Bool
-inBlockRangeX b bx = blockLeftX b <= bx && bx <= blockRightX b
-inBlockRangeY :: BlockLocation -> Float -> Bool
-inBlockRangeY b by = blockBotY b <= by && by <= blockTopY b
 
 asks :: Member (Reader s) r => (s -> a) -> Eff r a
 asks f = map f ask

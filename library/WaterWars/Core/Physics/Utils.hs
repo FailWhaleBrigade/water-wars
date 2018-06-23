@@ -13,9 +13,22 @@ velocityBoundX maxX v@(VelocityVector vx vy) =
 distanceFromLine' :: Location -> VelocityVector -> BlockLocation -> Float
 distanceFromLine' (Location (x, y)) (VelocityVector vx vy) (BlockLocation (bx, by))
     = abs $ (x - fromIntegral bx) * nx + (y - fromIntegral by) * ny
-    where
-        nx = vy
-        ny = -vx
+  where
+    nx = vy
+    ny = -vx
+
+cornerPointsOfPlayer :: InGamePlayer -> [Location]
+cornerPointsOfPlayer InGamePlayer {..} =
+    let Location (x, y) = playerLocation
+        leftBorder      = x - playerWidth / 2
+        rightBorder     = x + playerWidth / 2
+        bottomBorder    = y
+        topBorder       = y + playerHeight
+    in  [ Location (leftBorder, bottomBorder)
+        , Location (rightBorder, bottomBorder)
+        , Location (rightBorder, topBorder)
+        , Location (leftBorder, topBorder)
+        ]
 
 -- TODO: test distance.
 
@@ -31,6 +44,17 @@ boundVelocityVector (maxX, maxY) v@(VelocityVector vx vy) =
         then v
         else VelocityVector (boundedBy (-maxX, maxX) vx)
                             (boundedBy (-maxY, maxY) vy)
+
+
+isInsideBlock :: Location -> BlockLocation -> Bool
+isInsideBlock (Location (x, y)) block =
+    blockRangeX block `hasInside` x && blockRangeY block `hasInside` y
+
+hasInside :: Ord a => (a, a) -> a -> Bool
+hasInside (l, u) x = l < x && x < u
+
+containsInclusive :: Ord a => (a, a) -> a -> Bool
+containsInclusive (l, u) x = l <= x && x <= u
 
 boundedBy :: Ord a => (a, a) -> a -> a
 boundedBy (l, u) x | x < l     = l

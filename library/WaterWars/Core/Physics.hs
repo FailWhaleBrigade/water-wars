@@ -6,6 +6,7 @@ import           ClassyPrelude                     hiding ( Reader
 import           WaterWars.Core.Game
 import           WaterWars.Core.Physics.Constants
 import           WaterWars.Core.Physics.Collision
+import           WaterWars.Core.Physics.Utils
 import           Control.Eff
 import           Control.Eff.Reader.Strict
 
@@ -26,10 +27,13 @@ gravityVector = VelocityVector 0 (-gravityForce)
 blockLocationBelowFeet :: InGamePlayer -> BlockLocation
 blockLocationBelowFeet InGamePlayer { playerLocation } =
     let Location (x, y) = playerLocation
-    in  BlockLocation (round x, round $ y - 0.001 {- TODO: this should be a constant-})
+    in  BlockLocation
+            ( round x
+            , round $ y - 0.001 {- TODO: this should be a constant-}
+            )
 
 gravityPlayer :: Bool -> InGamePlayer -> InGamePlayer
-gravityPlayer True = id
+gravityPlayer True  = id
 gravityPlayer False = acceleratePlayer gravityVector
 
 gravityProjectile :: Projectile -> Projectile
@@ -46,14 +50,21 @@ isPlayerOnGround :: Member (Reader GameMap) e => InGamePlayer -> Eff e Bool
 isPlayerOnGround InGamePlayer {..} = do
     blocks <- asks gameTerrain
     let Location (x, y) = playerLocation
-    let blockBelowFeet  = BlockLocation (round x, round $ y - 0.001 {- TODO: this should be a constant-})
+    let blockBelowFeet = BlockLocation
+            ( round x
+            , round $ y - 0.001 {- TODO: this should be a constant-}
+            )
     return $ isSolidAt blocks blockBelowFeet
 
 movePlayer :: Member (Reader GameMap) e => InGamePlayer -> Eff e InGamePlayer
 movePlayer player@InGamePlayer {..} = do
     blocks <- asks gameTerrain
-    let (targetLocation, newVelocity) =
-            moveWithCollision blocks playerLocation playerVelocity
-    return player { playerLocation = targetLocation
+    let playerCornerPoints = cornerPointsOfPlayer player
+    let (newLocation, newVelocity) = moveWithCollision
+            blocks
+            -- (playerCornerPoints `indexEx` 0)
+            playerLocation
+            playerVelocity
+    return player { playerLocation = newLocation
                   , playerVelocity = newVelocity
                   }
