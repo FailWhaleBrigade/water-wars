@@ -70,3 +70,13 @@ leastOfStates startLocation successorStates =
   where
     (locations, velocities) =
         unzip $ map (\(l, (l', v)) -> ((l, l'), v)) successorStates
+
+-- TODO: test
+getsHit :: InGamePlayer -> Projectile -> Bool
+getsHit InGamePlayer {..} Projectile {..} =
+    xRange `hasInside` px && yRange `hasInside` py
+  where
+    Location (px, py) = projectileLocation
+    Location (x , y ) = playerLocation
+    xRange            = (x - playerWidth / 2, x + playerWidth / 2)
+    yRange            = (y, y + playerHeight)

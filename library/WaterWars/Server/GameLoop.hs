@@ -25,6 +25,7 @@ runGameLoop gameLoopStateTvar broadcastChan playerActions = forever $ do
         let newgameState = gameLoopState { gameState = newState }
         writeTVar gameLoopStateTvar newgameState
         return newgameState
+    -- putStrLn $ tshow gameState
     atomically $ writeTChan broadcastChan (EventGameLoopMessage gameState)
     liftIO $ threadDelay (1000000 `div` 60)
 

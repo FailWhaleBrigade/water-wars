@@ -65,8 +65,9 @@ newtype Projectiles = Projectiles
 data Projectile = Projectile
     { projectileLocation :: Location
     , projectileVelocity :: VelocityVector
+    , projectilePlayer :: Player
     }
-    deriving (Show, Read, Eq)
+    deriving (Show, Read, Eq, Ord)
 
 -- TODO: better name
 data IsOnGround = OnGround | InAir

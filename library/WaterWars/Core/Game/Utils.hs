@@ -30,11 +30,20 @@ addInGamePlayer GameState {..} igp = GameState
     , ..
     }
 
+-- TODO: flip
 removePlayer :: GameState -> Player -> GameState
 removePlayer GameState {..} p = GameState
     { inGamePlayers = InGamePlayers
         (filter ((/= p) . playerDescription) $ getInGamePlayers inGamePlayers)
     , ..
+    }
+
+removePlayers :: Set Player -> GameState -> GameState
+removePlayers ps gs@GameState {..} = gs
+    { inGamePlayers = InGamePlayers
+                          ( filter ((`notElem` ps) . playerDescription)
+                          $ getInGamePlayers inGamePlayers
+                          )
     }
 
 moveLocation :: VelocityVector -> Location -> Location
@@ -57,10 +66,10 @@ modifyPlayerVelocity f p = setPlayerVelocity (f $ playerVelocity p) p
 
 setPlayerMovementState :: MovementState -> InGamePlayer -> InGamePlayer
 setPlayerMovementState (location, velocity) p =
-    p {playerLocation = location, playerVelocity = velocity}
+    p { playerLocation = location, playerVelocity = velocity }
 
 playerMovementState :: InGamePlayer -> MovementState
-playerMovementState InGamePlayer{..} = (playerLocation, playerVelocity)
+playerMovementState InGamePlayer {..} = (playerLocation, playerVelocity)
 
 getApproximateBlock :: Location -> BlockLocation
 getApproximateBlock (Location (x, y)) = BlockLocation (round x, round y)
@@ -83,9 +92,11 @@ modifyProjectileVelocity
 modifyProjectileVelocity f p =
     setProjectileVelocity (f $ projectileVelocity p) p
 
-newProjectileFromAngle :: Location -> Angle -> Projectile
-newProjectileFromAngle loc angle =
-    Projectile loc $ velocityVectorFromPolar projectileSpeed angle
+newProjectileFromAngle :: InGamePlayer -> Angle -> Projectile
+newProjectileFromAngle p@InGamePlayer {..} angle = Projectile
+    (playerHeadLocation p)
+    (velocityVectorFromPolar projectileSpeed angle)
+    playerDescription
 
 velocityVectorFromPolar :: Speed -> Angle -> VelocityVector
 velocityVectorFromPolar (Speed speed) (Angle angle) =
@@ -97,9 +108,28 @@ addProjectile projectile = do
     let newProjectiles = projectile `cons` projectiles
     modify $ \s -> s { gameProjectiles = Projectiles newProjectiles }
 
+removeProjectiles :: Member (State GameState) e => Set Projectile -> Eff e ()
+removeProjectiles ps = do
+    Projectiles projectiles <- gets gameProjectiles
+    let newProjectiles = filter (`notElem` ps) projectiles
+    modify $ \s -> s { gameProjectiles = Projectiles newProjectiles }
+
 playerHeadLocation :: InGamePlayer -> Location
 playerHeadLocation InGamePlayer { playerLocation = Location (x, y) } =
     Location (x, y + playerHeadHeight)
+
+newDeadPlayer :: Integer -> InGamePlayer -> DeadPlayer
+newDeadPlayer tick InGamePlayer{..} = DeadPlayer
+    { deadPlayerDescription = playerDescription
+    , deadPlayerLocation = playerLocation
+    , playerDeathTick = tick
+    }
+
+addDeadPlayers :: Member (State GameState) e => [DeadPlayer] -> Eff e ()
+addDeadPlayers ps = do
+    DeadPlayers deadPlayers <- gets gameDeadPlayers
+    let newDeadPlayers =  deadPlayers ++ fromList ps
+    modify $ \s -> s { gameDeadPlayers = DeadPlayers newDeadPlayers }
 
 angleForRunDirection :: RunDirection -> Angle
 angleForRunDirection RunRight = 0
@@ -118,12 +148,6 @@ get4NeighborBlocks mapBounds (BlockLocation (x, y)) = filter
 blockLocationToLocation :: BlockLocation -> Location
 blockLocationToLocation (BlockLocation (x, y)) =
     Location (fromIntegral x, fromIntegral y)
-
--- TODO: remove
-getNextToDiagonal
-    :: BlockLocation -> BlockLocation -> (BlockLocation, BlockLocation)
-getNextToDiagonal (BlockLocation (b1x, b1y)) (BlockLocation (b2x, b2y)) =
-    (BlockLocation (b1x, b2y), BlockLocation (b2x, b1y))
 
 isSolidAt :: Terrain -> BlockLocation -> Bool
 isSolidAt terrain location = inRange (terrainBounds terrain) location

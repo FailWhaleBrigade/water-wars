@@ -8,7 +8,7 @@ data RunDirection = RunLeft | RunRight
     deriving (Show, Read, Eq, Enum, Bounded)
 
 newtype Location = Location (Float, Float)
-  deriving (Show, Read, Eq)
+  deriving (Show, Read, Eq, Ord)
 
 instance Monoid Location where
     mempty = Location (0, 0)
@@ -17,7 +17,7 @@ instance Monoid Location where
 data VelocityVector = VelocityVector
     { velocityX :: Float
     , velocityY :: Float
-    } deriving (Show, Read, Eq)
+    } deriving (Show, Read, Eq, Ord)
 
 instance Semigroup VelocityVector where
     VelocityVector vx1 vy1 <> VelocityVector vx2 vy2 =

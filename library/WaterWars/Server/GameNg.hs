@@ -111,7 +111,7 @@ doShootAction
 doShootAction Action { shootAction } = do
     p@InGamePlayer {..} <- get
     when (playerShootCooldown == 0) $ whenJust shootAction $ \angle -> do
-        addProjectile $ newProjectileFromAngle (playerHeadLocation p) angle
+        addProjectile $ newProjectileFromAngle p angle
         modify setPlayerCooldown
 
 -- do gravity, bounding, ...
@@ -127,13 +127,26 @@ modifyPlayerByEnvironment p = do
 
 modifyProjectileByEnvironment :: Projectile -> Eff r Projectile
 modifyProjectileByEnvironment =
-    return
-        . modifyProjectileVelocity (boundVelocityVector maxVelocity)
-        -- . gravityProjectile
+    return . modifyProjectileVelocity (boundVelocityVector maxVelocity)
 
+-- TODO: test contained code
 checkProjectilePlayerCollision :: (Member (State GameState) r) => Eff r ()
 checkProjectilePlayerCollision = do
-    players <- gets inGamePlayers
-    projectiles <- gets gameProjectiles
+    players :: [InGamePlayer] <- gets
+        (toList . getInGamePlayers . inGamePlayers)
+    projectiles :: [Projectile] <- gets
+        (toList . getProjectiles . gameProjectiles)
+    currentTick <- gets gameTicks
 
-    return () -- TODO: implement collision check, remove players and projectiles
+    let (hitPlayers, hitProjectiles) = unzip
+            [ (player, projectile)
+            | player     <- players
+            , projectile <- projectiles
+            , projectilePlayer projectile /= playerDescription player
+            , getsHit player projectile
+            ]
+    modify (removePlayers $ setFromList . map playerDescription $ hitPlayers)
+    removeProjectiles $ setFromList hitProjectiles
+
+    let deadPlayers = map (newDeadPlayer currentTick) hitPlayers
+    addDeadPlayers deadPlayers
