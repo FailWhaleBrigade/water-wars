@@ -17,33 +17,41 @@ renderIO (WorldSTM tvar) = render <$> readTVarIO tvar
 
 render :: World -> Picture
 render World {..} =
-    let RenderInfo {..} = renderInfo
-        Resources {..}  = resources
-    in  Gloss.pictures
+    Gloss.pictures
             (  [backgroundTexture]
             ++ [mantaPicture]
             ++ toList solidPictures
             ++ playerPictures
             ++ toList projectilePictures
+            ++ maybeToList readyPicture
             )
   where
+    RenderInfo {..} = renderInfo
+    WorldInfo {..} = worldInfo
+    Resources {..}  = resources
+
     allPlayers :: [InGamePlayer]
     allPlayers =
-        maybeToList (player worldInfo) ++ toList (otherPlayers worldInfo)
+        maybeToList player ++ toList otherPlayers
 
     playerPictures :: [Picture]
     playerPictures = map (inGamePlayerToPicture renderInfo) allPlayers
 
     projectilePictures :: Seq Picture
     projectilePictures =
-        map (projectileToPicture renderInfo) (projectiles worldInfo)
+        map (projectileToPicture renderInfo) projectiles
 
     solidPictures :: Seq Picture
-    solidPictures = map solidToPicture (solids renderInfo)
+    solidPictures = map solidToPicture solids
 
     mantaPicture :: Picture
     mantaPicture =
-        backgroundAnimationToPicture renderInfo (mantaAnimation renderInfo)
+        backgroundAnimationToPicture renderInfo mantaAnimation 
+
+    readyPicture :: Maybe Picture
+    readyPicture = do 
+        down <- countdown
+        return $ countdownToPicture renderInfo (down - gameTick)
 
 inGamePlayerColor :: Color
 inGamePlayerColor = red
@@ -72,7 +80,6 @@ inGamePlayerToPicture RenderInfo {..} InGamePlayer {..} =
         $ scale (1 / mermaidWidth) (1 / mermaidHeight)
         $ scale directionComponent 1 (headEx animationPictures)
 
-
 projectileToPicture :: RenderInfo -> Projectile -> Picture
 projectileToPicture RenderInfo {..} p = translate
     (x * blockSize)
@@ -80,15 +87,14 @@ projectileToPicture RenderInfo {..} p = translate
     (projectileTexture resources)
     where Location (x, y) = projectileLocation p
 
-countdownToPicture :: RenderInfo -> Int -> Picture
-countdownToPicture RenderInfo {..} tick = translate 0 100 pic
+countdownToPicture :: RenderInfo -> Integer -> Picture
+countdownToPicture RenderInfo {..} tick = trace ("Countdown is: " ++ show tick) $ translate 0 100 pic
   where
     Resources {..} = resources
-    pic | tick >= 150 = countdownTextures `indexEx` 0
-        | tick >= 100 = countdownTextures `indexEx` 1
-        | tick >= 50  = countdownTextures `indexEx` 2
-        | tick >= 0   = countdownTextures `indexEx` 3
-        | otherwise   = error "countdownToPicture: tick is negative"
+    pic | tick >= 180 = countdownTextures `indexEx` 0
+        | tick >= 120 = countdownTextures `indexEx` 1
+        | tick >= 60  = countdownTextures `indexEx` 2
+        | otherwise {- tick >= 0 -}   = countdownTextures `indexEx` 3
 
 backgroundAnimationToPicture :: RenderInfo -> BackgroundAnimation -> Picture
 backgroundAnimationToPicture _ BackgroundAnimation {..} = translate x y

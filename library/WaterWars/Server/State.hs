@@ -15,4 +15,5 @@ data SharedState =
         , connectionMapTvar ::  TVar (Map Text ClientConnection)
         , playerMapTvar  ::  TVar (Map Text InGamePlayer)
         , readyPlayersTvar ::  TVar (Set Text)
+        , startGameTvar :: TVar (Maybe Integer)
         }

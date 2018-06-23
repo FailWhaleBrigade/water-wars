@@ -116,10 +116,17 @@ gameLoopServer gameLoopStateTvar sessionMapTvar broadcastChan = do
     playerActionTvar  <- newTVarIO (PlayerActions (mapFromList empty))
     playerInGameTvar  <- newTVarIO $ mapFromList []
     readyPlayersTvar  <- newTVarIO mempty
-    let sharedState = SharedState readBroadcastChan gameLoopStateTvar playerActionTvar sessionMapTvar playerInGameTvar readyPlayersTvar
-    _                 <- async
-        (eventLoop sharedState
-        )
+    gameStartTvar     <- newTVarIO Nothing
+    let sharedState = SharedState readBroadcastChan
+                                  gameLoopStateTvar
+                                  playerActionTvar
+                                  sessionMapTvar
+                                  playerInGameTvar
+                                  readyPlayersTvar
+                                  gameStartTvar
+    _ <- async (eventLoop sharedState)
     $logInfo "Start game loop"
     runGameLoop gameLoopStateTvar broadcastChan playerActionTvar
     return ()
+
+

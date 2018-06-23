@@ -58,7 +58,8 @@ data WorldInfo = WorldInfo
     , duck      :: Bool
     , exitGame  :: Bool
     , readyUp   :: Bool
-    , countdown :: Maybe Int
+    , countdown :: Maybe Integer
+    , gameTick  :: Integer
     , gameRunning :: Bool
     , player    :: Maybe CoreState.InGamePlayer
     , otherPlayers :: Seq CoreState.InGamePlayer
@@ -115,6 +116,7 @@ initializeState resources@Resources {..}
             , exitGame     = False
             , readyUp      = False
             , countdown    = Nothing
+            , gameTick     = 0
             , gameRunning  = False
             , player       = Nothing
             , otherPlayers = empty

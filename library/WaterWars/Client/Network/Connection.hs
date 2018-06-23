@@ -133,6 +133,7 @@ updateWorld serverMsg world@World {..} = case serverMsg of
                 { player       = join newPlayer -- TODO: can we express this better?
                 , otherPlayers = newOtherPlayers
                 , projectiles  = newProjectiles
+                , gameTick     = gameTicks gameState
                 , ..
                 }
         in
@@ -146,7 +147,9 @@ updateWorld serverMsg world@World {..} = case serverMsg of
             worldInfo_     = WorldInfo {player = newPlayer, ..}
         in  World {worldInfo = worldInfo_, ..}
 
-    GameWillStartMessage (GameStart n) -> world
+    GameWillStartMessage (GameStart n) -> world { worldInfo = worldInfo { countdown = Just n } }
+
+    GameStartMessage -> world { worldInfo = worldInfo { countdown = Nothing } }
 
 
 extractGameAction :: TVar World -> STM Protocol.PlayerAction

@@ -30,7 +30,21 @@ handleGameLoopMessages
 handleGameLoopMessages SharedState {..} gameStateUpdate = do
     sessionMap <- readTVarIO connectionMapTvar
     broadcastMessage (GameStateMessage gameStateUpdate) sessionMap
+    isStarting <- readTVarIO startGameTvar
+    case isStarting of 
+        Nothing -> return ()
+        Just startingTick -> do 
+            gameTick <- gameTicks . gameState <$> readTVarIO gameLoopTvar
+            when (startingTick <= gameTick) $ do
+                say "Send the Game start message"
+                atomically $ do  
+                    writeTVar startGameTvar Nothing
+                    modifyTVar gameLoopTvar startGame
+                
+                broadcastMessage GameStartMessage sessionMap
 
+                    
+                    
 handleClientMessages
     :: (MonadIO m, MonadLogger m)
     => SharedState
@@ -103,6 +117,7 @@ handleClientMessages SharedState {..} sessionId clientMsg = case clientMsg of
         allPlayersReady <- atomically $ do
             readySet  <- readTVar readyPlayersTvar
             playerMap <- readTVar playerMapTvar
+            -- could be improved with multi way if
             if member sessionId readySet
                 then return False
                 else do
@@ -117,10 +132,13 @@ handleClientMessages SharedState {..} sessionId clientMsg = case clientMsg of
         when allPlayersReady $ do
             $logInfo
                 ("Everyone is ready. \"" ++ sessionId ++ "\" was the last one.")
-            sessionMap <- readTVarIO connectionMapTvar
-            broadcastMessage (GameWillStartMessage (GameStart 200)) sessionMap
-            -- Start the game in 5 seconds
-            -- TODO: notify something
+            sessionMap <- readTVarIO connectionMapTvar                
+            gameTick <- gameTicks . gameState <$> readTVarIO gameLoopTvar
+            broadcastMessage (GameWillStartMessage (GameStart (gameTick + 1000))) sessionMap
+            
+            -- notify that the game will start
+            atomically $ 
+                writeTVar startGameTvar (Just (gameTick + 1000))
             return ()
 
         return ()
