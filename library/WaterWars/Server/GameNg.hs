@@ -24,19 +24,21 @@ import           Control.Eff
 import           Data.Array.IArray
 import           Control.Monad.Extra                      ( whenJust )
 
-runGameTick :: GameMap -> GameState -> Map Player Action -> GameState
-runGameTick gameMap gameState gameAction =
+runGameTick :: Bool -> GameMap -> GameState -> Map Player Action -> GameState
+runGameTick gameRunning gameMap gameState gameAction =
     run
         . execState gameState
         . runReader gameMap
         . runReader gameAction
+        . runReader gameRunning
         $ gameTick
 
 gameTick
     :: ( Member (State GameState) e
        , Member (Reader (Map Player Action)) e
        , Member (Reader GameMap) e
-       )
+       , Member (Reader Bool) e
+       ) -- TODO: better type for that
     => Eff e ()
 gameTick = do
     mapMOverPlayers modifyPlayerByAction
@@ -130,23 +132,27 @@ modifyProjectileByEnvironment =
     return . modifyProjectileVelocity (boundVelocityVector maxVelocity)
 
 -- TODO: test contained code
-checkProjectilePlayerCollision :: (Member (State GameState) r) => Eff r ()
+checkProjectilePlayerCollision
+    :: (Member (State GameState) r, Member (Reader Bool) r) => Eff r ()
 checkProjectilePlayerCollision = do
-    players :: [InGamePlayer] <- gets
-        (toList . getInGamePlayers . inGamePlayers)
-    projectiles :: [Projectile] <- gets
-        (toList . getProjectiles . gameProjectiles)
-    currentTick <- gets gameTicks
+    isGameRunning <- ask
+    when isGameRunning $ do
+        players :: [InGamePlayer] <- gets
+            (toList . getInGamePlayers . inGamePlayers)
+        projectiles :: [Projectile] <- gets
+            (toList . getProjectiles . gameProjectiles)
+        currentTick <- gets gameTicks
 
-    let (hitPlayers, hitProjectiles) = unzip
-            [ (player, projectile)
-            | player     <- players
-            , projectile <- projectiles
-            , projectilePlayer projectile /= playerDescription player
-            , getsHit player projectile
-            ]
-    modify (removePlayers $ setFromList . map playerDescription $ hitPlayers)
-    removeProjectiles $ setFromList hitProjectiles
+        let (hitPlayers, hitProjectiles) = unzip
+                [ (player, projectile)
+                | player     <- players
+                , projectile <- projectiles
+                , projectilePlayer projectile /= playerDescription player
+                , getsHit player projectile
+                ]
+        modify
+            (removePlayers $ setFromList . map playerDescription $ hitPlayers)
+        removeProjectiles $ setFromList hitProjectiles
 
-    let deadPlayers = map (newDeadPlayer currentTick) hitPlayers
-    addDeadPlayers deadPlayers
+        let deadPlayers = map (newDeadPlayer currentTick) hitPlayers
+        addDeadPlayers deadPlayers

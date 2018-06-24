@@ -14,7 +14,7 @@ import WaterWars.Server.GameNg
 
 runGameLoop
     :: (MonadLogger m, MonadIO m)
-    => Arguments 
+    => Arguments
     -> TVar GameLoopState
     -> TChan EventMessage
     -> TVar PlayerActions
@@ -23,7 +23,7 @@ runGameLoop Arguments {..} gameLoopStateTvar broadcastChan playerActions = forev
     GameLoopState {..} <- atomically $ do
         gameLoopState@GameLoopState {..} <- readTVar gameLoopStateTvar
         actions                          <- emptyPlayerActions playerActions
-        let newState     = runGameTick gameMap gameState actions
+        let newState     = runGameTick gameRunning gameMap gameState actions
         let newgameState = gameLoopState { gameState = newState }
         writeTVar gameLoopStateTvar newgameState
         return newgameState
@@ -36,7 +36,7 @@ allGameTicks _ [] s = [s]
 allGameTicks gameMap (actions : rest) initialState =
     initialState : allGameTicks gameMap
                                 rest
-                                (runGameTick gameMap initialState actions)
+                                (runGameTick True gameMap initialState actions)
 
 emptyPlayerActions :: TVar PlayerActions -> STM (Map Player Action)
 emptyPlayerActions playerActions =
