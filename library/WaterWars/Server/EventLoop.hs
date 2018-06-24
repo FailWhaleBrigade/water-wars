@@ -29,22 +29,21 @@ handleGameLoopMessages
     :: (MonadIO m, MonadLogger m) => SharedState -> GameState -> m ()
 handleGameLoopMessages SharedState {..} gameStateUpdate = do
     sessionMap <- readTVarIO connectionMapTvar
-    gameTick <- gameTicks . gameState <$> readTVarIO gameLoopTvar
+    gameTick   <- gameTicks . gameState <$> readTVarIO gameLoopTvar
     broadcastMessage (GameStateMessage gameStateUpdate) sessionMap
     isStarting <- readTVarIO startGameTvar
-    case isStarting of 
-        Nothing -> return ()
-        Just startingTick -> 
-            when (startingTick <= gameTick) $ do
-                $logInfo $ "Send the Game start message: " ++ tshow gameTick
-                atomically $ do  
-                    writeTVar startGameTvar Nothing
-                    modifyTVar' gameLoopTvar startGame
-                
-                broadcastMessage GameStartMessage sessionMap
+    case isStarting of
+        Nothing           -> return ()
+        Just startingTick -> when (startingTick <= gameTick) $ do
+            $logInfo $ "Send the Game start message: " ++ tshow gameTick
+            atomically $ do
+                writeTVar   startGameTvar Nothing
+                modifyTVar' gameLoopTvar  startGame
 
-                    
-                    
+            broadcastMessage GameStartMessage sessionMap
+
+
+
 handleClientMessages
     :: (MonadIO m, MonadLogger m)
     => SharedState
@@ -114,7 +113,7 @@ handleClientMessages SharedState {..} sessionId clientMsg = case clientMsg of
 
     ClientReadyMessage ClientReady -> do
         $logInfo ("Player \"" ++ sessionId ++ "\" is ready")
-        
+
         allPlayersReady <- atomically $ do
             readySet  <- readTVar readyPlayersTvar
             playerMap <- readTVar playerMapTvar
@@ -124,22 +123,19 @@ handleClientMessages SharedState {..} sessionId clientMsg = case clientMsg of
                 else do
                     let readySet' = insertSet sessionId readySet
                     writeTVar readyPlayersTvar readySet'
-                    if keysSet playerMap == readySet'
-                        then do
-                            modifyTVar' gameLoopTvar startGame
-                            return True
-                        else return False
+                    return $ keysSet playerMap == readySet'
 
         when allPlayersReady $ do
             $logInfo
                 ("Everyone is ready. \"" ++ sessionId ++ "\" was the last one.")
-            sessionMap <- readTVarIO connectionMapTvar                
-            gameTick <- gameTicks . gameState <$> readTVarIO gameLoopTvar
-            broadcastMessage (GameWillStartMessage (GameStart (gameTick + 240))) sessionMap
-            
+            sessionMap <- readTVarIO connectionMapTvar
+            gameTick   <- gameTicks . gameState <$> readTVarIO gameLoopTvar
+            broadcastMessage
+                (GameWillStartMessage (GameStart (gameTick + 240)))
+                sessionMap
+
             -- notify that the game will start
-            atomically $ 
-                writeTVar startGameTvar (Just (gameTick + 240))
+            atomically $ writeTVar startGameTvar (Just (gameTick + 240))
             return ()
 
         return ()
