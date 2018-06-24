@@ -21,17 +21,16 @@ eventLoop sharedState@SharedState {..} = forever $ do
 
         -- handle messages sent from the gameloop
         EventGameLoopMessage gameStateUpdate gameEvents ->
-            -- TODO: implement handling of game events @fendor?
-            handleGameLoopMessages sharedState gameStateUpdate
+            handleGameLoopMessages sharedState gameStateUpdate gameEvents
 
         -- TODO: handle messages sent from websocket app
 
 handleGameLoopMessages
-    :: (MonadIO m, MonadLogger m) => SharedState -> GameState -> m ()
-handleGameLoopMessages SharedState {..} gameStateUpdate = do
+    :: (MonadIO m, MonadLogger m) => SharedState -> GameState -> GameEvents -> m ()
+handleGameLoopMessages SharedState {..} gameStateUpdate gameEvents = do
     sessionMap <- readTVarIO connectionMapTvar
     gameTick   <- gameTicks . gameState <$> readTVarIO gameLoopTvar
-    broadcastMessage (GameStateMessage gameStateUpdate) sessionMap
+    broadcastMessage (GameStateMessage gameStateUpdate gameEvents) sessionMap
     isStarting <- readTVarIO startGameTvar
     case isStarting of
         Nothing           -> return ()

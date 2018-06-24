@@ -113,41 +113,35 @@ updateWorld serverMsg world@World {..} = case serverMsg of
     GameMapMessage gameMap ->
         setTerrain (blockMap $ resources renderInfo) (gameTerrain gameMap) world
 
-    GameStateMessage gameState ->
-        let
-            WorldInfo {..} = worldInfo
-            inGamePlayers_ = getInGamePlayers $ inGamePlayers gameState
-            newPlayer =
-                (\currentPlayer -> headMay $ filter
-                        ((== playerDescription currentPlayer) . playerDescription)
-                        inGamePlayers_
-                    )
-                    <$> player
+    GameStateMessage gameState@GameState {..} gameEvents ->
+        let WorldInfo {..} = worldInfo
 
-            newOtherPlayers =
-                maybe inGamePlayers_ (flip filter inGamePlayers_ . (/=)) player
+            inGamePlayers_ :: Seq InGamePlayer
+            inGamePlayers_ = getInGamePlayers inGamePlayers
 
-            newProjectiles = getProjectiles $ gameProjectiles gameState
+            deadPlayers_ :: Seq DeadPlayer
+            deadPlayers_ = getDeadPlayers gameDeadPlayers
 
-            worldInfo_     = WorldInfo
-                { player       = join newPlayer -- TODO: can we express this better?
-                , otherPlayers = newOtherPlayers
-                , projectiles  = newProjectiles
-                , gameTick     = gameTicks gameState
+            newProjectiles :: Seq Projectile
+            newProjectiles = getProjectiles gameProjectiles
+
+            worldInfo_     = WorldInfo {projectiles = newProjectiles, ..}
+        in  World
+                { worldInfo      = worldInfo_
+                , lastGameUpdate = ServerUpdate gameState
                 , ..
                 }
-        in
-            World {worldInfo = worldInfo_, ..}
 
     GameSetupResponseMessage _ -> world
 
     LoginResponseMessage loginResponse ->
         let WorldInfo {..} = worldInfo
-            newPlayer      = Just (successPlayer loginResponse)
-            worldInfo_     = WorldInfo {player = newPlayer, ..}
+            newPlayer = Just (playerDescription $ successPlayer loginResponse)
+            worldInfo_ = WorldInfo {localPlayer = newPlayer, ..}
         in  World {worldInfo = worldInfo_, ..}
 
-    GameWillStartMessage (GameStart n) -> world { worldInfo = worldInfo { countdown = Just n } }
+    GameWillStartMessage (GameStart n) ->
+        world { worldInfo = worldInfo { countdown = Just n } }
 
     GameStartMessage -> world { worldInfo = worldInfo { countdown = Nothing } }
 
@@ -156,14 +150,17 @@ extractGameAction :: TVar World -> STM Protocol.PlayerAction
 extractGameAction worldTvar = do
     world <- readTVar worldTvar
     let WorldInfo {..} = worldInfo world
+    let GameState {..} = gameStateUpdate $ lastGameUpdate world
     let runCmd | walkLeft  = Just (RunAction RunLeft)
                | walkRight = Just (RunAction RunRight)
                | otherwise = Nothing
     let jmpCmd = if jump then Just JumpAction else Nothing
     let shootCmd = do -- maybe monad
-            shootTarget <- shoot
-            p           <- player
-            let shootLocation = playerHeadLocation p
+            shootTarget  <- shoot
+            player       <- localPlayer
+            inGamePlayer <- find ((== player) . playerDescription)
+                                 (getInGamePlayers inGamePlayers)
+            let shootLocation = playerHeadLocation inGamePlayer
             return $ calculateAngle shootLocation shootTarget
     when (isJust shoot) $ writeTVar worldTvar $ world
         { worldInfo = WorldInfo {shoot = Nothing, ..}
@@ -180,3 +177,5 @@ extractGameAction worldTvar = do
 calculateAngle :: Location -> Location -> Angle
 calculateAngle (Location (x1, y1)) (Location (x2, y2)) =
     Angle (atan2 (y2 - y1) (x2 - x1))
+
+

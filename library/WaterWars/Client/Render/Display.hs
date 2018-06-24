@@ -2,7 +2,6 @@ module WaterWars.Client.Render.Display where
 
 import ClassyPrelude
 import Graphics.Gloss as Gloss
-import Sound.ProteaAudio
 
 import WaterWars.Client.Render.Config
 import WaterWars.Client.Render.Animation
@@ -21,6 +20,7 @@ render World {..} =
             (  [backgroundTexture]
             ++ [mantaPicture]
             ++ toList solidPictures
+            ++ singleton playerPicture
             ++ playerPictures
             ++ toList projectilePictures
             ++ maybeToList readyPicture
@@ -28,14 +28,23 @@ render World {..} =
   where
     RenderInfo {..} = renderInfo
     WorldInfo {..} = worldInfo
+    GameState {..} = gameStateUpdate lastGameUpdate
     Resources {..}  = resources
 
     allPlayers :: [InGamePlayer]
     allPlayers =
-        maybeToList player ++ toList otherPlayers
+       toList $ getInGamePlayers inGamePlayers
 
     playerPictures :: [Picture]
     playerPictures = map (inGamePlayerToPicture renderInfo) allPlayers
+
+    playerPicture :: Picture
+    playerPicture =
+        case localPlayer of
+            Nothing ->
+                displayText (displayAnimation connectingAnimation)
+            Just p ->
+                inGamePlayerToPicture renderInfo undefined
 
     projectilePictures :: Seq Picture
     projectilePictures =
@@ -46,12 +55,12 @@ render World {..} =
 
     mantaPicture :: Picture
     mantaPicture =
-        backgroundAnimationToPicture renderInfo mantaAnimation 
+        backgroundAnimationToPicture renderInfo mantaAnimation
 
     readyPicture :: Maybe Picture
-    readyPicture = do 
+    readyPicture = do
         down <- countdown
-        return $ countdownToPicture renderInfo (down - gameTick)
+        return $ countdownToPicture renderInfo (down - gameTicks)
 
 inGamePlayerColor :: Color
 inGamePlayerColor = red
@@ -88,7 +97,7 @@ projectileToPicture RenderInfo {..} p = translate
     where Location (x, y) = projectileLocation p
 
 countdownToPicture :: RenderInfo -> Integer -> Picture
-countdownToPicture RenderInfo {..} tick = translate 0 100 pic
+countdownToPicture RenderInfo {..} tick = displayText pic
   where
     Resources {..} = resources
     pic | tick >= 180 = countdownTextures `indexEx` 0
@@ -108,3 +117,6 @@ backgroundAnimationToPicture _ BackgroundAnimation {..} = translate x y
 
 displayAnimation :: Animation -> Picture
 displayAnimation Animation {..} = headEx animationPictures
+
+displayText :: Picture -> Picture
+displayText = translate 0 100

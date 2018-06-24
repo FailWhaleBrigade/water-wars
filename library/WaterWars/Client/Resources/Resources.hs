@@ -18,6 +18,9 @@ data Resources =
         , mantaTextures :: [Picture]
         , countdownTextures :: [Picture]
         , blockMap :: BlockMap
+        , connectingTextures :: [Picture]
+        , youWinTexture :: Picture
+        , youLostTexture :: Picture
         , shootSound :: Sample
         }
 
@@ -43,6 +46,17 @@ setup = do
         , "resources/textures/writing/1.png"
         , "resources/textures/writing/GO.png"
         ]
+    
+    connectingTex <- bulkLoad $ fromList 
+        [ "resources/textures/writing/connecting0.png"
+        , "resources/textures/writing/connecting1.png"
+        , "resources/textures/writing/connecting2.png"
+        , "resources/textures/writing/connecting3.png"
+        ]
+
+    winTex <- loadPngAsBmp "resources/textures/writing/win.png"
+    lostTex <- loadPngAsBmp "resources/textures/writing/lost.png"
+
     blockMap   <- loadBlockMap
     shootSound <- liftIO
         $ sampleFromFile "resources/sounds/bubble_into_glass.ogg" 1.0
@@ -54,6 +68,9 @@ setup = do
                        (toList mantaTexs)
                        (toList countdownTexs)
                        blockMap
+                       (toList connectingTex)
+                       winTex 
+                       lostTex
                        shootSound
 
 getMermaidPaths :: String -> Int -> Int -> [String]

@@ -37,13 +37,14 @@ handleKeysIO e world@(WorldSTM tvar) = atomically $ do
     writeTVar tvar newState
     return world
 
-update :: Float -> World -> World
-update _ World {..} = World
+advanceAnimations :: Float -> World -> World
+advanceAnimations _ World {..} = World
     { renderInfo = renderInfo
         { mantaAnimation = updateBackgroundAnimation (mantaAnimation renderInfo)
         , playerAnimations = mapFromList $ map
-            (updatePlayerInformation renderInfo)
-            (maybeToList (player worldInfo) ++ toList (otherPlayers worldInfo))
+            (updatePlayerInformation World {..})
+            (toList $ getAllPlayers lastGameUpdate)
+        , connectingAnimation = updateAnimation (connectingAnimation renderInfo)
         }
     , ..
     }
@@ -51,25 +52,45 @@ update _ World {..} = World
 updateIO :: Float -> WorldSTM -> IO WorldSTM
 updateIO diff world@(WorldSTM tvar) = do
     state <- readTVarIO tvar
-    let newState = update diff state
+    let newState = advanceAnimations diff state
     atomically $ writeTVar tvar newState
     return world
 
-updatePlayerInformation
-    :: RenderInfo -> InGamePlayer -> (Player, PlayerAnimation)
-updatePlayerInformation RenderInfo {..} InGamePlayer {..} =
+updatePlayerInformation :: World -> Player -> (Player, PlayerAnimation)
+updatePlayerInformation World {..} player =
     let
-        maybePlayerAnim = lookup playerDescription playerAnimations
-        playerAnim      = fromMaybe defaultPlayerAnimation maybePlayerAnim
-        newAnim :: PlayerAnimation -> PlayerAnimation
-        newAnim (PlayerRunningAnimation _)
+        RenderInfo {..} = renderInfo
+        GameState {..}  = gameStateUpdate lastGameUpdate
+
+        maybePlayerAnim :: Maybe PlayerAnimation
+        maybePlayerAnim = lookup player playerAnimations
+
+        playerAnim :: PlayerAnimation
+        playerAnim = fromMaybe defaultPlayerAnimation maybePlayerAnim
+
+        nextAnimationStep :: InGamePlayer -> PlayerAnimation -> PlayerAnimation
+        nextAnimationStep InGamePlayer {..} (PlayerRunningAnimation _)
             | abs (velocityX playerVelocity) >= 0.01 = updatePlayerAnimation
                 playerAnim
             | otherwise = newPlayerIdleAnimation
-        newAnim (PlayerIdleAnimation _)
+        nextAnimationStep InGamePlayer {..} (PlayerIdleAnimation _)
             | abs (velocityX playerVelocity) <= 0.01
             = newPlayerRunnningAnimation
             | otherwise
             = updatePlayerAnimation playerAnim
+        -- This should not happen
+        nextAnimationStep _ (PlayerDeathAnimation _) = updatePlayerAnimation playerAnim
     in
-        (playerDescription, newAnim playerAnim)
+        case
+            find ((== player) . playerDescription)
+                 (getInGamePlayers inGamePlayers)
+        of
+            Nothing           -> (player, newPlayerDeathAnimation)
+            Just inGamePlayer -> (player, nextAnimationStep inGamePlayer playerAnim)
+
+
+getAllPlayers :: ServerUpdate -> Seq Player
+getAllPlayers serverUpdate =
+    let GameState {..} = gameStateUpdate serverUpdate
+    in  map playerDescription (getInGamePlayers inGamePlayers)
+            ++ map deadPlayerDescription (getDeadPlayers gameDeadPlayers)

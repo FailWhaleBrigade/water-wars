@@ -64,6 +64,7 @@ modifyPlayerByAction
     :: ( Member (State GameState) e
        , Member (Reader (Map Player Action)) e
        , Member (Reader GameMap) e
+       , Member (Writer GameEvent) e
        )
     => InGamePlayer
     -> Eff e InGamePlayer
@@ -118,7 +119,7 @@ boundProjectile Projectile {..} = do
 doShootAction
     :: ( Member (State GameState) e
        , Member (State InGamePlayer) e
-       , Member (Writer GameEvent)
+       , Member (Writer GameEvent) e
        )
     => Action
     -> Eff e ()

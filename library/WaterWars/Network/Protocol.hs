@@ -4,9 +4,7 @@ module WaterWars.Network.Protocol where
 import ClassyPrelude
 
 import WaterWars.Network.Connection
-import qualified WaterWars.Core.Game.State as CoreState
-import qualified WaterWars.Core.Game.Map as CoreState
-import qualified WaterWars.Core.Game.Action as CoreAction
+import WaterWars.Core.Game
 
 -- |Datatype to login to a game server.
 -- So far, only a reconnect options is supported.
@@ -18,12 +16,12 @@ newtype Login = Login
 -- Either fails with an error message or succeeds with the session id
 data LoginResponse = LoginResponse
     { successSessionId :: Text
-    , successPlayer    :: CoreState.InGamePlayer
+    , successPlayer    :: InGamePlayer
     } deriving (Show, Read, Eq)
 
 -- |Player action that can be sent to a server.
 newtype PlayerAction = PlayerAction
-    { getAction :: CoreAction.Action
+    { getAction :: Action
     }
     deriving (Show, Read, Eq)
 
@@ -57,8 +55,8 @@ newtype GameStart = GameStart Integer deriving (Show, Read, Eq)
 data ServerMessage
     = GameSetupResponseMessage GameSetupResponse
     | LoginResponseMessage LoginResponse
-    | GameMapMessage CoreState.GameMap
-    | GameStateMessage CoreState.GameState
+    | GameMapMessage GameMap
+    | GameStateMessage GameState GameEvents
     | GameWillStartMessage GameStart
     | GameStartMessage
     deriving (Show, Eq, Read)

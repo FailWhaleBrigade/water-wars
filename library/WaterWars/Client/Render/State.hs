@@ -5,6 +5,7 @@ module WaterWars.Client.Render.State
     , RenderInfo(..)
     , WorldInfo(..)
     , PlayerAnimation(..)
+    , ServerUpdate(..)
     , initializeState
     , setTerrain
     , module WaterWars.Client.Resources.Resources
@@ -25,10 +26,9 @@ import           WaterWars.Client.Resources.Resources
 import qualified WaterWars.Client.Network.State
                                                as NetworkState
 
-import qualified WaterWars.Core.Game.State     as CoreState
-import qualified WaterWars.Core.Game.Map       as CoreState
-
+import qualified WaterWars.Core.Game     as CoreState
 import           WaterWars.Core.Game
+
 import           WaterWars.Client.Render.Animation
 
 newtype WorldSTM = WorldSTM (TVar World)
@@ -36,6 +36,7 @@ newtype WorldSTM = WorldSTM (TVar World)
 data World = World
     { renderInfo :: RenderInfo
     , worldInfo :: WorldInfo
+    , lastGameUpdate :: ServerUpdate
     , networkInfo :: Maybe NetworkState.NetworkInfo
     }
 
@@ -46,9 +47,14 @@ data RenderInfo = RenderInfo
     , newPlayerRunnningAnimation :: PlayerAnimation
     , newPlayerDeathAnimation :: PlayerAnimation
     , playerAnimations :: Map Player PlayerAnimation
+    , connectingAnimation :: Animation
     , solids :: Seq Solid
     , mantaAnimation :: BackgroundAnimation
     }
+
+newtype ServerUpdate = ServerUpdate
+    { gameStateUpdate :: CoreState.GameState
+    } deriving (Eq, Show)
 
 data WorldInfo = WorldInfo
     { jump      :: Bool
@@ -58,17 +64,16 @@ data WorldInfo = WorldInfo
     , duck      :: Bool
     , exitGame  :: Bool
     , readyUp   :: Bool
+    -- TODO: Everything beneath should be refactored into another datatype
     , countdown :: Maybe Integer
-    , gameTick  :: Integer
     , gameRunning :: Bool
-    , player    :: Maybe CoreState.InGamePlayer
-    , otherPlayers :: Seq CoreState.InGamePlayer
+    , localPlayer    :: Maybe Player
     , projectiles  :: Seq CoreState.Projectile
     } deriving Show
 
 initializeState :: Resources -> IO WorldSTM
 initializeState resources@Resources {..} = WorldSTM <$> newTVarIO World
-    { renderInfo  = RenderInfo
+    { renderInfo     = RenderInfo
         { resources                  = resources
         , playerAnimations           = mapFromList []
         , defaultPlayerAnimation     = PlayerIdleAnimation Animation
@@ -103,23 +108,34 @@ initializeState resources@Resources {..} = WorldSTM <$> newTVarIO World
             , direction       = RightDir
             }
         , solids                     = empty
+        , connectingAnimation        = Animation
+            { countDownTilNext  = 60
+            , countDownMax      = 60
+            , animationPictures = cycle connectingTextures
+            }
         }
-    , worldInfo   = WorldInfo
-        { jump         = False
-        , walkLeft     = False
-        , walkRight    = False
-        , duck         = False
-        , shoot        = Nothing
-        , exitGame     = False
-        , readyUp      = False
-        , countdown    = Nothing
-        , gameTick     = 0
-        , gameRunning  = False
-        , player       = Nothing
-        , otherPlayers = empty
-        , projectiles  = empty
+    , worldInfo      = WorldInfo
+        { jump        = False
+        , walkLeft    = False
+        , walkRight   = False
+        , duck        = False
+        , shoot       = Nothing
+        , exitGame    = False
+        , readyUp     = False
+        , countdown   = Nothing
+        , gameRunning = False
+        , localPlayer = Nothing
+        , projectiles = empty
         }
-    , networkInfo = Nothing
+    , networkInfo    = Nothing
+    , lastGameUpdate = ServerUpdate
+        { gameStateUpdate = GameState
+            { inGamePlayers   = InGamePlayers empty
+            , gameDeadPlayers = DeadPlayers empty
+            , gameProjectiles = Projectiles empty
+            , gameTicks       = 0
+            }
+        }
     }
 
 setTerrain :: BlockMap -> CoreState.Terrain -> World -> World
@@ -172,3 +188,4 @@ mantaUpdateOperation ba@BackgroundAnimation {..} = ba
         RightDir -> x + 0.5
         LeftDir  -> x - 0.5
     newY = 10 * sin (x / 15)
+
