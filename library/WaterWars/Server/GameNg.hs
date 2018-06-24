@@ -20,14 +20,22 @@ import           WaterWars.Core.Physics.Constants
 import           WaterWars.Core.Physics.Utils
 import           Control.Eff.State.Strict
 import           Control.Eff.Reader.Strict
-import           Control.Eff
+import           Control.Eff.Writer.Strict
+import           Control.Eff                       hiding ( first )
 import           Data.Array.IArray
 import           Control.Monad.Extra                      ( whenJust )
 
-runGameTick :: Bool -> GameMap -> GameState -> Map Player Action -> GameState
+runGameTick
+    :: Bool
+    -> GameMap
+    -> GameState
+    -> Map Player Action
+    -> (GameEvents, GameState)
 runGameTick gameRunning gameMap gameState gameAction =
-    run
-        . execState gameState
+    first (GameEvents . fromList)
+        . run
+        . runState gameState
+        . execListWriter
         . runReader gameMap
         . runReader gameAction
         . runReader gameRunning
@@ -38,6 +46,7 @@ gameTick
        , Member (Reader (Map Player Action)) e
        , Member (Reader GameMap) e
        , Member (Reader Bool) e
+       , Member (Writer GameEvent) e
        ) -- TODO: better type for that
     => Eff e ()
 gameTick = do
@@ -107,13 +116,18 @@ boundProjectile Projectile {..} = do
 
 -- apply any shoot action, if possible
 doShootAction
-    :: (Member (State GameState) e, Member (State InGamePlayer) e)
+    :: ( Member (State GameState) e
+       , Member (State InGamePlayer) e
+       , Member (Writer GameEvent)
+       )
     => Action
     -> Eff e ()
 doShootAction Action { shootAction } = do
     p@InGamePlayer {..} <- get
     when (playerShootCooldown == 0) $ whenJust shootAction $ \angle -> do
-        addProjectile $ newProjectileFromAngle p angle
+        let newProjectile = newProjectileFromAngle p angle
+        tell $ ShotProjectile newProjectile
+        addProjectile newProjectile
         modify setPlayerCooldown
 
 -- do gravity, bounding, ...

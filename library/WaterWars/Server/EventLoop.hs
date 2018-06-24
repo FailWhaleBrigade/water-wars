@@ -20,7 +20,8 @@ eventLoop sharedState@SharedState {..} = forever $ do
             handleClientMessages sharedState sessionId clientMsg
 
         -- handle messages sent from the gameloop
-        EventGameLoopMessage gameStateUpdate ->
+        EventGameLoopMessage gameStateUpdate gameEvents ->
+            -- TODO: implement handling of game events @fendor?
             handleGameLoopMessages sharedState gameStateUpdate
 
         -- TODO: handle messages sent from websocket app

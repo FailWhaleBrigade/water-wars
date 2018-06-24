@@ -7,7 +7,7 @@ import WaterWars.Network.Protocol
 
 data EventMessage
     = EventClientMessage Text ClientMessage
-    | EventGameLoopMessage GameState
+    | EventGameLoopMessage GameState GameEvents
     deriving (Show, Eq, Read)
 
 data GameLoopState = GameLoopState
