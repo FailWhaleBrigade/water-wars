@@ -81,10 +81,11 @@ render World {..} = Gloss.pictures
     winPicture :: Maybe Picture
     winPicture = do
         p <- localPlayer
-        guard gameRunning
-        guard (length livingPlayers == 1)
-        guard (isJust $ find ((== p) . playerDescription) livingPlayers)
-        return $ displayText youWinTexture
+        if gameRunning
+               && length livingPlayers == 1
+               && isJust (find ((== p) . playerDescription) livingPlayers)
+            then return $ displayText youWinTexture
+            else Nothing
 
 inGamePlayerColor :: Color
 inGamePlayerColor = red
@@ -166,5 +167,6 @@ displayAnimation Animation {..} = headEx animationPictures
 
 displayText :: Picture -> Picture
 displayText = translate 0 100
+
 
 
