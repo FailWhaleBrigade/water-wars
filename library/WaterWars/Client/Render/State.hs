@@ -91,11 +91,16 @@ initializeState resources@Resources {..} = WorldSTM <$> newTVarIO World
             , countDownMax      = 5
             , animationPictures = cycle runningPlayerTextures
             }
-        , newPlayerDeathAnimation    = PlayerDeathAnimation Animation
-            { countDownTilNext  = 9
-            , countDownMax      = 9
-            , animationPictures = (take 2 playerDeathTextures)
-                ++ (cycle (drop 2 playerDeathTextures))
+        , newPlayerDeathAnimation    = PlayerDeathAnimation BackgroundAnimation
+            { animation       = Animation
+                { countDownTilNext  = 9
+                , countDownMax      = 9
+                , animationPictures = (take 2 playerDeathTextures)
+                    ++ (cycle (drop 2 playerDeathTextures))
+                }
+            , location        = Location (0, 0) -- default location
+            , updateOperation = deadPlayerUpdateOperation
+            , direction       = RightDir
             }
         , mantaAnimation             = BackgroundAnimation
             { animation       = Animation
@@ -189,3 +194,11 @@ mantaUpdateOperation ba@BackgroundAnimation {..} = ba
         LeftDir  -> x - 0.5
     newY = 10 * sin (x / 15)
 
+deadPlayerUpdateOperation :: BackgroundAnimation -> BackgroundAnimation
+deadPlayerUpdateOperation BackgroundAnimation {..} = BackgroundAnimation
+    { location = Location (x, newY)
+    , ..
+    }
+  where
+    Location (x, y) = location
+    newY            = y + 0.05

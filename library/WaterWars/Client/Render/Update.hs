@@ -50,10 +50,10 @@ advanceAnimations _ World {..} = World
     }
 
 updateIO :: Float -> WorldSTM -> IO WorldSTM
-updateIO diff world@(WorldSTM tvar) = do
-    state <- readTVarIO tvar
+updateIO diff world@(WorldSTM tvar) = atomically $ do
+    state <- readTVar tvar
     let newState = advanceAnimations diff state
-    atomically $ writeTVar tvar newState
+    writeTVar tvar newState
     return world
 
 updatePlayerInformation :: World -> Player -> (Player, PlayerAnimation)
@@ -62,32 +62,42 @@ updatePlayerInformation World {..} player =
         RenderInfo {..} = renderInfo
         GameState {..}  = gameStateUpdate lastGameUpdate
 
+        livingPlayer    = find ((== player) . playerDescription)
+                               (getInGamePlayers inGamePlayers)
+
         maybePlayerAnim :: Maybe PlayerAnimation
         maybePlayerAnim = lookup player playerAnimations
 
         playerAnim :: PlayerAnimation
         playerAnim = fromMaybe defaultPlayerAnimation maybePlayerAnim
 
-        nextAnimationStep :: InGamePlayer -> PlayerAnimation -> PlayerAnimation
-        nextAnimationStep InGamePlayer {..} (PlayerRunningAnimation _)
+        nextAnimationStep
+            :: Maybe InGamePlayer -> PlayerAnimation -> PlayerAnimation
+        nextAnimationStep (Just InGamePlayer {..}) (PlayerRunningAnimation _)
             | abs (velocityX playerVelocity) >= 0.01 = updatePlayerAnimation
                 playerAnim
             | otherwise = newPlayerIdleAnimation
-        nextAnimationStep InGamePlayer {..} (PlayerIdleAnimation _)
+        nextAnimationStep (Just InGamePlayer {..}) (PlayerIdleAnimation _)
             | abs (velocityX playerVelocity) <= 0.01
             = newPlayerRunnningAnimation
             | otherwise
             = updatePlayerAnimation playerAnim
         -- This should not happen
-        nextAnimationStep _ (PlayerDeathAnimation _) = updatePlayerAnimation playerAnim
+        nextAnimationStep _ (PlayerDeathAnimation _) =
+            updatePlayerAnimation playerAnim
+        nextAnimationStep Nothing _ =
+            let deathAnimation@(PlayerDeathAnimation ba) =
+                    newPlayerDeathAnimation
+            in
+                case
+                    find ((player ==) . deadPlayerDescription)
+                         (getDeadPlayers gameDeadPlayers)
+                of
+                    Nothing              -> deathAnimation
+                    Just DeadPlayer {..} -> PlayerDeathAnimation
+                        (ba { location = deadPlayerLocation })
     in
-        case
-            find ((== player) . playerDescription)
-                 (getInGamePlayers inGamePlayers)
-        of
-            Nothing           -> (player, newPlayerDeathAnimation)
-            Just inGamePlayer -> (player, nextAnimationStep inGamePlayer playerAnim)
-
+        (player, nextAnimationStep livingPlayer playerAnim)
 
 getAllPlayers :: ServerUpdate -> Seq Player
 getAllPlayers serverUpdate =

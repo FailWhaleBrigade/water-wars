@@ -9,58 +9,82 @@ import WaterWars.Client.Render.State
 import WaterWars.Client.Render.Terrain.Solid
 
 import WaterWars.Core.Game
+import WaterWars.Core.Game.Constants
 
 -- |Convert a game state into a picture
 renderIO :: WorldSTM -> IO Picture
 renderIO (WorldSTM tvar) = render <$> readTVarIO tvar
 
 render :: World -> Picture
-render World {..} =
-    Gloss.pictures
-            (  [backgroundTexture]
-            ++ [mantaPicture]
-            ++ toList solidPictures
-            ++ singleton playerPicture
-            ++ playerPictures
-            ++ toList projectilePictures
-            ++ maybeToList readyPicture
-            )
+render World {..} = Gloss.pictures
+    (  [backgroundTexture]
+    ++ [mantaPicture]
+    ++ toList solidPictures
+    ++ singleton playerPicture
+    ++ deadPlayerPictures
+    ++ playerPictures
+    ++ toList projectilePictures
+    ++ maybeToList readyPicture
+    ++ maybeToList winPicture
+    )
   where
     RenderInfo {..} = renderInfo
-    WorldInfo {..} = worldInfo
-    GameState {..} = gameStateUpdate lastGameUpdate
+    WorldInfo {..}  = worldInfo
+    GameState {..}  = gameStateUpdate lastGameUpdate
     Resources {..}  = resources
 
-    allPlayers :: [InGamePlayer]
-    allPlayers =
-       toList $ getInGamePlayers inGamePlayers
+    livingPlayers :: [InGamePlayer]
+    livingPlayers = toList $ getInGamePlayers inGamePlayers
+
+    deadPlayers :: [DeadPlayer]
+    deadPlayers = toList
+        (filter
+            (\DeadPlayer {..} -> abs (gameTicks - playerDeathTick) < 500)
+            (getDeadPlayers gameDeadPlayers)
+        )
 
     playerPictures :: [Picture]
-    playerPictures = map (inGamePlayerToPicture renderInfo) allPlayers
+    playerPictures = map (inGamePlayerToPicture renderInfo) livingPlayers
+
+    deadPlayerPictures :: [Picture]
+    deadPlayerPictures = map (deadPlayerToPicture renderInfo) deadPlayers
 
     playerPicture :: Picture
-    playerPicture =
-        case localPlayer of
-            Nothing ->
-                displayText (displayAnimation connectingAnimation)
-            Just p ->
-                inGamePlayerToPicture renderInfo undefined
+    playerPicture = case localPlayer of
+        Nothing ->
+            {- we are not connected yet -}
+            displayText (displayAnimation connectingAnimation)
+        Just p ->
+            case
+                    find ((== p) . playerDescription)
+                         (getInGamePlayers inGamePlayers)
+                of
+                    Nothing -> {- We are dead -}
+                        displayText youLostTexture
+                    Just inGamePlayer -> {- We are alive -}
+                        inGamePlayerToPicture renderInfo inGamePlayer
 
     projectilePictures :: Seq Picture
-    projectilePictures =
-        map (projectileToPicture renderInfo) projectiles
+    projectilePictures = map (projectileToPicture renderInfo) projectiles
 
     solidPictures :: Seq Picture
     solidPictures = map solidToPicture solids
 
     mantaPicture :: Picture
-    mantaPicture =
-        backgroundAnimationToPicture renderInfo mantaAnimation
+    mantaPicture = backgroundAnimationToPicture renderInfo mantaAnimation
 
     readyPicture :: Maybe Picture
     readyPicture = do
         down <- countdown
         return $ countdownToPicture renderInfo (down - gameTicks)
+
+    winPicture :: Maybe Picture
+    winPicture = do
+        p <- localPlayer
+        guard gameRunning
+        guard (length livingPlayers == 1)
+        guard (isJust $ find ((== p) . playerDescription) livingPlayers)
+        return $ displayText youWinTexture
 
 inGamePlayerColor :: Color
 inGamePlayerColor = red
@@ -89,6 +113,27 @@ inGamePlayerToPicture RenderInfo {..} InGamePlayer {..} =
         $ scale (1 / mermaidWidth) (1 / mermaidHeight)
         $ scale directionComponent 1 (headEx animationPictures)
 
+deadPlayerToPicture :: RenderInfo -> DeadPlayer -> Picture
+deadPlayerToPicture RenderInfo {..} DeadPlayer {..} =
+    let
+        Resources {..}  = resources
+
+        maybeAnimation  = lookup deadPlayerDescription playerAnimations
+        Location (x, y) = case maybeAnimation of
+            Just (PlayerDeathAnimation ba) -> location ba
+            _                              -> deadPlayerLocation
+        Animation {..} =
+            playerToAnimation $ fromMaybe defaultPlayerAnimation maybeAnimation
+    in
+        translate (blockSize * x)
+                  (blockSize * y + blockSize * defaultPlayerHeight / 2)
+        $ color inGamePlayerColor
+        $ scale blockSize          blockSize
+        $ scale defaultPlayerWidth defaultPlayerHeight
+        $ scale (1 / mermaidWidth)
+                (1 / mermaidHeight)
+                (headEx animationPictures)
+
 projectileToPicture :: RenderInfo -> Projectile -> Picture
 projectileToPicture RenderInfo {..} p = translate
     (x * blockSize)
@@ -103,7 +148,8 @@ countdownToPicture RenderInfo {..} tick = displayText pic
     pic | tick >= 180 = countdownTextures `indexEx` 0
         | tick >= 120 = countdownTextures `indexEx` 1
         | tick >= 60  = countdownTextures `indexEx` 2
-        | otherwise {- tick >= 0 -}   = countdownTextures `indexEx` 3
+        | otherwise {- tick >= 0 -}
+                    = countdownTextures `indexEx` 3
 
 backgroundAnimationToPicture :: RenderInfo -> BackgroundAnimation -> Picture
 backgroundAnimationToPicture _ BackgroundAnimation {..} = translate x y
@@ -120,3 +166,5 @@ displayAnimation Animation {..} = headEx animationPictures
 
 displayText :: Picture -> Picture
 displayText = translate 0 100
+
+

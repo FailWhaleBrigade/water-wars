@@ -17,8 +17,7 @@ data Animation = Animation
 data PlayerAnimation
     = PlayerIdleAnimation Animation
     | PlayerRunningAnimation Animation
-    | PlayerDeathAnimation Animation
-    deriving (Show, Eq)
+    | PlayerDeathAnimation BackgroundAnimation
 
 data BackgroundAnimation = BackgroundAnimation
     { animation :: Animation
@@ -30,7 +29,7 @@ data BackgroundAnimation = BackgroundAnimation
 playerToAnimation :: PlayerAnimation -> Animation
 playerToAnimation (PlayerIdleAnimation    anim) = anim
 playerToAnimation (PlayerRunningAnimation anim) = anim
-playerToAnimation (PlayerDeathAnimation   anim) = anim
+playerToAnimation (PlayerDeathAnimation   anim) = animation anim
 
 updatePlayerAnimation :: PlayerAnimation -> PlayerAnimation
 updatePlayerAnimation (PlayerIdleAnimation anim) =
@@ -38,14 +37,14 @@ updatePlayerAnimation (PlayerIdleAnimation anim) =
 updatePlayerAnimation (PlayerRunningAnimation anim) =
     PlayerRunningAnimation $ updateAnimation anim
 updatePlayerAnimation (PlayerDeathAnimation anim) =
-    PlayerDeathAnimation $ updateAnimation anim
+    PlayerDeathAnimation $ updateBackgroundAnimation anim
 
 updateAnimation :: Animation -> Animation
-updateAnimation a@Animation {..} = if countDownTilNext == 0
-    then a { animationPictures = tailEx animationPictures
+updateAnimation a@Animation {..} 
+    | countDownTilNext == 0 =  a { animationPictures = tailEx animationPictures
            , countDownTilNext  = countDownMax
            }
-    else a { countDownTilNext = countDownTilNext - 1 }
+    | otherwise = a { countDownTilNext = countDownTilNext - 1 }
 
 updateBackgroundAnimation :: BackgroundAnimation -> BackgroundAnimation
 updateBackgroundAnimation a = b { animation = newAnimation }

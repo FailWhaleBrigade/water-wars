@@ -115,13 +115,13 @@ updateWorld serverMsg world@World {..} = case serverMsg of
 
     GameStateMessage gameState@GameState {..} gameEvents ->
         let WorldInfo {..} = worldInfo
+            {--
+            --inGamePlayers_ :: Seq InGamePlayer
+            --inGamePlayers_ = getInGamePlayers inGamePlayers
 
-            inGamePlayers_ :: Seq InGamePlayer
-            inGamePlayers_ = getInGamePlayers inGamePlayers
-
-            deadPlayers_ :: Seq DeadPlayer
-            deadPlayers_ = getDeadPlayers gameDeadPlayers
-
+            --deadPlayers_ :: Seq DeadPlayer
+            --deadPlayers_ = getDeadPlayers gameDeadPlayers
+            --}
             newProjectiles :: Seq Projectile
             newProjectiles = getProjectiles gameProjectiles
 
