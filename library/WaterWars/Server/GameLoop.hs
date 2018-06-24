@@ -8,32 +8,35 @@ import Control.Concurrent (threadDelay)
 
 import WaterWars.Core.Game
 
+import WaterWars.Server.OptParse
 import WaterWars.Server.ConnectionMgnt
 import WaterWars.Server.GameNg
 
 runGameLoop
     :: (MonadLogger m, MonadIO m)
-    => TVar GameLoopState
+    => Arguments
+    -> TVar GameLoopState
     -> TChan EventMessage
     -> TVar PlayerActions
     -> m ()
-runGameLoop gameLoopStateTvar broadcastChan playerActions = forever $ do
+runGameLoop Arguments {..} gameLoopStateTvar broadcastChan playerActions = forever $ do
     GameLoopState {..} <- atomically $ do
         gameLoopState@GameLoopState {..} <- readTVar gameLoopStateTvar
         actions                          <- emptyPlayerActions playerActions
-        let newState     = runGameTick gameMap gameState actions
+        let newState     = runGameTick gameRunning gameMap gameState actions
         let newgameState = gameLoopState { gameState = newState }
         writeTVar gameLoopStateTvar newgameState
         return newgameState
+    -- putStrLn $ tshow gameState
     atomically $ writeTChan broadcastChan (EventGameLoopMessage gameState)
-    liftIO $ threadDelay (1000000 `div` 60)
+    liftIO $ threadDelay (round (1000000 / fps))
 
 allGameTicks :: GameMap -> [Map Player Action] -> GameState -> [GameState]
 allGameTicks _ [] s = [s]
 allGameTicks gameMap (actions : rest) initialState =
     initialState : allGameTicks gameMap
                                 rest
-                                (runGameTick gameMap initialState actions)
+                                (runGameTick True gameMap initialState actions)
 
 emptyPlayerActions :: TVar PlayerActions -> STM (Map Player Action)
 emptyPlayerActions playerActions =

@@ -24,19 +24,21 @@ import           Control.Eff
 import           Data.Array.IArray
 import           Control.Monad.Extra                      ( whenJust )
 
-runGameTick :: GameMap -> GameState -> Map Player Action -> GameState
-runGameTick gameMap gameState gameAction =
+runGameTick :: Bool -> GameMap -> GameState -> Map Player Action -> GameState
+runGameTick gameRunning gameMap gameState gameAction =
     run
         . execState gameState
         . runReader gameMap
         . runReader gameAction
+        . runReader gameRunning
         $ gameTick
 
 gameTick
     :: ( Member (State GameState) e
        , Member (Reader (Map Player Action)) e
        , Member (Reader GameMap) e
-       )
+       , Member (Reader Bool) e
+       ) -- TODO: better type for that
     => Eff e ()
 gameTick = do
     mapMOverPlayers modifyPlayerByAction
@@ -47,7 +49,6 @@ gameTick = do
     checkProjectilePlayerCollision
     mapMOverPlayers movePlayer
     modify incrementGameTick
-    return ()
 
 -- | Function that includes the actions into a player-state
 modifyPlayerByAction
@@ -97,7 +98,7 @@ modifyPlayerShootCooldown player@InGamePlayer {..} =
 boundProjectile :: Member (Reader GameMap) e => Projectile -> Eff e Bool
 boundProjectile Projectile {..} = do
     terrain <- asks gameTerrain
-    let block            = getBlock projectileLocation
+    let block            = getApproximateBlock projectileLocation
     let mapBounds        = bounds . terrainBlocks $ terrain
     let inBounds         = inRange mapBounds block
     let entersSolidBlock = isSolidAt terrain block
@@ -112,7 +113,7 @@ doShootAction
 doShootAction Action { shootAction } = do
     p@InGamePlayer {..} <- get
     when (playerShootCooldown == 0) $ whenJust shootAction $ \angle -> do
-        addProjectile $ newProjectileFromAngle (playerHeadLocation p) angle
+        addProjectile $ newProjectileFromAngle p angle
         modify setPlayerCooldown
 
 -- do gravity, bounding, ...
@@ -128,13 +129,30 @@ modifyPlayerByEnvironment p = do
 
 modifyProjectileByEnvironment :: Projectile -> Eff r Projectile
 modifyProjectileByEnvironment =
-    return
-        . modifyProjectileVelocity (boundVelocityVector maxVelocity)
-        -- . gravityProjectile
+    return . modifyProjectileVelocity (boundVelocityVector maxVelocity)
 
-checkProjectilePlayerCollision :: (Member (State GameState) r) => Eff r ()
+-- TODO: test contained code
+checkProjectilePlayerCollision
+    :: (Member (State GameState) r, Member (Reader Bool) r) => Eff r ()
 checkProjectilePlayerCollision = do
-    players <- gets inGamePlayers
-    projectiles <- gets gameProjectiles
+    isGameRunning <- ask
+    when isGameRunning $ do
+        players :: [InGamePlayer] <- gets
+            (toList . getInGamePlayers . inGamePlayers)
+        projectiles :: [Projectile] <- gets
+            (toList . getProjectiles . gameProjectiles)
+        currentTick <- gets gameTicks
 
-    return () -- TODO: implement collision check, remove players and projectiles
+        let (hitPlayers, hitProjectiles) = unzip
+                [ (player, projectile)
+                | player     <- players
+                , projectile <- projectiles
+                , projectilePlayer projectile /= playerDescription player
+                , getsHit player projectile
+                ]
+        modify
+            (removePlayers $ setFromList . map playerDescription $ hitPlayers)
+        removeProjectiles $ setFromList hitProjectiles
+
+        let deadPlayers = map (newDeadPlayer currentTick) hitPlayers
+        addDeadPlayers deadPlayers

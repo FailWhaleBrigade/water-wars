@@ -329,7 +329,4 @@ defaultPlayer :: Player
 defaultPlayer = Player "Player One"
 -}
 defaultProjectiles :: Projectiles
-defaultProjectiles = Projectiles $ singleton defaultProjectile
-
-defaultProjectile :: Projectile
-defaultProjectile = newProjectileFromAngle (Location (1.0, 1.0)) (Angle 0)
+defaultProjectiles = Projectiles mempty

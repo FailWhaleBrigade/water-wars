@@ -7,8 +7,8 @@ module WaterWars.Core.Game.State
     )
 where
 
-import ClassyPrelude
-import WaterWars.Core.Game.Base
+import           ClassyPrelude
+import           WaterWars.Core.Game.Base
 
 -- |Master-state of the whole game
 data GameState = GameState
@@ -57,13 +57,17 @@ data DeadPlayer = DeadPlayer
     }
     deriving (Show, Read, Eq)
 
-newtype Projectiles = Projectiles { getProjectiles :: Seq Projectile } deriving (Show, Eq, Read)
+newtype Projectiles = Projectiles
+    { getProjectiles :: Seq Projectile
+    }
+    deriving (Show, Eq, Read)
 
 data Projectile = Projectile
     { projectileLocation :: Location
     , projectileVelocity :: VelocityVector
+    , projectilePlayer :: Player
     }
-    deriving (Show, Read, Eq)
+    deriving (Show, Read, Eq, Ord)
 
 -- TODO: better name
 data IsOnGround = OnGround | InAir

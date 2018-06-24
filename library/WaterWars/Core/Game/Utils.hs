@@ -30,11 +30,20 @@ addInGamePlayer GameState {..} igp = GameState
     , ..
     }
 
+-- TODO: flip
 removePlayer :: GameState -> Player -> GameState
 removePlayer GameState {..} p = GameState
     { inGamePlayers = InGamePlayers
         (filter ((/= p) . playerDescription) $ getInGamePlayers inGamePlayers)
     , ..
+    }
+
+removePlayers :: Set Player -> GameState -> GameState
+removePlayers ps gs@GameState {..} = gs
+    { inGamePlayers = InGamePlayers
+                          ( filter ((`notElem` ps) . playerDescription)
+                          $ getInGamePlayers inGamePlayers
+                          )
     }
 
 moveLocation :: VelocityVector -> Location -> Location
@@ -55,8 +64,16 @@ modifyPlayerVelocity
     :: (VelocityVector -> VelocityVector) -> InGamePlayer -> InGamePlayer
 modifyPlayerVelocity f p = setPlayerVelocity (f $ playerVelocity p) p
 
-getBlock :: Location -> BlockLocation
-getBlock (Location (x, y)) = BlockLocation (round x, round $ y + 0.001)
+setPlayerMovementState :: MovementState -> InGamePlayer -> InGamePlayer
+setPlayerMovementState (location, velocity) p =
+    p { playerLocation = location, playerVelocity = velocity }
+
+playerMovementState :: InGamePlayer -> MovementState
+playerMovementState InGamePlayer {..} = (playerLocation, playerVelocity)
+
+getApproximateBlock :: Location -> BlockLocation
+getApproximateBlock (Location (x, y)) = BlockLocation (round x, round y)
+
 
 moveProjectile :: Projectile -> Projectile
 moveProjectile projectile@Projectile {..} = projectile
@@ -75,9 +92,11 @@ modifyProjectileVelocity
 modifyProjectileVelocity f p =
     setProjectileVelocity (f $ projectileVelocity p) p
 
-newProjectileFromAngle :: Location -> Angle -> Projectile
-newProjectileFromAngle loc angle =
-    Projectile loc $ velocityVectorFromPolar projectileSpeed angle
+newProjectileFromAngle :: InGamePlayer -> Angle -> Projectile
+newProjectileFromAngle p@InGamePlayer {..} angle = Projectile
+    (playerHeadLocation p)
+    (velocityVectorFromPolar projectileSpeed angle)
+    playerDescription
 
 velocityVectorFromPolar :: Speed -> Angle -> VelocityVector
 velocityVectorFromPolar (Speed speed) (Angle angle) =
@@ -89,9 +108,28 @@ addProjectile projectile = do
     let newProjectiles = projectile `cons` projectiles
     modify $ \s -> s { gameProjectiles = Projectiles newProjectiles }
 
+removeProjectiles :: Member (State GameState) e => Set Projectile -> Eff e ()
+removeProjectiles ps = do
+    Projectiles projectiles <- gets gameProjectiles
+    let newProjectiles = filter (`notElem` ps) projectiles
+    modify $ \s -> s { gameProjectiles = Projectiles newProjectiles }
+
 playerHeadLocation :: InGamePlayer -> Location
 playerHeadLocation InGamePlayer { playerLocation = Location (x, y) } =
     Location (x, y + playerHeadHeight)
+
+newDeadPlayer :: Integer -> InGamePlayer -> DeadPlayer
+newDeadPlayer tick InGamePlayer{..} = DeadPlayer
+    { deadPlayerDescription = playerDescription
+    , deadPlayerLocation = playerLocation
+    , playerDeathTick = tick
+    }
+
+addDeadPlayers :: Member (State GameState) e => [DeadPlayer] -> Eff e ()
+addDeadPlayers ps = do
+    DeadPlayers deadPlayers <- gets gameDeadPlayers
+    let newDeadPlayers =  deadPlayers ++ fromList ps
+    modify $ \s -> s { gameDeadPlayers = DeadPlayers newDeadPlayers }
 
 angleForRunDirection :: RunDirection -> Angle
 angleForRunDirection RunRight = 0
@@ -107,11 +145,9 @@ get4NeighborBlocks mapBounds (BlockLocation (x, y)) = filter
     , BlockLocation (x, y - 1)
     ]
 
--- TODO: comment
-getNextToDiagonal
-    :: BlockLocation -> BlockLocation -> (BlockLocation, BlockLocation)
-getNextToDiagonal (BlockLocation (b1x, b1y)) (BlockLocation (b2x, b2y)) =
-    (BlockLocation (b1x, b2y), BlockLocation (b2x, b1y))
+blockLocationToLocation :: BlockLocation -> Location
+blockLocationToLocation (BlockLocation (x, y)) =
+    Location (fromIntegral x, fromIntegral y)
 
 isSolidAt :: Terrain -> BlockLocation -> Bool
 isSolidAt terrain location = inRange (terrainBounds terrain) location
@@ -133,10 +169,6 @@ blockRangeX :: BlockLocation -> (Float, Float)
 blockRangeX b = (blockLeftX b, blockRightX b)
 blockRangeY :: BlockLocation -> (Float, Float)
 blockRangeY b = (blockBotY b, blockTopY b)
-inBlockRangeX :: BlockLocation -> Float -> Bool
-inBlockRangeX b bx = blockLeftX b <= bx && bx <= blockRightX b
-inBlockRangeY :: BlockLocation -> Float -> Bool
-inBlockRangeY b by = blockBotY b <= by && by <= blockTopY b
 
 asks :: Member (Reader s) r => (s -> a) -> Eff r a
 asks f = map f ask
@@ -191,3 +223,16 @@ newInGamePlayer player location = InGamePlayer
 
 incrementGameTick :: GameState -> GameState
 incrementGameTick s@GameState { gameTicks } = s { gameTicks = gameTicks + 1 }
+
+-- TODO: test
+minimumVector :: [VelocityVector] -> VelocityVector
+minimumVector vs = fromMaybe (VelocityVector 0 0) $ do
+    minX <- minimumByMay (compare `on` abs) . map velocityX $ vs
+    minY <- minimumByMay (compare `on` abs) . map velocityY $ vs
+    return $ VelocityVector minX minY
+    -- TODO: what should happen if positive and negative vectors are given?
+
+-- TODO: test
+diffLocation :: Location -> Location -> VelocityVector
+diffLocation (Location (x1, y1)) (Location (x2, y2)) =
+    VelocityVector (x2 - x1) (y2 - y1)

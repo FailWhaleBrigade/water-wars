@@ -11,7 +11,7 @@ import Data.UUID
 import Data.UUID.V4
 
 import Options.Applicative
-
+import Terrains
 import WaterWars.Core.DefaultGame
 import WaterWars.Core.Game
 import WaterWars.Core.Terrain.Read
@@ -52,6 +52,7 @@ runLoop :: (MonadIO m, MonadUnliftIO m) => Arguments -> m ()
 runLoop arguments = do
     -- read resources
     terrain           <- readTerrainFromFile "resources/game1.txt"
+    -- let terrain = terrain1
 
     -- Initialize server state
     broadcastChan     <- atomically newBroadcastTChan
@@ -62,7 +63,7 @@ runLoop arguments = do
     forever
         ( runStdoutLoggingT
         $ filterLogger (\_ level -> level /= LevelDebug)
-        $ gameLoopServer gameLoopStateTvar sessionMapTvar broadcastChan
+        $ gameLoopServer arguments gameLoopStateTvar sessionMapTvar broadcastChan
         )
 
 
@@ -107,11 +108,12 @@ handleConnection sessionMapTvar broadcastChan websocketConn = do
 
 gameLoopServer
     :: (MonadIO m, MonadLogger m, MonadUnliftIO m)
-    => TVar GameLoopState
+    => Arguments 
+    -> TVar GameLoopState
     -> TVar (Map Text ClientConnection)
     -> TChan EventMessage
     -> m ()
-gameLoopServer gameLoopStateTvar sessionMapTvar broadcastChan = do
+gameLoopServer arguments gameLoopStateTvar sessionMapTvar broadcastChan = do
     readBroadcastChan <- atomically $ dupTChan broadcastChan
     playerActionTvar  <- newTVarIO (PlayerActions (mapFromList empty))
     playerInGameTvar  <- newTVarIO $ mapFromList []
@@ -126,7 +128,7 @@ gameLoopServer gameLoopStateTvar sessionMapTvar broadcastChan = do
                                   gameStartTvar
     _ <- async (eventLoop sharedState)
     $logInfo "Start game loop"
-    runGameLoop gameLoopStateTvar broadcastChan playerActionTvar
+    runGameLoop arguments gameLoopStateTvar broadcastChan playerActionTvar
     return ()
 
 

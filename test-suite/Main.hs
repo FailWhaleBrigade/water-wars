@@ -5,7 +5,9 @@ module Main where
 import           ClassyPrelude
 import qualified Test.Tasty
 import           Test.Tasty.Hspec
-import WaterWars.Core.PhysicsTest
+import           WaterWars.Core.CollisionTest
+import           WaterWars.Core.GeometryTest
+import           WaterWars.Core.GameUtilsTest
 
 main :: IO ()
 main = do
@@ -14,6 +16,10 @@ main = do
 
 spec :: Spec
 spec = parallel $ do
-    it "is trivially true" $ do
+    it "is trivially true" $
         True `shouldBe` True
     physicsTests
+    geometryTests
+    gameUtilsTest
+
+-- TODO: fuzz tests on games / physics

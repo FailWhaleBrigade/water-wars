@@ -8,10 +8,11 @@ data Arguments =
     Arguments
         { hostname :: Text
         , port :: Int
+        , fps :: Float
         } deriving (Show, Eq, Ord, Read)
 
 argumentsParser :: Parser Arguments
-argumentsParser = Arguments <$> hostnameParser <*> portParser
+argumentsParser = Arguments <$> hostnameParser <*> portParser <*> fpsParser
 
 hostnameParser :: Parser Text
 hostnameParser = strOption
@@ -30,4 +31,14 @@ portParser = option
     ++ metavar "Port"
     ++ help "Port for the Server to listen to"
     ++ value 1234
+    )
+
+fpsParser :: Parser Float
+fpsParser = option
+    auto
+    (  long "fps"
+    ++ short 's'
+    ++ metavar "FPS"
+    ++ help "Number of frames per second that the server shall perform"
+    ++ value 60
     )
