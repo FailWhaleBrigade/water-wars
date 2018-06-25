@@ -21,7 +21,7 @@ loadPngAsBmp path = do
     if not isWritten
         then throwError ("Could not write to File: " ++ show path)
         else liftIO (loadBMP (path ++ ".bmp"))
-
+{--
 loadPngInMemory :: (MonadIO m, MonadError String m) => FilePath -> m (Juicy.Image Juicy.PixelRGBA8)
 loadPngInMemory path = do
     imgEither <- liftIO $ Juicy.readPng path
@@ -30,6 +30,6 @@ loadPngInMemory path = do
         _ -> throwError $ "Could not decode image: " ++ path
         ) 
         imgEither
-
+--}
 bulkLoad :: (MonadIO m, MonadError String m) => Seq FilePath -> m (Seq Picture)
 bulkLoad = mapM loadPngAsBmp

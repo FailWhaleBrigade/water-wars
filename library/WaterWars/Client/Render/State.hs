@@ -163,12 +163,6 @@ setTerrain decoration terrain World {..} = World
     blockMap'      = blockMap $ resources renderInfo
     decorationMap' = decorationMap $ resources renderInfo
     terrainArray   = CoreState.terrainBlocks terrain
-    (BlockLocation (lowerX, upperX), BlockLocation (lowerY, upperY)) =
-        bounds terrainArray
-    mapWidth      = fromIntegral (upperX - lowerX) * blockSize
-    mapHeight     = fromIntegral (upperY - lowerY) * blockSize
-    mapWidthHalf  = mapWidth / 2
-    mapHeightHalf = mapHeight / 2
 
     blockPositions
         :: Array BlockLocation Block -> Map BlockContent Picture -> [Solid]
