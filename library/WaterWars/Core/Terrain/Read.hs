@@ -10,18 +10,41 @@ readTerrainFromFile :: MonadIO m => FilePath -> m Terrain
 readTerrainFromFile terrainFilePath = do
     terrainFile           <- liftIO $ openFile terrainFilePath ReadMode
     content :: ByteString <- hGetContents terrainFile
-    return $ charMatrixToTerrain . lines . unpack . decodeUtf8 $ content
+    let extractedTerrain =
+            charMatrixToTerrain . lines . unpack . decodeUtf8 $ content
+    case extractedTerrain of
+        Left  err -> do
+            putStrLn err
+            fail ""
+        Right x   -> do
+            let Terrain a = x
+            print $ bounds a
+            return x
+
 
 -- TODO: make bounds generic
-charMatrixToTerrain :: [String] -> Terrain
-charMatrixToTerrain x =
-    Terrain
-        $ listArray (BlockLocation (-8, -8), BlockLocation (8, 8))
+charMatrixToTerrain :: [String] -> Either Text Terrain
+charMatrixToTerrain x = do
+    let height = length x
+    when (height `mod` 2 == 0) $ Left "height has to be an odd number"
+    let widths = map length x
+    unless (allEqual widths) $ Left "not all lines have equal length"
+    let width = headEx widths
+
+    let maxX  = width `div` 2
+    let maxY  = height `div` 2
+    return
+        $ Terrain
+        $ listArray (BlockLocation (-maxX, -maxY), BlockLocation (maxX, maxY))
         . map charToBlock
         . concat
         . transpose
         . reverse
         $ x
+
+allEqual :: Eq a => [a] -> Bool
+allEqual []       = True
+allEqual (a : as) = all (== a) as
 
 charToBlock :: Char -> Block
 charToBlock 'x' = SolidBlock Middle
