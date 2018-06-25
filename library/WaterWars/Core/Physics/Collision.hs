@@ -2,10 +2,8 @@ module WaterWars.Core.Physics.Collision where
 
 import           ClassyPrelude
 import           WaterWars.Core.Game
-import           WaterWars.Core.Physics.Utils
 import           WaterWars.Core.Physics.Geometry
 import           Data.List                                ( nub )
-import           System.IO.Unsafe                         ( unsafePerformIO )
 
 -- TODO: some assertion that player cannot be inside a block
 moveWithCollision

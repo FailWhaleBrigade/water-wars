@@ -11,7 +11,6 @@ import Data.UUID
 import Data.UUID.V4
 
 import Options.Applicative
-import Terrains
 import WaterWars.Core.DefaultGame
 import WaterWars.Core.Game
 import WaterWars.Core.Terrain.Read
@@ -108,7 +107,7 @@ handleConnection sessionMapTvar broadcastChan websocketConn = do
 
 gameLoopServer
     :: (MonadIO m, MonadLogger m, MonadUnliftIO m)
-    => Arguments 
+    => Arguments
     -> TVar GameLoopState
     -> TVar (Map Text ClientConnection)
     -> TChan EventMessage
@@ -130,5 +129,3 @@ gameLoopServer arguments gameLoopStateTvar sessionMapTvar broadcastChan = do
     $logInfo "Start game loop"
     runGameLoop arguments gameLoopStateTvar broadcastChan playerActionTvar
     return ()
-
-
