@@ -38,4 +38,3 @@ quietParser = switch
     ++ short 'q'
     ++ help "Silences the music of the game"
     )
-        

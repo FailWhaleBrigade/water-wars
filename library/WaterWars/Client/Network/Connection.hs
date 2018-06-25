@@ -9,7 +9,7 @@ where
 import           ClassyPrelude
 
 import qualified Network.WebSockets            as WS
-
+import Sound.ProteaAudio
 import           Control.Monad.Logger
 
 import           Control.Concurrent
@@ -68,10 +68,19 @@ receiveUpdates (WorldSTM tvar) conn =
                   Left msg_ ->
                       $logWarn $ "Could not read message: " ++ tshow msg_
 
-                  Right msg -> atomically $ do
-                      world <- readTVar tvar
-                      let world' = updateWorld msg world
-                      writeTVar tvar world'
+                  Right msg -> do
+                      (world', events) <- atomically $ do
+                          world <- readTVar tvar
+                          let (world', maybeEvents) = updateWorld msg world
+                          writeTVar tvar world'
+                          return (world', maybeEvents)
+                      when (isJust events) $ liftIO $ soundPlay
+                          (shootSound . resources $ renderInfo world')
+                          1
+                          1
+                          0
+                          1
+                      return ()
 
               return ()
 
@@ -108,44 +117,49 @@ sendUpdates (WorldSTM tvar) conn =
               return ()
 
 
-updateWorld :: Protocol.ServerMessage -> World -> World
+updateWorld :: Protocol.ServerMessage -> World -> (World, Maybe GameEvents)
 updateWorld serverMsg world@World {..} = case serverMsg of
     GameMapMessage gameMap ->
-        setTerrain (terrainDecoration gameMap) (gameTerrain gameMap) world
-
+        ( setTerrain (terrainDecoration gameMap) (gameTerrain gameMap) world
+        , Nothing
+        )
     GameStateMessage gameState@GameState {..} gameEvents ->
-        let WorldInfo {..} = worldInfo
-            {--
-            inGamePlayers_ :: Seq InGamePlayer
-            inGamePlayers_ = getInGamePlayers inGamePlayers
+        let
+            WorldInfo {..} = worldInfo
 
-            deadPlayers_ :: Seq DeadPlayer
-            deadPlayers_ = getDeadPlayers gameDeadPlayers
-            --}
             newProjectiles :: Seq Projectile
             newProjectiles = getProjectiles gameProjectiles
 
             worldInfo_     = WorldInfo {projectiles = newProjectiles, ..}
-        in  World
+            maybeEvents    = if null $ getGameEvents gameEvents
+                then Nothing
+                else Just gameEvents
+        in
+            ( World
                 { worldInfo      = worldInfo_
                 , lastGameUpdate = ServerUpdate gameState
                 , ..
                 }
+            , maybeEvents
+            )
 
-    GameSetupResponseMessage _ -> world
+    GameSetupResponseMessage _ -> (world, Nothing)
 
     LoginResponseMessage loginResponse ->
         let WorldInfo {..} = worldInfo
             newPlayer = Just (playerDescription $ successPlayer loginResponse)
             worldInfo_ = WorldInfo {localPlayer = newPlayer, ..}
-        in  World {worldInfo = worldInfo_, ..}
+        in  (World {worldInfo = worldInfo_, ..}, Nothing)
 
     GameWillStartMessage (GameStart n) ->
-        world { worldInfo = worldInfo { countdown = Just n } }
+        (world { worldInfo = worldInfo { countdown = Just n } }, Nothing)
 
-    GameStartMessage -> world
-        { worldInfo = worldInfo { countdown = Nothing, gameRunning = True }
-        }
+    GameStartMessage ->
+        ( world
+            { worldInfo = worldInfo { countdown = Nothing, gameRunning = True }
+            }
+        , Nothing
+        )
 
 
 extractGameAction :: TVar World -> STM Protocol.PlayerAction
@@ -165,8 +179,7 @@ extractGameAction worldTvar = do
             let shootLocation = playerHeadLocation inGamePlayer
             return $ calculateAngle shootLocation shootTarget
     when (isJust shoot) $ writeTVar worldTvar $ world
-        { worldInfo = WorldInfo
-            {shoot = Nothing, lastShot = shoot, ..}
+        { worldInfo = WorldInfo {shoot = Nothing, lastShot = shoot, ..}
         }
 
     let playerAction = Action
