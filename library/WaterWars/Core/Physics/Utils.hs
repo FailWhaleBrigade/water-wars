@@ -27,8 +27,8 @@ collisionPointsOfPlayer InGamePlayer {..} =
         ++ [ Location (x, y1) | x <- xs ] -- top border
   where
     Location (x_, y_) = playerLocation
-    numX              = fromIntegral $ 1 + floor playerWidth
-    numY              = fromIntegral $ 1 + floor playerHeight
+    numX              = fromIntegral (1 + floor playerWidth :: Int)
+    numY              = fromIntegral (1 + floor playerHeight :: Int)
     dx                = playerWidth / numX
     dy                = playerHeight / numY
     x0                = x_ - playerWidth / 2
@@ -43,6 +43,14 @@ bottomPointsOfPlayer :: InGamePlayer -> [Location]
 bottomPointsOfPlayer p@InGamePlayer { playerLocation = Location (_, py) } =
     filter (\(Location (_, y)) -> y == py) . collisionPointsOfPlayer $ p
 
+rightPointsOfPlayer :: InGamePlayer -> [Location]
+rightPointsOfPlayer p@InGamePlayer { playerLocation = Location (px, _), playerWidth } =
+    filter (\(Location (x, _)) -> x == px + playerWidth / 2) . collisionPointsOfPlayer $ p
+
+leftPointsOfPlayer :: InGamePlayer -> [Location]
+leftPointsOfPlayer p@InGamePlayer { playerLocation = Location (px, _), playerWidth } =
+    filter (\(Location (x, _)) -> x == px - playerWidth / 2) . collisionPointsOfPlayer $ p
+
 -- bound velocity vector to be max 0.5 in both directions
 boundVelocityVector :: (Float, Float) -> VelocityVector -> VelocityVector
 boundVelocityVector (maxX, maxY) v@(VelocityVector vx vy) =
@@ -50,19 +58,3 @@ boundVelocityVector (maxX, maxY) v@(VelocityVector vx vy) =
         then v
         else VelocityVector (boundedBy (-maxX, maxX) vx)
                             (boundedBy (-maxY, maxY) vy)
-
-
-isInsideBlock :: Location -> BlockLocation -> Bool
-isInsideBlock (Location (x, y)) block =
-    blockRangeX block `hasInside` x && blockRangeY block `hasInside` y
-
-hasInside :: Ord a => (a, a) -> a -> Bool
-hasInside (l, u) x = l < x && x < u
-
-containsInclusive :: Ord a => (a, a) -> a -> Bool
-containsInclusive (l, u) x = l <= x && x <= u
-
-boundedBy :: Ord a => (a, a) -> a -> a
-boundedBy (l, u) x | x < l     = l
-                   | x > u     = u
-                   | otherwise = x

@@ -41,12 +41,42 @@ verticalDragPlayer onGround player@InGamePlayer {..} =
 isPlayerOnGround :: Member (Reader GameMap) e => InGamePlayer -> Eff e Bool
 isPlayerOnGround player = do
     terrain <- asks gameTerrain
-    let blocksBelowFeet = map blockBelow $ bottomPointsOfPlayer player
+    let blocksBelowFeet = mapMaybe blockBelow $ bottomPointsOfPlayer player
     return $ any (terrain `isSolidAt`) blocksBelowFeet
 
-blockBelow :: Location -> BlockLocation
+isPlayerOnRightWall :: Member (Reader GameMap) e => InGamePlayer -> Eff e Bool
+isPlayerOnRightWall player = do
+    terrain <- asks gameTerrain
+    let blockOnRight = mapMaybe blockRight $ rightPointsOfPlayer player
+    return $ any (terrain `isSolidAt`) blockOnRight
+
+isPlayerOnLeftWall :: Member (Reader GameMap) e => InGamePlayer -> Eff e Bool
+isPlayerOnLeftWall player = do
+    terrain <- asks gameTerrain
+    let blockOnLeft = mapMaybe blockLeft $ leftPointsOfPlayer player
+    return $ any (terrain `isSolidAt`) blockOnLeft
+
+-- TODO: try to refactor?
+doesPlayerRunAgainstWall
+    :: Member (Reader GameMap) e
+    => Maybe RunAction
+    -> InGamePlayer
+    -> Eff e Bool
+doesPlayerRunAgainstWall Nothing         = const $ return False
+doesPlayerRunAgainstWall (Just (RunAction RunLeft)) = isPlayerOnLeftWall
+doesPlayerRunAgainstWall (Just (RunAction RunRight)) = isPlayerOnRightWall
+
+blockBelow :: Location -> Maybe BlockLocation
 blockBelow (Location (x, y)) =
-    BlockLocation (round x, round $ y - blockBelowTolerance)
+    getBlock $ Location (x, y - blockBelowTolerance)
+
+blockRight :: Location -> Maybe BlockLocation
+blockRight (Location (x, y)) =
+    getBlock $ Location (x + blockBelowTolerance, y)
+
+blockLeft :: Location -> Maybe BlockLocation
+blockLeft (Location (x, y)) =
+    getBlock $ Location (x - blockBelowTolerance, y)
 
 movePlayer :: Member (Reader GameMap) e => InGamePlayer -> Eff e InGamePlayer
 movePlayer player@InGamePlayer {..} = do

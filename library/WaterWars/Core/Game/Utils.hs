@@ -236,3 +236,25 @@ minimumVector vs = fromMaybe (VelocityVector 0 0) $ do
 diffLocation :: Location -> Location -> VelocityVector
 diffLocation (Location (x1, y1)) (Location (x2, y2)) =
     VelocityVector (x2 - x1) (y2 - y1)
+
+
+getBlock :: Location -> Maybe BlockLocation
+getBlock location =
+    if location `isInsideBlock` block then Just block else Nothing
+    where
+        block = getApproximateBlock location
+
+isInsideBlock :: Location -> BlockLocation -> Bool
+isInsideBlock (Location (x, y)) block =
+    blockRangeX block `hasInside` x && blockRangeY block `hasInside` y
+
+hasInside :: Ord a => (a, a) -> a -> Bool
+hasInside (l, u) x = l < x && x < u
+
+containsInclusive :: Ord a => (a, a) -> a -> Bool
+containsInclusive (l, u) x = l <= x && x <= u
+
+boundedBy :: Ord a => (a, a) -> a -> a
+boundedBy (l, u) x | x < l     = l
+       | x > u     = u
+       | otherwise = x

@@ -74,9 +74,11 @@ modifyPlayerByAction player = execState player $ do
     let action =
             fromMaybe noAction $ lookup (playerDescription player) actionMap
     doShootAction action
+
+    runsAgainsWall <- doesPlayerRunAgainstWall (runAction action) player
     modify
         ( modifyPlayerShootCooldown
-        . modifyPlayerByRunAction isOnGround action -- TODO: use local reader here?
+        . modifyPlayerByRunAction isOnGround runsAgainsWall action -- TODO: use local reader here?
         . modifyPlayerByJumpAction isOnGround action
         )
 
@@ -87,9 +89,10 @@ modifyPlayerByJumpAction onGround action player@InGamePlayer {..} =
         JumpAction <- jumpAction action
         return $ setPlayerVelocity (jumpVector playerVelocity) player
 
-modifyPlayerByRunAction :: Bool -> Action -> InGamePlayer -> InGamePlayer
-modifyPlayerByRunAction onGround action player@InGamePlayer {..} =
+modifyPlayerByRunAction :: Bool -> Bool -> Action -> InGamePlayer -> InGamePlayer
+modifyPlayerByRunAction onGround runsAgainstWall action player@InGamePlayer {..} =
     fromMaybe player $ do -- maybe monad
+        guard (not runsAgainstWall)
         RunAction runDirection <- runAction action
         return $ setPlayerVelocity
             (  velocityBoundX runSpeed
