@@ -84,7 +84,7 @@ render World {..} = Gloss.pictures
         guard gameRunning
         guard (length livingPlayers == 1)
         guard (isJust (find ((== p) . playerDescription) livingPlayers))
-        return $ displayText youWinTexture    
+        return $ displayText youWinTexture
 
 inGamePlayerColor :: Color
 inGamePlayerColor = red
@@ -166,6 +166,3 @@ displayAnimation Animation {..} = headEx animationPictures
 
 displayText :: Picture -> Picture
 displayText = translate 0 100
-
-
-

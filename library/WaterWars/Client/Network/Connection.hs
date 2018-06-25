@@ -143,7 +143,9 @@ updateWorld serverMsg world@World {..} = case serverMsg of
     GameWillStartMessage (GameStart n) ->
         world { worldInfo = worldInfo { countdown = Just n } }
 
-    GameStartMessage -> world { worldInfo = worldInfo { countdown = Nothing } }
+    GameStartMessage -> world
+        { worldInfo = worldInfo { countdown = Nothing, gameRunning = True }
+        }
 
 
 extractGameAction :: TVar World -> STM Protocol.PlayerAction
@@ -177,3 +179,4 @@ extractGameAction worldTvar = do
 calculateAngle :: Location -> Location -> Angle
 calculateAngle (Location (x1, y1)) (Location (x2, y2)) =
     Angle (atan2 (y2 - y1) (x2 - x1))
+
