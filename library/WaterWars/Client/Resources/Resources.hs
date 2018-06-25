@@ -5,6 +5,7 @@ import Control.Monad.Except
 import Sound.ProteaAudio
 import Graphics.Gloss.Interface.IO.Game
 
+import WaterWars.Core.Terrain.Decoration
 import WaterWars.Client.Codec.Resource (loadPngAsBmp, bulkLoad)
 import WaterWars.Client.Resources.Block (loadBlockMap, BlockMap)
 
@@ -22,10 +23,10 @@ data Resources =
         , youWinTexture :: Picture
         , youLostTexture :: Picture
         , shootSound :: Sample
+        , decorationMap :: Map Decoration Picture
         }
 
 setup :: (MonadIO m, MonadError String m) => m Resources
-
 setup = do
     bgTex <- loadPngAsBmp "resources/textures/background/background.png"
     prjTex <- loadPngAsBmp "resources/textures/decoration/bubble.png"
@@ -46,16 +47,25 @@ setup = do
         , "resources/textures/writing/1.png"
         , "resources/textures/writing/GO.png"
         ]
-    
-    connectingTex <- bulkLoad $ fromList 
+
+    connectingTex <- bulkLoad $ fromList
         [ "resources/textures/writing/connecting0.png"
         , "resources/textures/writing/connecting1.png"
         , "resources/textures/writing/connecting2.png"
         , "resources/textures/writing/connecting3.png"
         ]
+    decorationTexsList <- bulkLoad $ fromList
+        [ "resources/textures/decoration/algea.png"
+        , "resources/textures/decoration/coral.png"
+        , "resources/textures/decoration/snail.png"
+        , "resources/textures/decoration/umbrella.png"
+        ]
+    let decorationTypeList = fromList [Algea, Coral, Snail, Umbrella]
+    let decorationM =
+            mapFromList $ toList $ zip decorationTypeList decorationTexsList
 
-    winTex <- loadPngAsBmp "resources/textures/writing/win.png"
-    lostTex <- loadPngAsBmp "resources/textures/writing/lost.png"
+    winTex     <- loadPngAsBmp "resources/textures/writing/win.png"
+    lostTex    <- loadPngAsBmp "resources/textures/writing/lost.png"
 
     blockMap   <- loadBlockMap
     shootSound <- liftIO
@@ -69,9 +79,10 @@ setup = do
                        (toList countdownTexs)
                        blockMap
                        (toList connectingTex)
-                       winTex 
+                       winTex
                        lostTex
                        shootSound
+                       decorationM
 
 getMermaidPaths :: String -> Int -> Int -> [String]
 getMermaidPaths pathStart ind mx
@@ -79,3 +90,4 @@ getMermaidPaths pathStart ind mx
     = []
     | otherwise
     = (pathStart ++ show ind ++ ".png") : getMermaidPaths pathStart (ind + 1) mx
+

@@ -69,7 +69,7 @@ render World {..} = Gloss.pictures
     projectilePictures = map (projectileToPicture renderInfo) projectiles
 
     solidPictures :: Seq Picture
-    solidPictures = map solidToPicture solids
+    solidPictures = map solidToPicture (solids ++ decorations)
 
     mantaPicture :: Picture
     mantaPicture = backgroundAnimationToPicture renderInfo mantaAnimation

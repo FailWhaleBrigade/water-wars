@@ -111,7 +111,7 @@ sendUpdates (WorldSTM tvar) conn =
 updateWorld :: Protocol.ServerMessage -> World -> World
 updateWorld serverMsg world@World {..} = case serverMsg of
     GameMapMessage gameMap ->
-        setTerrain (blockMap $ resources renderInfo) (gameTerrain gameMap) world
+        setTerrain (terrainDecoration gameMap) (gameTerrain gameMap) world
 
     GameStateMessage gameState@GameState {..} gameEvents ->
         let WorldInfo {..} = worldInfo

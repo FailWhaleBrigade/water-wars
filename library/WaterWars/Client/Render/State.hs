@@ -15,6 +15,7 @@ where
 import           ClassyPrelude
 import           Graphics.Gloss
 import           Data.Array.IArray
+import           Data.Maybe (fromJust)
 
 import           Data.List                                ( cycle )
 
@@ -48,8 +49,9 @@ data RenderInfo = RenderInfo
     , newPlayerDeathAnimation :: PlayerAnimation
     , playerAnimations :: Map Player PlayerAnimation
     , connectingAnimation :: Animation
-    , solids :: Seq Solid
     , mantaAnimation :: BackgroundAnimation
+    , solids :: Seq Solid
+    , decorations :: Seq Solid
     }
 
 newtype ServerUpdate = ServerUpdate
@@ -114,6 +116,7 @@ initializeState resources@Resources {..} = WorldSTM <$> newTVarIO World
             , direction       = RightDir
             }
         , solids                     = empty
+        , decorations                = empty
         , connectingAnimation        = Animation
             { countDownTilNext  = 60
             , countDownMax      = 60
@@ -145,13 +148,21 @@ initializeState resources@Resources {..} = WorldSTM <$> newTVarIO World
         }
     }
 
-setTerrain :: BlockMap -> CoreState.Terrain -> World -> World
-setTerrain blockMap terrain World {..} = World
-    { renderInfo = renderInfo { solids = fromList blockPositions }
+setTerrain :: CoreState.TerrainDecoration -> CoreState.Terrain -> World -> World
+setTerrain decoration terrain World {..} = World
+    { renderInfo = renderInfo
+        { solids      = fromList (blockPositions terrainArray blockMap')
+        , decorations = fromList
+            (decorationPositions (terrainDecorationArray decoration)
+                                 decorationMap'
+            )
+        }
     , ..
     }
   where
-    terrainArray = CoreState.terrainBlocks terrain
+    blockMap'      = blockMap $ resources renderInfo
+    decorationMap' = decorationMap $ resources renderInfo
+    terrainArray   = CoreState.terrainBlocks terrain
     (BlockLocation (lowerX, upperX), BlockLocation (lowerY, upperY)) =
         bounds terrainArray
     mapWidth      = fromIntegral (upperX - lowerX) * blockSize
@@ -159,15 +170,29 @@ setTerrain blockMap terrain World {..} = World
     mapWidthHalf  = mapWidth / 2
     mapHeightHalf = mapHeight / 2
 
-    blockPositions :: [Solid]
-    blockPositions = mapMaybe
+    blockPositions
+        :: Array BlockLocation Block -> Map BlockContent Picture -> [Solid]
+    blockPositions locationMap pictureMap = mapMaybe
         (\(loc, block) -> case block of
             NoBlock -> Nothing
             SolidBlock content ->
                 blockLocationToSolid mapWidthHalf mapHeightHalf blockSize loc
-                    <$> lookup content blockMap
+                    <$> lookup content pictureMap
         )
-        (assocs terrainArray)
+        (assocs locationMap)
+    decorationPositions :: Array BlockLocation [Decoration] -> Map Decoration Picture -> [Solid]
+    decorationPositions locationMap pictureMap = concatMap
+        (\(loc, deco) -> do
+            decorationElement <- deco
+            let picture = lookup decorationElement pictureMap
+            guard (isJust picture)
+            return $ blockLocationToSolid mapWidthHalf
+                                          mapHeightHalf
+                                          blockSize
+                                          loc
+                                          (fromJust picture)
+        )
+        (assocs locationMap)
 
 blockLocationToSolid
     :: Float -> Float -> Float -> BlockLocation -> Picture -> Solid
@@ -204,3 +229,6 @@ deadPlayerUpdateOperation BackgroundAnimation {..} = BackgroundAnimation
   where
     Location (x, y) = location
     newY            = y + 0.05
+
+
+
