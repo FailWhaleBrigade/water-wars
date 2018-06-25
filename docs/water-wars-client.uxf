@@ -5,7 +5,7 @@
     <id>UMLState</id>
     <coordinates>
       <x>220</x>
-      <y>290</y>
+      <y>320</y>
       <w>110</w>
       <h>50</h>
     </coordinates>
@@ -52,7 +52,7 @@ Listener</panel_attributes>
       <x>180</x>
       <y>120</y>
       <w>210</w>
-      <h>120</h>
+      <h>150</h>
     </coordinates>
     <panel_attributes>World
 &lt;&lt;client-state&gt;&gt;
@@ -61,14 +61,16 @@ RenderInfo
 &gt; loaded resources
 --
 WorldInfo
-&gt; Game-state</panel_attributes>
+&gt; Game-state
+--
+Network-Info</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>Relation</id>
     <coordinates>
       <x>270</x>
-      <y>230</y>
+      <y>260</y>
       <w>30</w>
       <h>80</h>
     </coordinates>
