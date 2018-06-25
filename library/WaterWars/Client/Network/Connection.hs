@@ -9,7 +9,7 @@ where
 import           ClassyPrelude
 
 import qualified Network.WebSockets            as WS
-import Sound.ProteaAudio
+import           Sound.ProteaAudio
 import           Control.Monad.Logger
 
 import           Control.Concurrent
@@ -113,7 +113,7 @@ sendUpdates (WorldSTM tvar) conn =
               send conn (PlayerActionMessage action)
               when (readyUp $ worldInfo world)
                    (send conn (ClientReadyMessage ClientReady))
-              liftIO $ threadDelay (1000000 `div` 100)
+              liftIO $ threadDelay (1000000 `div` 80)
               return ()
 
 
