@@ -176,7 +176,7 @@ setTerrain decoration terrain World {..} = World
         (\(loc, block) -> case block of
             NoBlock -> Nothing
             SolidBlock content ->
-                blockLocationToSolid mapWidthHalf mapHeightHalf blockSize loc
+                blockLocationToSolid blockSize loc
                     <$> lookup content pictureMap
         )
         (assocs locationMap)
@@ -186,22 +186,20 @@ setTerrain decoration terrain World {..} = World
             decorationElement <- deco
             let picture = lookup decorationElement pictureMap
             guard (isJust picture)
-            return $ blockLocationToSolid mapWidthHalf
-                                          mapHeightHalf
-                                          blockSize
+            return $ blockLocationToSolid blockSize
                                           loc
                                           (fromJust picture)
         )
         (assocs locationMap)
 
 blockLocationToSolid
-    :: Float -> Float -> Float -> BlockLocation -> Picture -> Solid
-blockLocationToSolid mapWidthHalf mapHeightHalf size (BlockLocation (x, y)) picture
+    :: Float -> BlockLocation -> Picture -> Solid
+blockLocationToSolid size (BlockLocation (x, y)) picture
     = Solid
         { solidWidth   = size
         , solidHeight  = size
-        , solidCenter  = ( fromIntegral x * size - mapWidthHalf
-                         , fromIntegral y * size - mapHeightHalf
+        , solidCenter  = ( fromIntegral x * size
+                         , fromIntegral y * size
                          )
         , solidTexture = picture
         }
