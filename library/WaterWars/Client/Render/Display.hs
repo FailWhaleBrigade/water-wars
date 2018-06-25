@@ -26,6 +26,7 @@ render World {..} = Gloss.pictures
     ++ toList projectilePictures
     ++ maybeToList readyPicture
     ++ maybeToList winPicture
+    ++ maybeToList shootTargetPicture
     )
   where
     RenderInfo {..} = renderInfo
@@ -85,6 +86,11 @@ render World {..} = Gloss.pictures
         guard (length livingPlayers == 1)
         guard (isJust (find ((== p) . playerDescription) livingPlayers))
         return $ displayText youWinTexture
+
+    shootTargetPicture :: Maybe Picture
+    shootTargetPicture = do
+        Location (x,y) <- lastShot
+        return $ translate (blockSize*x) (blockSize*y) $ circle 5
 
 inGamePlayerColor :: Color
 inGamePlayerColor = red

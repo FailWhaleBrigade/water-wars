@@ -165,7 +165,8 @@ extractGameAction worldTvar = do
             let shootLocation = playerHeadLocation inGamePlayer
             return $ calculateAngle shootLocation shootTarget
     when (isJust shoot) $ writeTVar worldTvar $ world
-        { worldInfo = WorldInfo {shoot = Nothing, ..}
+        { worldInfo = WorldInfo
+            {shoot = Nothing, lastShot = shoot, ..}
         }
 
     let playerAction = Action
@@ -179,4 +180,3 @@ extractGameAction worldTvar = do
 calculateAngle :: Location -> Location -> Angle
 calculateAngle (Location (x1, y1)) (Location (x2, y2)) =
     Angle (atan2 (y2 - y1) (x2 - x1))
-

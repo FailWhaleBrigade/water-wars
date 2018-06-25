@@ -3,9 +3,6 @@ module WaterWars.Core.Physics.Utils where
 import           ClassyPrelude
 import           WaterWars.Core.Game
 
-angleFromVector :: VelocityVector -> Angle
-angleFromVector (VelocityVector vx vy) = Angle $ atan2 vx vy
-
 velocityBoundX :: Float -> VelocityVector -> VelocityVector
 velocityBoundX maxX v@(VelocityVector vx vy) =
     if abs vx <= maxX then v else VelocityVector (boundedBy (-maxX, maxX) vx) vy

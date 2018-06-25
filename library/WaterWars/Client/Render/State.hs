@@ -61,6 +61,7 @@ data WorldInfo = WorldInfo
     , walkLeft  :: Bool
     , walkRight :: Bool
     , shoot     :: Maybe Location
+    , lastShot  :: Maybe Location
     , duck      :: Bool
     , exitGame  :: Bool
     , readyUp   :: Bool
@@ -125,6 +126,7 @@ initializeState resources@Resources {..} = WorldSTM <$> newTVarIO World
         , walkRight   = False
         , duck        = False
         , shoot       = Nothing
+        , lastShot    = Nothing
         , exitGame    = False
         , readyUp     = False
         , countdown   = Nothing

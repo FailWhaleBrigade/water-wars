@@ -147,7 +147,7 @@ modifyPlayerByEnvironment p = do
 
 modifyProjectileByEnvironment :: Projectile -> Eff r Projectile
 modifyProjectileByEnvironment =
-    return . modifyProjectileVelocity (boundVelocityVector maxVelocity)
+    return -- . modifyProjectileVelocity (boundVelocityVector maxVelocity)
 
 -- TODO: test contained code
 checkProjectilePlayerCollision
