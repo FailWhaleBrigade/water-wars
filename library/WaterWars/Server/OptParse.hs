@@ -17,7 +17,6 @@ argumentsParser = Arguments <$> hostnameParser <*> portParser <*> fpsParser
 hostnameParser :: Parser Text
 hostnameParser = strOption
     (  long "hostname"
-    ++ short 'h'
     ++ metavar "Hostname"
     ++ help "Hostname where to run"
     ++ value "localhost"

@@ -17,7 +17,6 @@ argumentsParser = Arguments <$> hostnameParser <*> portParser <*> quietParser
 hostnameParser :: Parser Text
 hostnameParser = strOption
     (  long "hostname"
-    ++ short 'h'
     ++ metavar "Hostname"
     ++ help "Hostname of the Server Instance"
     ++ value "localhost"
@@ -34,12 +33,9 @@ portParser = option
     )
 
 quietParser :: Parser Bool
-quietParser = option
-    auto
+quietParser = switch
     (  long "quiet"
     ++ short 'q'
-    ++ metavar "Quiet"
-    ++ help "On true, silences the music of the game"
-    ++ value False
+    ++ help "Silences the music of the game"
     )
         
