@@ -42,7 +42,7 @@ clientReceive conn sendAction = forever $ do
     case msg of
         Left msg_ -> do
             $logWarn "Could not read message"
-            $logDebug $ "Could not read message: " ++ msg_
+            $logDebug $ "Could not read message: " ++ tshow msg_
         Right playerAction -> do
             $logDebug $ "Read a message: " ++ tshow playerAction
             sendAction playerAction

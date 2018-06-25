@@ -11,13 +11,13 @@ class NetworkConnection c where
     type SendType c :: * -- Type that is sent as a message
     type ReceiveType c :: * -- Type that is read from a message
     send :: (MonadIO m, Serializable (SendType c)) => c -> SendType c -> m ()
-    receive :: (MonadIO m, Deserializable (ReceiveType c)) => c -> m (Either Text (ReceiveType c))
+    receive :: (MonadIO m, Deserializable (ReceiveType c)) => c -> m (Either String (ReceiveType c))
 
 class Serializable c where
-    serialize :: c -> Text
+    serialize :: c -> ByteString
 
 class Deserializable c where
-    deserialize :: Text -> Maybe c
+    deserialize :: ByteString -> Either String c
 
 class NetworkConnections c where
     type WriteType c :: *

@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveGeneric #-}
+
 module WaterWars.Core.Game.Map
     ( module WaterWars.Core.Game.Map
     , module WaterWars.Core.Terrain.Block
@@ -14,18 +16,18 @@ data GameMap = GameMap
     { gameTerrain :: Terrain
     , terrainDecoration :: TerrainDecoration
     }
-    deriving (Show, Read, Eq)
+    deriving (Show, Read, Eq, Generic)
 
 -- |Terrain description of theBlockId
 newtype Terrain = Terrain
     { terrainBlocks :: Array BlockLocation Block
     }
-    deriving (Show, Read, Eq)
+    deriving (Show, Read, Eq, Generic)
 
 newtype TerrainDecoration = TerrainDecoration
     { terrainDecorationArray :: Array BlockLocation [Decoration]
     }
-    deriving (Eq, Read, Show)
+    deriving (Eq, Read, Show, Generic)
 
 terrainBounds :: Terrain -> (BlockLocation, BlockLocation)
 terrainBounds Terrain {..} = bounds terrainBlocks
@@ -42,4 +44,4 @@ instance Semigroup Terrain where
             useSolidBlock _ y = y
 
 newtype BlockLocation = BlockLocation (Int, Int)
-  deriving (Read, Show, Eq, Ord, Ix)
+  deriving (Read, Show, Eq, Ord, Ix, Generic)

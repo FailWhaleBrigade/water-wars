@@ -45,12 +45,10 @@ instance NetworkConnection ClientConnection where
         let msg = serialize toSend
         liftIO $ WS.sendTextData (connection conn) msg
 
-    receive :: MonadIO m => ClientConnection -> m (Either Text ClientMessage)
+    receive :: MonadIO m => ClientConnection -> m (Either String ClientMessage)
     receive conn = do
         msg <- liftIO $ WS.receiveData (connection conn)
-        case deserialize msg of
-            Nothing -> return $ Left msg
-            Just action -> return $ Right action
+        return $  deserialize msg
 
 newClientConnection
     :: Text

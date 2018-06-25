@@ -81,11 +81,10 @@ render World {..} = Gloss.pictures
     winPicture :: Maybe Picture
     winPicture = do
         p <- localPlayer
-        if gameRunning
-               && length livingPlayers == 1
-               && isJust (find ((== p) . playerDescription) livingPlayers)
-            then return $ displayText youWinTexture
-            else Nothing
+        guard gameRunning
+        guard (length livingPlayers == 1)
+        guard (isJust (find ((== p) . playerDescription) livingPlayers))
+        return $ displayText youWinTexture    
 
 inGamePlayerColor :: Color
 inGamePlayerColor = red

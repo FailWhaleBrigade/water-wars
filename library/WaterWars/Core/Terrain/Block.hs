@@ -14,12 +14,12 @@ data BlockContent
     | RightWall
     | Middle
     | Ceil
-    deriving (Show, Enum, Bounded, Eq, Ord, Read)
+    deriving (Show, Enum, Bounded, Eq, Ord, Read, Generic)
 
 data Block
     = SolidBlock BlockContent
     | NoBlock
-    deriving (Show, Eq, Ord, Read)
+    deriving (Show, Eq, Ord, Read, Generic)
 
 isSolid :: Block -> Bool
 isSolid (SolidBlock _) = True

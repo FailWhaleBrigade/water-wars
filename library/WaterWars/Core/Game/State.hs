@@ -16,12 +16,12 @@ data GameState = GameState
     , gameDeadPlayers :: DeadPlayers
     , gameProjectiles :: Projectiles
     , gameTicks :: Integer
-    } deriving (Show, Read, Eq)
+    } deriving (Show, Read, Eq, Generic)
 
 newtype InGamePlayers = InGamePlayers
     { getInGamePlayers :: Seq InGamePlayer
     }
-    deriving (Read, Show, Eq, MonoFunctor, Monoid)
+    deriving (Read, Show, Eq, MonoFunctor, Monoid, Generic)
 
 type instance Element InGamePlayers = InGamePlayer
 
@@ -36,17 +36,17 @@ data InGamePlayer = InGamePlayer
     , playerWidth :: Float
     , playerHeight :: Float
     }
-    deriving (Show, Read, Eq)
+    deriving (Show, Read, Eq, Generic)
 
 newtype Player = Player
     { playerId :: Text
     }
-    deriving (Show, Read, Eq, Ord)
+    deriving (Show, Read, Eq, Ord, Generic)
 
 newtype DeadPlayers = DeadPlayers
     { getDeadPlayers :: Seq DeadPlayer
     }
-    deriving (Read, Show, Eq, MonoFunctor, Monoid)
+    deriving (Read, Show, Eq, MonoFunctor, Monoid, Generic)
 
 type instance Element DeadPlayers = DeadPlayer
 
@@ -55,20 +55,20 @@ data DeadPlayer = DeadPlayer
     , deadPlayerLocation :: Location
     , playerDeathTick :: Integer
     }
-    deriving (Show, Read, Eq)
+    deriving (Show, Read, Eq, Generic)
 
 newtype Projectiles = Projectiles
     { getProjectiles :: Seq Projectile
     }
-    deriving (Show, Eq, Read)
+    deriving (Show, Eq, Read, Generic)
 
 data Projectile = Projectile
     { projectileLocation :: Location
     , projectileVelocity :: VelocityVector
     , projectilePlayer :: Player
     }
-    deriving (Show, Read, Eq, Ord)
+    deriving (Show, Read, Eq, Ord, Generic)
 
 -- TODO: better name
 data IsOnGround = OnGround | InAir
-    deriving (Show, Read, Enum)
+    deriving (Show, Read, Enum, Generic)

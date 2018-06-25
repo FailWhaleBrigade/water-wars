@@ -12,7 +12,7 @@ data Action = Action
     , jumpAction :: Maybe JumpAction
     , shootAction :: Maybe Angle
     }
-    deriving (Show, Read, Eq)
+    deriving (Show, Read, Eq, Generic)
 
 -- | right-biased semigroup. If a sub-action is present in both inputs, the
 --   right one is kept in the resulting action.
@@ -25,13 +25,13 @@ instance Monoid Action where
     mappend = (<>)
 
 newtype RunAction = RunAction RunDirection
-    deriving (Show, Read, Eq)
+    deriving (Show, Read, Eq, Generic)
 
 data JumpAction = JumpAction
-    deriving (Show, Read, Eq)
+    deriving (Show, Read, Eq, Generic)
 
 newtype ShootAction = ShootAction Angle
-    deriving (Show, Read, Eq)
+    deriving (Show, Read, Eq, Generic)
 
 noAction :: Action
 noAction = Action Nothing Nothing Nothing

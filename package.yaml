@@ -38,10 +38,12 @@ library:
   - extra
   - either
   - uuid
+  - cereal
   - monad-logger
   - optparse-applicative
   source-dirs: library
   default-extensions:
+  - DeriveGeneric
   - NamedFieldPuns
   - OverloadedStrings
   - NoImplicitPrelude
