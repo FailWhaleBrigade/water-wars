@@ -104,7 +104,6 @@ sendUpdates (WorldSTM tvar) conn =
               send conn (PlayerActionMessage action)
               when (readyUp $ worldInfo world)
                    (send conn (ClientReadyMessage ClientReady))
-              liftIO $ threadDelay (1000000 `div` 60)
               return ()
 
 
@@ -177,5 +176,3 @@ extractGameAction worldTvar = do
 calculateAngle :: Location -> Location -> Angle
 calculateAngle (Location (x1, y1)) (Location (x2, y2)) =
     Angle (atan2 (y2 - y1) (x2 - x1))
-
-
