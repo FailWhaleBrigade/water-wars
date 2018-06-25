@@ -50,4 +50,12 @@ charToBlock :: Char -> Block
 charToBlock 'x' = SolidBlock Middle
 charToBlock '_' = SolidBlock Ceil
 charToBlock '-' = SolidBlock Floor
+charToBlock '>' = SolidBlock LeftWall
+charToBlock '<' = SolidBlock RightWall
+charToBlock '.' = SolidBlock BottomRightCorner
+charToBlock ',' = SolidBlock BottomLeftCorner
+charToBlock '^' = SolidBlock TopRightCorner
+charToBlock '"' = SolidBlock TopLeftCorner
+charToBlock 'J' = SolidBlock EndLeft
+charToBlock 'L' = SolidBlock EndRight
 charToBlock _   = NoBlock
