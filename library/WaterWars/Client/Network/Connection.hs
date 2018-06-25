@@ -104,6 +104,7 @@ sendUpdates (WorldSTM tvar) conn =
               send conn (PlayerActionMessage action)
               when (readyUp $ worldInfo world)
                    (send conn (ClientReadyMessage ClientReady))
+              liftIO $ threadDelay (1000000 `div` 80)
               return ()
 
 
