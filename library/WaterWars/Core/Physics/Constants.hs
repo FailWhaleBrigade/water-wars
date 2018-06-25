@@ -7,7 +7,7 @@ gravityForce :: Float
 gravityForce = 0.005
 
 jumpForce :: Float
-jumpForce = 0.4
+jumpForce = 0.25
 
 runSpeed :: Float
 runSpeed = 0.15
