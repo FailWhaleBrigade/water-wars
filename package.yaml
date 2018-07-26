@@ -31,7 +31,7 @@ library:
   - array
   - transformers
   - mtl
-  - extensible-effects >= 2.6.0.1
+  - extensible-effects >= 3 && < 3.1
   - stm
   - proteaaudio
   - extra
