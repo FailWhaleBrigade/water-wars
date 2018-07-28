@@ -9,7 +9,7 @@ import WaterWars.Server.ConnectionMgnt
 
 data SharedState =
     SharedState
-        { eventQueue :: TChan EventMessage
+        { eventQueue :: TQueue EventMessage
         , gameLoopTvar ::  TVar GameLoopState
         , playerActionTvar ::  TVar PlayerActions
         , connectionMapTvar ::  TVar (Map Text ClientConnection)

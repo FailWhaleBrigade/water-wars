@@ -12,7 +12,7 @@ import WaterWars.Server.State
 
 eventLoop :: (MonadIO m, MonadLogger m) => SharedState -> m ()
 eventLoop sharedState@SharedState {..} = forever $ do
-    message <- atomically $ readTChan eventQueue
+    message <- atomically $ readTQueue eventQueue
     $logDebug $ "Read a new event loop message: " ++ tshow message
     case message of
         -- handle messages sent by a client connection
@@ -26,14 +26,60 @@ eventLoop sharedState@SharedState {..} = forever $ do
         -- TODO: handle messages sent from websocket app
 
 handleGameLoopMessages
-    :: (MonadIO m, MonadLogger m) => SharedState -> GameState -> GameEvents -> m ()
+    :: (MonadIO m, MonadLogger m)
+    => SharedState
+    -> GameState
+    -> GameEvents
+    -> m ()
 handleGameLoopMessages SharedState {..} gameStateUpdate gameEvents = do
     sessionMap <- readTVarIO connectionMapTvar
-    gameTick   <- gameTicks . gameState <$> readTVarIO gameLoopTvar
+    let gameTick = gameTicks gameStateUpdate
     broadcastMessage (GameStateMessage gameStateUpdate gameEvents) sessionMap
     isStarting <- readTVarIO startGameTvar
     case isStarting of
-        Nothing           -> return ()
+        Nothing -> do
+            gameIsRunning <- gameRunning <$> readTVarIO gameLoopTvar
+            when
+                    (  gameIsRunning
+                    && length
+                           (getInGamePlayers $ inGamePlayers gameStateUpdate)
+                    <= 1
+                    )
+                $ do
+                      $logInfo "Restarting the game"
+                      atomically $ do
+                          -- restart the game because there has been a winner 
+                          -- TODO: restart after several seconds
+                          writeTVar readyPlayersTvar mempty
+                          modifyTVar' gameLoopTvar $ \gameLoop ->
+                              let
+                                  GameState {..} = gameState gameLoop
+                                  -- add all dead players to alive ones
+                                  inGamePlayers' =
+                                      InGamePlayers
+                                          $  getInGamePlayers inGamePlayers
+                                          ++ map
+                                                 (\DeadPlayer {..} ->
+                                                     newInGamePlayer
+                                                         deadPlayerDescription
+                                                         (Location (0, 0))
+                                                 )
+                                                 (getDeadPlayers gameDeadPlayers
+                                                 )
+
+                                  gameLoop' = gameLoop
+                                      { gameState = GameState
+                                          { inGamePlayers   = inGamePlayers'
+                                          , gameDeadPlayers = DeadPlayers empty
+                                          , ..
+                                          }
+                                      }
+                              in
+                                  -- also stop game
+                                  stopGame gameLoop'
+
+
+
         Just startingTick -> when (startingTick <= gameTick) $ do
             $logInfo $ "Send the Game start message: " ++ tshow gameTick
             atomically $ do
@@ -69,10 +115,10 @@ handleClientMessages SharedState {..} sessionId clientMsg = case clientMsg of
         case connectionMay of
             Nothing         -> return ()
             Just connection -> atomically $ do
-                writeTChan
+                writeTQueue
                     (readChannel connection)
                     (LoginResponseMessage (LoginResponse sessionId player))
-                writeTChan (readChannel connection) (GameMapMessage gameMap_)
+                writeTQueue (readChannel connection) (GameMapMessage gameMap_)
         return ()
 
     LogoutMessage Logout -> do
@@ -143,4 +189,9 @@ handleClientMessages SharedState {..} sessionId clientMsg = case clientMsg of
 broadcastMessage
     :: MonadIO m => ServerMessage -> Map Text ClientConnection -> m ()
 broadcastMessage serverMessage sessionMap = forM_ sessionMap
-    $ \conn -> atomically $ writeTChan (readChannel conn) serverMessage
+    $ \conn -> atomically $ writeTQueue (readChannel conn) serverMessage
+
+
+
+
+

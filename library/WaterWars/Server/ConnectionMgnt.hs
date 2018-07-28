@@ -24,8 +24,8 @@ import WaterWars.Server.EventQueue
 data ClientConnection = ClientConnection
     { connectionId  :: Text -- ^Session id, uniquely identifies players
     , connection    :: WS.Connection -- ^Abstraction over an connection handle
-    , readChannel   :: TChan ServerMessage -- ^Client threads read from this channel
-    , writeChannel  :: TChan EventMessage -- ^Client threads write to this channel
+    , readChannel   :: TQueue ServerMessage -- ^Client threads read from this channel
+    , writeChannel  :: TQueue EventMessage -- ^Client threads write to this channel
     }
 
 instance Eq ClientConnection where
@@ -53,7 +53,7 @@ instance NetworkConnection ClientConnection where
 newClientConnection
     :: Text
     -> WS.Connection
-    -> TChan ServerMessage
-    -> TChan EventMessage
+    -> TQueue ServerMessage
+    -> TQueue EventMessage
     -> ClientConnection
 newClientConnection = ClientConnection

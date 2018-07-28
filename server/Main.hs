@@ -54,7 +54,7 @@ runLoop arguments = do
     -- let terrain = terrain1
 
     -- Initialize server state
-    broadcastChan     <- atomically newBroadcastTChan
+    broadcastChan     <- newTQueueIO
     gameLoopStateTvar <- newTVarIO $ serverStateWithTerrain terrain
     sessionMapTvar    <- newTVarIO $ mapFromList []
     -- start to accept connections
@@ -70,7 +70,7 @@ websocketServer
     :: (MonadIO m, MonadUnliftIO m)
     => Arguments
     -> TVar (Map Text ClientConnection)
-    -> TChan EventMessage
+    -> TQueue EventMessage
     -> m ()
 websocketServer Arguments {..} sessionMapTvar broadcastChan =
     liftIO $ runServer (unpack hostname)
@@ -79,12 +79,12 @@ websocketServer Arguments {..} sessionMapTvar broadcastChan =
 
 handleConnection
     :: TVar (Map Text ClientConnection)
-    -> TChan EventMessage
+    -> TQueue EventMessage
     -> PendingConnection
     -> IO ()
 handleConnection sessionMapTvar broadcastChan websocketConn = do
     connHandle <- acceptRequest websocketConn
-    commChan   <- newTChanIO -- to receive messages
+    commChan   <- newTQueueIO -- to receive messages
     sessionId  <- toText <$> nextRandom -- uniquely identify connections
     let conn = newClientConnection sessionId connHandle commChan broadcastChan
     atomically $ modifyTVar' sessionMapTvar (insertMap sessionId conn)
@@ -93,12 +93,12 @@ handleConnection sessionMapTvar broadcastChan websocketConn = do
         $         clientGameThread
                       conn
                       ( atomically
-                      . writeTChan broadcastChan
+                      . writeTQueue broadcastChan
                       . EventClientMessage sessionId
                       )
-                      (atomically $ readTChan commChan)
+                      (atomically $ readTQueue commChan)
         `finally` ( atomically
-                  . writeTChan broadcastChan
+                  . writeTQueue broadcastChan
                   . EventClientMessage sessionId
                   $ LogoutMessage Logout
                   )
@@ -110,15 +110,14 @@ gameLoopServer
     => Arguments
     -> TVar GameLoopState
     -> TVar (Map Text ClientConnection)
-    -> TChan EventMessage
+    -> TQueue EventMessage
     -> m ()
 gameLoopServer arguments gameLoopStateTvar sessionMapTvar broadcastChan = do
-    readBroadcastChan <- atomically $ dupTChan broadcastChan
     playerActionTvar  <- newTVarIO (PlayerActions (mapFromList empty))
     playerInGameTvar  <- newTVarIO $ mapFromList []
     readyPlayersTvar  <- newTVarIO mempty
     gameStartTvar     <- newTVarIO Nothing
-    let sharedState = SharedState readBroadcastChan
+    let sharedState = SharedState broadcastChan
                                   gameLoopStateTvar
                                   playerActionTvar
                                   sessionMapTvar

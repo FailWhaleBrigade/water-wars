@@ -19,8 +19,8 @@ import WaterWars.Client.Render.Display (renderIO)
 import WaterWars.Client.Network.Connection (NetworkConfig(..), connectionThread)
 
 window :: Display
---window = InWindow "Water Wars" (800, 600) (10, 10)
-window = FullScreen
+window = InWindow "Water Wars" (800, 600) (10, 10)
+--window = FullScreen
 
 fps :: Int
 fps = 60

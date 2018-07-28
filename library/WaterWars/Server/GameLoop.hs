@@ -16,7 +16,7 @@ runGameLoop
     :: (MonadLogger m, MonadIO m)
     => Arguments
     -> TVar GameLoopState
-    -> TChan EventMessage
+    -> TQueue EventMessage
     -> TVar PlayerActions
     -> m ()
 runGameLoop Arguments {..} gameLoopStateTvar broadcastChan playerActions =
@@ -31,7 +31,7 @@ runGameLoop Arguments {..} gameLoopStateTvar broadcastChan playerActions =
             return (newgameState, events)
         -- putStrLn $ tshow gameState
         let message = EventGameLoopMessage gameState gameEvents
-        atomically $ writeTChan broadcastChan message
+        atomically $ writeTQueue broadcastChan message
         liftIO $ threadDelay (round (1000000 / fps))
 
 allGameTicks :: GameMap -> [Map Player Action] -> GameState -> [GameState]

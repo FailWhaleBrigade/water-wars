@@ -9,7 +9,7 @@ where
 import           ClassyPrelude
 
 import qualified Network.WebSockets            as WS
-import Sound.ProteaAudio
+import           Sound.ProteaAudio
 import           Control.Monad.Logger
 
 import           Control.Concurrent
