@@ -67,11 +67,13 @@ executables:
     - mtl
     - websockets
     - uuid
+    - ekg
     - monad-logger
     - optparse-applicative
     ghc-options:
     - -rtsopts
     - -threaded
+    - -O2
     - -with-rtsopts=-N
     default-extensions:
     - NamedFieldPuns
@@ -87,9 +89,18 @@ executables:
     - base
     - water-wars
     - classy-prelude
+    - ekg
+    - transformers
+    - mtl
+    - gloss  
+    - stm
+    - proteaaudio
+    - monad-logger
+    - optparse-applicative
     ghc-options:
     - -rtsopts
     - -threaded
+    - -O2
     - -with-rtsopts=-N
     default-extensions:
     - NamedFieldPuns

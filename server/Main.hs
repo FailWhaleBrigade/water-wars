@@ -11,6 +11,9 @@ import Data.UUID
 import Data.UUID.V4
 
 import Options.Applicative
+
+import System.Remote.Monitoring
+
 import WaterWars.Core.DefaultGame
 import WaterWars.Core.Game
 import WaterWars.Core.Terrain.Read
@@ -19,7 +22,7 @@ import WaterWars.Network.Protocol    as Protocol
 
 import WaterWars.Server.ConnectionMgnt
 import WaterWars.Server.GameLoop
-import WaterWars.Server.Client
+import WaterWars.Server.ClientConnection
 import WaterWars.Server.EventLoop
 import WaterWars.Server.State
 import WaterWars.Server.OptParse
@@ -38,7 +41,9 @@ serverStateWithTerrain terrain = GameLoopState
     }
 
 main :: IO ()
-main = execParser opts >>= runLoop
+main = do
+    _ <- forkServer "localhost" 12001 -- TODO: should not be hardcoded
+    execParser opts >>= runLoop
   where
     opts = info
         (argumentsParser <**> helper)
@@ -62,7 +67,10 @@ runLoop arguments = do
     forever
         ( runStdoutLoggingT
         $ filterLogger (\_ level -> level /= LevelDebug)
-        $ gameLoopServer arguments gameLoopStateTvar sessionMapTvar broadcastChan
+        $ gameLoopServer arguments
+                         gameLoopStateTvar
+                         sessionMapTvar
+                         broadcastChan
         )
 
 
@@ -113,17 +121,17 @@ gameLoopServer
     -> TQueue EventMessage
     -> m ()
 gameLoopServer arguments gameLoopStateTvar sessionMapTvar broadcastChan = do
-    playerActionTvar  <- newTVarIO (PlayerActions (mapFromList empty))
-    playerInGameTvar  <- newTVarIO $ mapFromList []
-    readyPlayersTvar  <- newTVarIO mempty
-    gameStartTvar     <- newTVarIO Nothing
+    playerActionTvar <- newTVarIO (PlayerActions (mapFromList empty))
+    playerInGameTvar <- newTVarIO $ mapFromList []
+    readyPlayersTvar <- newTVarIO mempty
+    eventMapTvar     <- newTVarIO $ mapFromList []
     let sharedState = SharedState broadcastChan
                                   gameLoopStateTvar
                                   playerActionTvar
                                   sessionMapTvar
                                   playerInGameTvar
                                   readyPlayersTvar
-                                  gameStartTvar
+                                  eventMapTvar
     _ <- async (eventLoop sharedState)
     $logInfo "Start game loop"
     runGameLoop arguments gameLoopStateTvar broadcastChan playerActionTvar

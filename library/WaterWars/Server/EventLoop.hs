@@ -35,58 +35,37 @@ handleGameLoopMessages SharedState {..} gameStateUpdate gameEvents = do
     sessionMap <- readTVarIO connectionMapTvar
     let gameTick = gameTicks gameStateUpdate
     broadcastMessage (GameStateMessage gameStateUpdate gameEvents) sessionMap
-    isStarting <- readTVarIO startGameTvar
-    case isStarting of
-        Nothing -> do
-            gameIsRunning <- gameRunning <$> readTVarIO gameLoopTvar
-            when
-                    (  gameIsRunning
-                    && length
-                           (getInGamePlayers $ inGamePlayers gameStateUpdate)
-                    <= 1
-                    )
-                $ do
-                      $logInfo "Restarting the game"
-                      atomically $ do
-                          -- restart the game because there has been a winner 
-                          -- TODO: restart after several seconds
-                          writeTVar readyPlayersTvar mempty
-                          modifyTVar' gameLoopTvar $ \gameLoop ->
-                              let
-                                  GameState {..} = gameState gameLoop
-                                  -- add all dead players to alive ones
-                                  inGamePlayers' =
-                                      InGamePlayers
-                                          $  getInGamePlayers inGamePlayers
-                                          ++ map
-                                                 (\DeadPlayer {..} ->
-                                                     newInGamePlayer
-                                                         deadPlayerDescription
-                                                         (Location (0, 0))
-                                                 )
-                                                 (getDeadPlayers gameDeadPlayers
-                                                 )
+    gameIsRunning <- gameRunning <$> readTVarIO gameLoopTvar
 
-                                  gameLoop' = gameLoop
-                                      { gameState = GameState
-                                          { inGamePlayers   = inGamePlayers'
-                                          , gameDeadPlayers = DeadPlayers empty
-                                          , ..
-                                          }
-                                      }
-                              in
-                                  -- also stop game
-                                  stopGame gameLoop'
-
-
-
-        Just startingTick -> when (startingTick <= gameTick) $ do
-            $logInfo $ "Send the Game start message: " ++ tshow gameTick
-            atomically $ do
-                writeTVar   startGameTvar Nothing
-                modifyTVar' gameLoopTvar  startGame
-
-            broadcastMessage GameStartMessage sessionMap
+    -- check if someone has won the game
+    when
+            (  gameIsRunning
+            && length (getInGamePlayers $ inGamePlayers gameStateUpdate)
+            <= 1
+            )
+        $ do
+              $logInfo "Restarting the game"
+              atomically $ do 
+                modifyTVar' gameLoopTvar stopGame
+                modifyTVar'
+                  eventMapTvar
+                  (insertMap (gameTick + 240)
+                             (restartGameCallback SharedState {..})
+                  )
+    
+    eventMay <- atomically $ do 
+        eventMap <- readTVar eventMapTvar
+        case lookup gameTick eventMap of 
+            Nothing -> return Nothing
+            Just event -> do 
+                modifyTVar' eventMapTvar (deleteMap gameTick)
+                return $ Just event
+    
+    case eventMay of 
+        Nothing -> return ()
+        Just event -> do 
+            $logInfo "An event was executed"
+            liftIO event 
 
 
 
@@ -164,7 +143,7 @@ handleClientMessages SharedState {..} sessionId clientMsg = case clientMsg of
             readySet  <- readTVar readyPlayersTvar
             playerMap <- readTVar playerMapTvar
             -- could be improved with multi way if
-            if member sessionId readySet
+            if member sessionId readySet 
                 then return False
                 else do
                     let readySet' = insertSet sessionId readySet
@@ -176,12 +155,15 @@ handleClientMessages SharedState {..} sessionId clientMsg = case clientMsg of
                 ("Everyone is ready. \"" ++ sessionId ++ "\" was the last one.")
             sessionMap <- readTVarIO connectionMapTvar
             gameTick   <- gameTicks . gameState <$> readTVarIO gameLoopTvar
+            -- notify that the game will start
             broadcastMessage
                 (GameWillStartMessage (GameStart (gameTick + 240)))
                 sessionMap
-
-            -- notify that the game will start
-            atomically $ writeTVar startGameTvar (Just (gameTick + 240))
+            -- add callbakc to start the game
+            atomically $ modifyTVar'
+                eventMapTvar
+                (insertMap (gameTick + 240) (startGameCallback SharedState {..})
+                )
             return ()
 
         return ()
@@ -191,7 +173,45 @@ broadcastMessage
 broadcastMessage serverMessage sessionMap = forM_ sessionMap
     $ \conn -> atomically $ writeTQueue (readChannel conn) serverMessage
 
+startGameCallback :: MonadIO m => SharedState -> m ()
+startGameCallback SharedState {..} = do
+    gameTick <- gameTicks . gameState <$> readTVarIO gameLoopTvar
+    say $ "Send the Game start message: " ++ tshow gameTick
+    atomically $ modifyTVar' gameLoopTvar startGame
 
+    sessionMap <- readTVarIO connectionMapTvar
+    broadcastMessage GameStartMessage sessionMap
+
+restartGameCallback :: MonadIO m => SharedState -> m ()
+restartGameCallback SharedState {..} = do
+    sessionMap <- atomically $ do
+        writeTVar readyPlayersTvar mempty -- demand that everyone ready's up again
+        sessionMap <- readTVar connectionMapTvar
+        modifyTVar' gameLoopTvar $ \gameLoop ->
+            let
+                GameState {..} = gameState gameLoop
+                -- add all dead players to alive ones
+                inGamePlayers' =
+                    InGamePlayers $ getInGamePlayers inGamePlayers ++ map
+                        (\DeadPlayer {..} -> newInGamePlayer
+                            deadPlayerDescription
+                            (Location (0, 0))
+                        )
+                        (getDeadPlayers gameDeadPlayers)
+
+                gameLoop' = gameLoop
+                    { gameState = GameState
+                        { inGamePlayers   = inGamePlayers'
+                        , gameDeadPlayers = DeadPlayers empty
+                        , ..
+                        }
+                    }
+            in
+                -- also stop game
+                stopGame gameLoop'
+        return sessionMap
+
+    broadcastMessage ResetGameMessage sessionMap
 
 
 

@@ -29,7 +29,7 @@ data BackgroundAnimation = BackgroundAnimation
 playerToAnimation :: PlayerAnimation -> Animation
 playerToAnimation (PlayerIdleAnimation    anim) = anim
 playerToAnimation (PlayerRunningAnimation anim) = anim
-playerToAnimation (PlayerDeathAnimation   anim) = animation anim
+playerToAnimation (PlayerDeathAnimation   backgroundAnimation) = animation backgroundAnimation
 
 updatePlayerAnimation :: PlayerAnimation -> PlayerAnimation
 updatePlayerAnimation (PlayerIdleAnimation anim) =

@@ -160,6 +160,22 @@ updateWorld serverMsg world@World {..} = case serverMsg of
             }
         , Nothing
         )
+    ResetGameMessage ->
+        -- TODO: this is kind of hacky, we just forget the last game update to avoid the race condition
+        -- between deleting all animation and the next gloss update which generates new animation as needed
+        ( world
+            { renderInfo     = renderInfo { playerAnimations = mapFromList [] }
+            , lastGameUpdate = ServerUpdate
+                { gameStateUpdate = GameState
+                    { inGamePlayers   = InGamePlayers empty
+                    , gameDeadPlayers = DeadPlayers empty
+                    , gameProjectiles = Projectiles empty
+                    , gameTicks       = 0
+                    }
+                }
+            }
+        , Nothing
+        )
 
 
 extractGameAction :: TVar World -> STM Protocol.PlayerAction

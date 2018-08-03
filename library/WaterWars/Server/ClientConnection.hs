@@ -1,7 +1,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module WaterWars.Server.Client where
+module WaterWars.Server.ClientConnection where
 
 import ClassyPrelude
 

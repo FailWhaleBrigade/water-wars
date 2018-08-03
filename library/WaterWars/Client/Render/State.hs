@@ -70,7 +70,7 @@ data WorldInfo = WorldInfo
     -- TODO: Everything beneath should be refactored into another datatype
     , countdown :: Maybe Integer
     , gameRunning :: Bool
-    , localPlayer    :: Maybe Player
+    , localPlayer :: Maybe Player
     , projectiles  :: Seq CoreState.Projectile
     } deriving Show
 
@@ -170,33 +170,27 @@ setTerrain decoration terrain World {..} = World
         (\(loc, block) -> case block of
             NoBlock -> Nothing
             SolidBlock content ->
-                blockLocationToSolid blockSize loc
-                    <$> lookup content pictureMap
+                blockLocationToSolid blockSize loc <$> lookup content pictureMap
         )
         (assocs locationMap)
-    decorationPositions :: Array BlockLocation [Decoration] -> Map Decoration Picture -> [Solid]
+    decorationPositions
+        :: Array BlockLocation [Decoration] -> Map Decoration Picture -> [Solid]
     decorationPositions locationMap pictureMap = concatMap
         (\(loc, deco) -> do
             decorationElement <- deco
             let picture = lookup decorationElement pictureMap
             guard (isJust picture)
-            return $ blockLocationToSolid blockSize
-                                          loc
-                                          (fromJust picture)
+            return $ blockLocationToSolid blockSize loc (fromJust picture)
         )
         (assocs locationMap)
 
-blockLocationToSolid
-    :: Float -> BlockLocation -> Picture -> Solid
-blockLocationToSolid size (BlockLocation (x, y)) picture
-    = Solid
-        { solidWidth   = size
-        , solidHeight  = size
-        , solidCenter  = ( fromIntegral x * size
-                         , fromIntegral y * size
-                         )
-        , solidTexture = picture
-        }
+blockLocationToSolid :: Float -> BlockLocation -> Picture -> Solid
+blockLocationToSolid size (BlockLocation (x, y)) picture = Solid
+    { solidWidth   = size
+    , solidHeight  = size
+    , solidCenter  = (fromIntegral x * size, fromIntegral y * size)
+    , solidTexture = picture
+    }
 
 mantaUpdateOperation :: BackgroundAnimation -> BackgroundAnimation
 mantaUpdateOperation ba@BackgroundAnimation {..} = ba
@@ -221,6 +215,7 @@ deadPlayerUpdateOperation BackgroundAnimation {..} = BackgroundAnimation
   where
     Location (x, y) = location
     newY            = y + 0.05
+
 
 
 

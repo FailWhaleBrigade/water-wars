@@ -21,7 +21,7 @@ import           WaterWars.Core.Physics.Utils
 import           Control.Eff.State.Strict
 import           Control.Eff.Reader.Strict
 import           Control.Eff.Writer.Strict
-import           Control.Eff                       hiding ( first )
+import           Control.Eff
 import           Data.Array.IArray
 import           Control.Monad.Extra                      ( whenJust )
 
@@ -89,9 +89,10 @@ modifyPlayerByJumpAction onGround action player@InGamePlayer {..} =
         JumpAction <- jumpAction action
         return $ setPlayerVelocity (jumpVector playerVelocity) player
 
-modifyPlayerByRunAction :: Bool -> Bool -> Action -> InGamePlayer -> InGamePlayer
-modifyPlayerByRunAction onGround runsAgainstWall action player@InGamePlayer {..} =
-    fromMaybe player $ do -- maybe monad
+modifyPlayerByRunAction
+    :: Bool -> Bool -> Action -> InGamePlayer -> InGamePlayer
+modifyPlayerByRunAction onGround runsAgainstWall action player@InGamePlayer {..}
+    = fromMaybe player $ do -- maybe monad
         guard (not runsAgainstWall)
         RunAction runDirection <- runAction action
         return $ setPlayerVelocity
@@ -146,8 +147,7 @@ modifyPlayerByEnvironment p = do
         $ p
 
 modifyProjectileByEnvironment :: Projectile -> Eff r Projectile
-modifyProjectileByEnvironment =
-    return -- . modifyProjectileVelocity (boundVelocityVector maxVelocity)
+modifyProjectileByEnvironment = return -- . modifyProjectileVelocity (boundVelocityVector maxVelocity)
 
 -- TODO: test contained code
 checkProjectilePlayerCollision
