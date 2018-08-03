@@ -45,27 +45,24 @@ handleGameLoopMessages SharedState {..} gameStateUpdate gameEvents = do
             )
         $ do
               $logInfo "Restarting the game"
-              atomically $ do 
-                modifyTVar' gameLoopTvar stopGame
-                modifyTVar'
-                  eventMapTvar
-                  (insertMap (gameTick + 240)
-                             (restartGameCallback SharedState {..})
-                  )
-    
-    eventMay <- atomically $ do 
+              atomically $ do
+                  modifyTVar' gameLoopTvar stopGame
+                  modifyTVar' eventMapTvar
+                              (insertMap (gameTick + 240) ResetGame)
+
+    eventMay <- atomically $ do
         eventMap <- readTVar eventMapTvar
-        case lookup gameTick eventMap of 
-            Nothing -> return Nothing
-            Just event -> do 
+        case lookup gameTick eventMap of
+            Nothing    -> return Nothing
+            Just event -> do
                 modifyTVar' eventMapTvar (deleteMap gameTick)
                 return $ Just event
-    
-    case eventMay of 
-        Nothing -> return ()
-        Just event -> do 
-            $logInfo "An event was executed"
-            liftIO event 
+
+    case eventMay of
+        Nothing    -> return ()
+        Just event -> do
+            $logInfo "An event is being executed"
+            futureToAction event SharedState {..}
 
 
 
@@ -143,7 +140,7 @@ handleClientMessages SharedState {..} sessionId clientMsg = case clientMsg of
             readySet  <- readTVar readyPlayersTvar
             playerMap <- readTVar playerMapTvar
             -- could be improved with multi way if
-            if member sessionId readySet 
+            if member sessionId readySet
                 then return False
                 else do
                     let readySet' = insertSet sessionId readySet
@@ -160,10 +157,8 @@ handleClientMessages SharedState {..} sessionId clientMsg = case clientMsg of
                 (GameWillStartMessage (GameStart (gameTick + 240)))
                 sessionMap
             -- add callbakc to start the game
-            atomically $ modifyTVar'
-                eventMapTvar
-                (insertMap (gameTick + 240) (startGameCallback SharedState {..})
-                )
+            atomically $ modifyTVar' eventMapTvar
+                                     (insertMap (gameTick + 240) StartGame)
             return ()
 
         return ()
@@ -173,7 +168,12 @@ broadcastMessage
 broadcastMessage serverMessage sessionMap = forM_ sessionMap
     $ \conn -> atomically $ writeTQueue (readChannel conn) serverMessage
 
-startGameCallback :: MonadIO m => SharedState -> m ()
+futureToAction
+    :: (MonadLogger m, MonadIO m) => FutureEvent -> SharedState -> m ()
+futureToAction ResetGame = restartGameCallback
+futureToAction StartGame = startGameCallback
+
+startGameCallback :: (MonadLogger m, MonadIO m) => SharedState -> m ()
 startGameCallback SharedState {..} = do
     gameTick <- gameTicks . gameState <$> readTVarIO gameLoopTvar
     say $ "Send the Game start message: " ++ tshow gameTick
@@ -182,7 +182,7 @@ startGameCallback SharedState {..} = do
     sessionMap <- readTVarIO connectionMapTvar
     broadcastMessage GameStartMessage sessionMap
 
-restartGameCallback :: MonadIO m => SharedState -> m ()
+restartGameCallback :: (MonadLogger m, MonadIO m) => SharedState -> m ()
 restartGameCallback SharedState {..} = do
     sessionMap <- atomically $ do
         writeTVar readyPlayersTvar mempty -- demand that everyone ready's up again
@@ -212,6 +212,7 @@ restartGameCallback SharedState {..} = do
         return sessionMap
 
     broadcastMessage ResetGameMessage sessionMap
+
 
 
 

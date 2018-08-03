@@ -1,6 +1,9 @@
 module WaterWars.Server.State 
     (SharedState(..)
-    , module WaterWars.Server.ConnectionMgnt) where
+    , FutureEvent (..)
+    , EventMap
+    , module WaterWars.Server.ConnectionMgnt
+    ) where
 
 import ClassyPrelude
 import WaterWars.Core.Game
@@ -18,4 +21,10 @@ data SharedState =
         , eventMapTvar :: TVar EventMap
         }
 
-type EventMap = Map Integer (IO ())
+type EventMap = Map Integer FutureEvent
+
+data FutureEvent 
+    = ResetGame 
+    | StartGame
+    deriving (Show, Read, Eq, Ord, Enum)
+
