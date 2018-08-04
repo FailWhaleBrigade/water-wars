@@ -20,9 +20,9 @@ import WaterWars.Client.Render.Display (renderIO)
 
 import WaterWars.Client.Network.Connection (NetworkConfig(..), connectionThread)
 
-window :: Display
-window = InWindow "Water Wars" (800, 600) (10, 10)
---window = FullScreen
+window :: Bool -> Display
+window False = InWindow "Water Wars" (800, 600) (10, 10)
+window True = FullScreen
 
 fps :: Int
 fps = 60
@@ -40,16 +40,20 @@ opts = info
 
 main :: IO ()
 main = do
-    -- has to be disabled when testing
-    -- _ <- forkServer "localhost" 12000 -- TODO: should not be hard coded
     Arguments {..} <- execParser opts
+
+    case performanceMonitoring of
+        Nothing          -> return ()
+        Just monitorPort -> void $ forkServer "localhost" monitorPort
+
+
     unless quiet $ do
-        result <- initAudio 64 44100 1024 -- max channels, mixing frequency, mixing buffer size
-        unless result $ fail "failed to initialize the audio system"
+        success <- initAudio 64 44100 1024 -- max channels, mixing frequency, mixing buffer size
+        unless success $ fail "failed to initialize the audio system"
 
     resourcesEither <- runExceptT setup
     case resourcesEither of
-        Left err -> putStrLn $ "Could not load texture. Cause: " ++ tshow err
+        Left  err       -> say $ "Could not load texture. Cause: " ++ err
         Right resources -> do
             worldStm <- initializeState resources
             _        <-
@@ -60,7 +64,7 @@ main = do
                     )
             sample <- sampleFromFile "resources/sounds/Bubble_Game.ogg" 1.0
             soundLoop sample 1 1 0 1
-            playIO window
+            playIO (window fullScreen)
                    backgroundColor
                    fps
                    worldStm
@@ -68,4 +72,4 @@ main = do
                    handleKeysIO
                    updateIO
             -- Will never be reached
-            putStrLn "Goodbye, shutting down the Server!"
+            say "Goodbye, shutting down the Client!"

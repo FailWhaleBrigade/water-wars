@@ -9,10 +9,18 @@ data Arguments =
         { hostname :: Text
         , port :: Int
         , quiet :: Bool
+        , performanceMonitoring :: Maybe Int
+        , fullScreen :: Bool
         } deriving (Show, Eq, Ord, Read)
 
 argumentsParser :: Parser Arguments
-argumentsParser = Arguments <$> hostnameParser <*> portParser <*> quietParser
+argumentsParser =
+    Arguments
+        <$> hostnameParser
+        <*> portParser
+        <*> quietParser
+        <*> performanceMonitorParser
+        <*> fullScreenParser
 
 hostnameParser :: Parser Text
 hostnameParser = strOption
@@ -33,8 +41,19 @@ portParser = option
     )
 
 quietParser :: Parser Bool
-quietParser = switch
-    (  long "quiet"
-    ++ short 'q'
-    ++ help "Silences the music of the game"
+quietParser =
+    switch (long "quiet" ++ short 'q' ++ help "Silences the music of the game")
+
+performanceMonitorParser :: Parser (Maybe Int)
+performanceMonitorParser = optional $ option
+    auto
+    (long "monitor" ++ metavar "Port" ++ help
+        "Port for the performance monitor server"
     )
+
+fullScreenParser :: Parser Bool
+fullScreenParser = switch
+    (  long "fullscreen"
+    ++ help "Starts the game in fullscreen mode"
+    )
+

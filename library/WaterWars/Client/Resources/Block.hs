@@ -16,7 +16,7 @@ placeSingleBlock :: Float -> Float -> BlockContent -> BlockMap -> [Solid]
 placeSingleBlock x y block blockmap =
     maybeToList (Solid blockSize blockSize (x, y) <$> lookup block blockmap)
 
-loadBlockMap :: (MonadIO m, MonadError String m) => m BlockMap
+loadBlockMap :: (MonadIO m, MonadError Text m) => m BlockMap
 loadBlockMap = do
     loadedTextures <- bulkLoad blocks
     return . mapFromList $ zip [Floor .. Ceil] (toList loadedTextures)

@@ -26,7 +26,7 @@ data Resources =
         , decorationMap :: Map Decoration Picture
         }
 
-setup :: (MonadIO m, MonadError String m) => m Resources
+setup :: (MonadIO m, MonadError Text m) => m Resources
 setup = do
     bgTex <- loadPngAsBmp "resources/textures/background/background.png"
     prjTex <- loadPngAsBmp "resources/textures/decoration/bubble.png"

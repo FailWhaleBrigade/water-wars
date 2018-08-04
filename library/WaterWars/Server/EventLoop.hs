@@ -176,7 +176,7 @@ futureToAction StartGame = startGameCallback
 startGameCallback :: (MonadLogger m, MonadIO m) => SharedState -> m ()
 startGameCallback SharedState {..} = do
     gameTick <- gameTicks . gameState <$> readTVarIO gameLoopTvar
-    say $ "Send the Game start message: " ++ tshow gameTick
+    $logInfo $ "Send the Game start message: " ++ tshow gameTick
     atomically $ modifyTVar' gameLoopTvar startGame
 
     sessionMap <- readTVarIO connectionMapTvar
@@ -184,6 +184,7 @@ startGameCallback SharedState {..} = do
 
 restartGameCallback :: (MonadLogger m, MonadIO m) => SharedState -> m ()
 restartGameCallback SharedState {..} = do
+    $logInfo $ "Restart the game"
     sessionMap <- atomically $ do
         writeTVar readyPlayersTvar mempty -- demand that everyone ready's up again
         sessionMap <- readTVar connectionMapTvar
@@ -212,7 +213,3 @@ restartGameCallback SharedState {..} = do
         return sessionMap
 
     broadcastMessage ResetGameMessage sessionMap
-
-
-
-
