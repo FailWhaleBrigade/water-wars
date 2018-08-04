@@ -215,7 +215,3 @@ deadPlayerUpdateOperation BackgroundAnimation {..} = BackgroundAnimation
   where
     Location (x, y) = location
     newY            = y + 0.05
-
-
-
-

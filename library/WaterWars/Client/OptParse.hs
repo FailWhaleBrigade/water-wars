@@ -56,4 +56,3 @@ fullScreenParser = switch
     (  long "fullscreen"
     ++ help "Starts the game in fullscreen mode"
     )
-
