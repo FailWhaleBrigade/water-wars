@@ -9,10 +9,18 @@ data Arguments =
         { hostname :: Text
         , port :: Int
         , fps :: Float
+        , monitorPort :: Int
+        , gameMapFiles :: [String]
         } deriving (Show, Eq, Ord, Read)
 
 argumentsParser :: Parser Arguments
-argumentsParser = Arguments <$> hostnameParser <*> portParser <*> fpsParser
+argumentsParser =
+    Arguments
+        <$> hostnameParser
+        <*> portParser
+        <*> fpsParser
+        <*> performanceMonitorParser
+        <*> gameMapParser
 
 hostnameParser :: Parser Text
 hostnameParser = strOption
@@ -40,4 +48,25 @@ fpsParser = option
     ++ metavar "FPS"
     ++ help "Number of frames per second that the server shall perform"
     ++ value 60
+    )
+
+performanceMonitorParser :: Parser Int
+performanceMonitorParser = option
+    auto
+    (  long "monitor"
+    ++ metavar "Port"
+    ++ help "Port for the performance monitor server"
+    ++ value 12001
+    )
+
+gameMapParser :: Parser [String]
+gameMapParser = many
+    (argument
+        str
+        (  metavar "Game Map ..."
+        ++ help
+               (  "List of play fields that the server should "
+               ++ "serve in a cycle everytime a game has been won"
+               )
+        )
     )

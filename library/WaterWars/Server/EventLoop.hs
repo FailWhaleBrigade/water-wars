@@ -185,31 +185,41 @@ startGameCallback SharedState {..} = do
 restartGameCallback :: (MonadLogger m, MonadIO m) => SharedState -> m ()
 restartGameCallback SharedState {..} = do
     $logInfo $ "Restart the game"
-    sessionMap <- atomically $ do
+    (sessionMap, newGameMap_) <- atomically $ do
         writeTVar readyPlayersTvar mempty -- demand that everyone ready's up again
-        sessionMap <- readTVar connectionMapTvar
+        sessionMap  <- readTVar connectionMapTvar
+        nextGameMap_ <- nextGameMap gameMapTvar
+
         modifyTVar' gameLoopTvar $ \gameLoop ->
             let
                 GameState {..} = gameState gameLoop
                 -- add all dead players to alive ones
                 inGamePlayers' =
-                    InGamePlayers $ getInGamePlayers inGamePlayers ++ map
-                        (\DeadPlayer {..} -> newInGamePlayer
-                            deadPlayerDescription
-                            (Location (0, 0))
-                        )
-                        (getDeadPlayers gameDeadPlayers)
+                    InGamePlayers
+                        $  map (\p -> p { playerLocation = Location (0, 0) })
+                               (getInGamePlayers inGamePlayers)
+                        ++ map
+                               (\DeadPlayer {..} -> newInGamePlayer
+                                   deadPlayerDescription
+                                   (Location (0, 0))
+                               )
+                               (getDeadPlayers gameDeadPlayers)
 
-                gameLoop' = gameLoop
-                    { gameState = GameState
+                stoppedGameLoop = gameLoop
+                    { gameState   = GameState
                         { inGamePlayers   = inGamePlayers'
                         , gameDeadPlayers = DeadPlayers empty
                         , ..
                         }
+                    , gameRunning = False
+                    , gameMap     = nextGameMap_
                     }
             in
-                -- also stop game
-                stopGame gameLoop'
-        return sessionMap
+                stoppedGameLoop
 
-    broadcastMessage ResetGameMessage sessionMap
+        return (sessionMap, nextGameMap_)
+
+    broadcastMessage ResetGameMessage            sessionMap
+    broadcastMessage (GameMapMessage newGameMap_) sessionMap
+
+

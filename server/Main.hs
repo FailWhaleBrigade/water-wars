@@ -7,7 +7,7 @@ import Network.WebSockets hiding (newClientConnection)
 
 import Control.Monad.Logger
 
-import Data.UUID
+import Data.UUID          hiding ( null )
 import Data.UUID.V4
 
 import Options.Applicative
@@ -30,20 +30,18 @@ import WaterWars.Server.OptParse
 defaultGameSetup :: GameSetup
 defaultGameSetup = GameSetup {numberOfPlayers = 4, terrainMap = "default"}
 
-serverStateWithTerrain :: Terrain -> GameLoopState
-serverStateWithTerrain terrain = GameLoopState
-    { gameMap     = GameMap
-        { gameTerrain       = terrain
-        , terrainDecoration = defaultDecoration
-        }
+serverStateWithGameMap :: GameMap -> GameLoopState
+serverStateWithGameMap gameMap = GameLoopState
+    { gameMap     = gameMap
     , gameState   = defaultGameState
     , gameRunning = False
     }
 
 main :: IO ()
 main = do
-    _ <- forkServer "localhost" 12001 -- TODO: should not be hardcoded
-    execParser opts >>= runLoop
+    Arguments {..} <- execParser opts
+    _              <- forkServer "localhost" monitorPort
+    runLoop Arguments {..}
   where
     opts = info
         (argumentsParser <**> helper)
@@ -54,20 +52,24 @@ main = do
 
 runLoop :: (MonadIO m, MonadUnliftIO m) => Arguments -> m ()
 runLoop arguments = do
+    let gameMapFiles_ = fromList
+            $ if null (gameMapFiles arguments) then ["resources/game1.txt"] else gameMapFiles arguments
     -- read resources
-    terrain           <- readTerrainFromFile "resources/game1.txt"
-    -- let terrain = terrain1
-
+    -- TODO: this fails ugly
+    terrains <- mapM readTerrainFromFile gameMapFiles_
+    let loadedGameMaps = map (`GameMap` defaultDecoration) terrains
     -- Initialize server state
     broadcastChan     <- newTQueueIO
-    gameLoopStateTvar <- newTVarIO $ serverStateWithTerrain terrain
-    sessionMapTvar    <- newTVarIO $ mapFromList []
+    gameLoopStateTvar <- newTVarIO
+        $ serverStateWithGameMap (headEx loadedGameMaps)
+    sessionMapTvar <- newTVarIO $ mapFromList []
     -- start to accept connections
     _ <- async (websocketServer arguments sessionMapTvar broadcastChan)
     forever
         ( runStdoutLoggingT
         $ filterLogger (\_ level -> level /= LevelDebug)
         $ gameLoopServer arguments
+                         loadedGameMaps
                          gameLoopStateTvar
                          sessionMapTvar
                          broadcastChan
@@ -110,29 +112,32 @@ handleConnection sessionMapTvar broadcastChan websocketConn = do
                   . EventClientMessage sessionId
                   $ LogoutMessage Logout
                   )
-    -- ! Should be used for cleanup code
     return ()
 
 gameLoopServer
     :: (MonadIO m, MonadLogger m, MonadUnliftIO m)
     => Arguments
+    -> Seq GameMap
     -> TVar GameLoopState
     -> TVar (Map Text ClientConnection)
     -> TQueue EventMessage
     -> m ()
-gameLoopServer arguments gameLoopStateTvar sessionMapTvar broadcastChan = do
-    playerActionTvar <- newTVarIO (PlayerActions (mapFromList empty))
-    playerInGameTvar <- newTVarIO $ mapFromList []
-    readyPlayersTvar <- newTVarIO mempty
-    eventMapTvar     <- newTVarIO $ mapFromList []
-    let sharedState = SharedState broadcastChan
-                                  gameLoopStateTvar
-                                  playerActionTvar
-                                  sessionMapTvar
-                                  playerInGameTvar
-                                  readyPlayersTvar
-                                  eventMapTvar
-    _ <- async (eventLoop sharedState)
-    $logInfo "Start game loop"
-    runGameLoop arguments gameLoopStateTvar broadcastChan playerActionTvar
-    return ()
+gameLoopServer arguments loadedGameMaps gameLoopStateTvar sessionMapTvar broadcastChan
+    = do
+        playerActionTvar <- newTVarIO (PlayerActions (mapFromList empty))
+        playerInGameTvar <- newTVarIO $ mapFromList []
+        readyPlayersTvar <- newTVarIO mempty
+        eventMapTvar     <- newTVarIO $ mapFromList []
+        gameMapTvar      <- newTVarIO $ GameMaps loadedGameMaps 0
+        let sharedState = SharedState broadcastChan
+                                      gameLoopStateTvar
+                                      playerActionTvar
+                                      sessionMapTvar
+                                      playerInGameTvar
+                                      readyPlayersTvar
+                                      gameMapTvar
+                                      eventMapTvar
+        _ <- async (eventLoop sharedState)
+        $logInfo "Start game loop"
+        runGameLoop arguments gameLoopStateTvar broadcastChan playerActionTvar
+        return ()
