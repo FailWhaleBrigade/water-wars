@@ -3,7 +3,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
 
-module WaterWars.Server.GameNg
+module WaterWars.Core.GameNg
     ( runGameTick
     , gameTick
     )

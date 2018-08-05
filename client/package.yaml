@@ -1,17 +1,13 @@
-name: water-wars
+name: water-wars-client
 version: '0.0.0'
 github: "FailWhaleBrigade/water-wars"
 license: MIT
 author: "Fendor, VeryMilkyJoe, Power-Fungus"
 maintainer: "Fendor, VeryMilkyJoe, Power-Fungus"
-synopsis: The core of WaterWars
+synopsis: Water Wars client library
 
 extra-source-files:
-- CHANGELOG.md
-- LICENSE.md
 - package.yaml
-- README.md
-- stack.yaml
 
 ghc-options:
 - -Wall
@@ -21,11 +17,19 @@ library:
   dependencies:
   - base
   - classy-prelude
+  - water-wars
+  - gloss
+  - websockets
+  - JuicyPixels
   - array
+  - transformers
+  - mtl
   - extensible-effects >= 3 && < 3.1
-  - extra
-  - cereal
-  source-dirs: library
+  - stm
+  - proteaaudio
+  - monad-logger
+  - optparse-applicative
+  source-dirs: src
   default-extensions:
   - DeriveGeneric
   - NamedFieldPuns
@@ -37,42 +41,27 @@ library:
   - FlexibleContexts
   - MonoLocalBinds
 
-benchmarks:
-  water-wars-benchmarks:
-    source-dirs: benchmark
+executables:
+  water-wars-client:
+    source-dirs: app
     main: Main.hs
     dependencies:
     - base
     - water-wars
-    - criterion
-    ghc-options:
-    - -rtsopts
-    - -threaded
-    - -with-rtsopts=-N
-    default-extensions:
-    - NamedFieldPuns
-    - OverloadedStrings
-    - NoImplicitPrelude
-    - ScopedTypeVariables
-    - RecordWildCards
-
-tests:
-  water-wars-test-suite:
-    source-dirs: test-suite
-    main: Main.hs
-    dependencies:
-    - base
-    - water-wars
+    - water-wars-client
     - classy-prelude
-    - tasty
-    - tasty-hspec
-    - tasty-hunit
-    - hspec
-    - HUnit
-    - array
+    - ekg
+    - transformers
+    - mtl
+    - gloss  
+    - stm
+    - proteaaudio
+    - monad-logger
+    - optparse-applicative
     ghc-options:
     - -rtsopts
     - -threaded
+    - -O2
     - -with-rtsopts=-N
     default-extensions:
     - NamedFieldPuns
@@ -80,3 +69,5 @@ tests:
     - NoImplicitPrelude
     - ScopedTypeVariables
     - RecordWildCards
+    - FlexibleContexts
+
