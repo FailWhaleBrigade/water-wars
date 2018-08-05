@@ -2,6 +2,8 @@ resolver: lts-11.12
 
 packages:
 - .
+- server
+- client
 
 extra-deps:
 - extensible-effects-3.0.0.0

@@ -7,10 +7,10 @@ import           Control.Monad.Logger
 import           Control.Concurrent                       ( threadDelay )
 
 import           WaterWars.Core.Game
+import           WaterWars.Core.GameNg
 
 import           WaterWars.Server.OptParse
 import           WaterWars.Server.ConnectionMgnt
-import           WaterWars.Server.GameNg
 
 runGameLoop
     :: (MonadLogger m, MonadIO m)

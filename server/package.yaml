@@ -1,22 +1,13 @@
-# This YAML file describes your package. Stack will automatically generate a
-# Cabal file when you run `stack build`. See the hpack website for help with
-# this file: <https://github.com/sol/hpack>.
-name: water-wars
+name: water-wars-server
 version: '0.0.0'
 github: "FailWhaleBrigade/water-wars"
 license: MIT
 author: "Fendor, VeryMilkyJoe, Power-Fungus"
 maintainer: "Fendor, VeryMilkyJoe, Power-Fungus"
-# synopsis: A new Haskeleton package.
-# description: water-wars is a new Haskeleton package.
-# category: Other
+synopsis: Water Wars server library
 
 extra-source-files:
-- CHANGELOG.md
-- LICENSE.md
 - package.yaml
-- README.md
-- stack.yaml
 
 ghc-options:
 - -Wall
@@ -26,22 +17,20 @@ library:
   dependencies:
   - base
   - classy-prelude
-  - gloss
+  - water-wars
   - websockets
-  - JuicyPixels
   - array
   - transformers
   - mtl
   - extensible-effects >= 3 && < 3.1
   - stm
-  - proteaaudio
   - extra
   - either
   - uuid
   - cereal
   - monad-logger
   - optparse-applicative
-  source-dirs: library
+  source-dirs: src
   default-extensions:
   - DeriveGeneric
   - NamedFieldPuns
@@ -53,42 +42,28 @@ library:
   - FlexibleContexts
   - MonoLocalBinds
 
-benchmarks:
-  water-wars-benchmarks:
-    source-dirs: benchmark
+executables:
+  water-wars-server:
+    source-dirs: app
     main: Main.hs
     dependencies:
     - base
     - water-wars
-    - criterion
-    ghc-options:
-    - -rtsopts
-    - -threaded
-    - -with-rtsopts=-N
-    default-extensions:
-    - NamedFieldPuns
-    - OverloadedStrings
-    - NoImplicitPrelude
-    - ScopedTypeVariables
-    - RecordWildCards
-
-tests:
-  water-wars-test-suite:
-    source-dirs: test-suite
-    main: Main.hs
-    dependencies:
-    - base
-    - water-wars
+    - water-wars-server
     - classy-prelude
-    - tasty
-    - tasty-hspec
-    - tasty-hunit
-    - hspec
-    - HUnit
     - array
+    - websockets
+    - transformers
+    - mtl
+    - websockets
+    - uuid
+    - ekg
+    - monad-logger
+    - optparse-applicative
     ghc-options:
     - -rtsopts
     - -threaded
+    - -O2
     - -with-rtsopts=-N
     default-extensions:
     - NamedFieldPuns
@@ -96,3 +71,5 @@ tests:
     - NoImplicitPrelude
     - ScopedTypeVariables
     - RecordWildCards
+    - FlexibleContexts
+
