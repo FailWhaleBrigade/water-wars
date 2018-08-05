@@ -17,6 +17,7 @@ library:
   dependencies:
   - base
   - classy-prelude
+  - water-wars
   - gloss
   - websockets
   - JuicyPixels
@@ -26,13 +27,8 @@ library:
   - extensible-effects >= 3 && < 3.1
   - stm
   - proteaaudio
-  - extra
-  - either
-  - uuid
-  - cereal
   - monad-logger
   - optparse-applicative
-  - water-wars
   source-dirs: src
   default-extensions:
   - DeriveGeneric

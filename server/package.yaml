@@ -20,14 +20,9 @@ library:
   - water-wars
   - websockets
   - array
-  - transformers
-  - mtl
   - extensible-effects >= 3 && < 3.1
   - stm
-  - extra
-  - either
   - uuid
-  - cereal
   - monad-logger
   - optparse-applicative
   source-dirs: src
