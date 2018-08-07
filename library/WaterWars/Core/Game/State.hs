@@ -21,7 +21,7 @@ data GameState = GameState
 newtype InGamePlayers = InGamePlayers
     { getInGamePlayers :: Seq InGamePlayer
     }
-    deriving (Read, Show, Eq, MonoFunctor, Monoid, Generic)
+    deriving (Read, Show, Eq, MonoFunctor, Semigroup, Monoid, Generic)
 
 type instance Element InGamePlayers = InGamePlayer
 
@@ -46,7 +46,7 @@ newtype Player = Player
 newtype DeadPlayers = DeadPlayers
     { getDeadPlayers :: Seq DeadPlayer
     }
-    deriving (Read, Show, Eq, MonoFunctor, Monoid, Generic)
+    deriving (Read, Show, Eq, MonoFunctor, Semigroup, Monoid, Generic)
 
 type instance Element DeadPlayers = DeadPlayer
 
