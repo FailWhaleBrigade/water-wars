@@ -2,6 +2,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 
 module WaterWars.Core.GameNg
     ( runGameTick
@@ -15,6 +16,7 @@ import           ClassyPrelude                     hiding ( Reader
                                                           )
 
 import           WaterWars.Core.Game
+import           WaterWars.Core.Game.Constants
 import           WaterWars.Core.Physics
 import           WaterWars.Core.Physics.Constants
 import           WaterWars.Core.Physics.Utils
@@ -56,6 +58,7 @@ gameTick = do
     filterMOverProjectiles boundProjectile
     mapMOverProjectiles (return . moveProjectile)
     checkProjectilePlayerCollision
+    checkPlayerOutOfMap
     mapMOverPlayers movePlayer
     modify incrementGameTick
 
@@ -148,6 +151,37 @@ modifyPlayerByEnvironment p = do
 
 modifyProjectileByEnvironment :: Projectile -> Eff r Projectile
 modifyProjectileByEnvironment = return -- . modifyProjectileVelocity (boundVelocityVector maxVelocity)
+
+checkPlayerOutOfMap
+    :: (Member (State GameState) r, Member (Reader GameMap) r) => Eff r ()
+checkPlayerOutOfMap = do
+    players :: [InGamePlayer] <- gets
+        (toList . getInGamePlayers . inGamePlayers)
+    currentTick <- gets gameTicks
+
+    (BlockLocation (minX, minY), BlockLocation (maxX, maxY)) <- asks
+        (bounds . terrainBlocks . gameTerrain)
+
+    let outOfBoundsPlayers =
+            [ p
+            | p@InGamePlayer { playerLocation = Location (x, y) } <- players
+            , let outXMin = x < fromIntegral minX - outOfBoundsTolerance
+            , let outXMax = fromIntegral maxX + outOfBoundsTolerance < x
+            , let outYMin = y < fromIntegral minY - outOfBoundsTolerance
+            , let outYMax = fromIntegral maxY + outOfBoundsTolerance < y
+            , outXMin || outXMax || outYMin || outYMax
+            ]
+
+    modify
+        ( removePlayers
+        $ setFromList
+        . map playerDescription
+        $ outOfBoundsPlayers
+        )
+
+    let deadPlayers = map (newDeadPlayer currentTick) outOfBoundsPlayers
+    addDeadPlayers deadPlayers
+
 
 -- TODO: test contained code
 checkProjectilePlayerCollision

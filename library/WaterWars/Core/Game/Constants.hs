@@ -13,3 +13,6 @@ playerHeadHeight = 1 / 2 * defaultPlayerHeight
 
 shootCooldown :: Int
 shootCooldown = 50
+
+outOfBoundsTolerance :: Float
+outOfBoundsTolerance = 5
