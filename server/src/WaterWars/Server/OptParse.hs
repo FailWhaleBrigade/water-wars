@@ -27,7 +27,7 @@ hostnameParser = strOption
     (  long "hostname"
     ++ metavar "Hostname"
     ++ help "Hostname where to run"
-    ++ value "localhost"
+    ++ value "0.0.0.0"
     )
 
 portParser :: Parser Int
