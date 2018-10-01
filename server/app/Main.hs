@@ -6,6 +6,8 @@ import           ClassyPrelude
 import           Network.WebSockets      hiding ( newClientConnection )
 
 import           Control.Monad.Logger
+import           Control.Eff.Lift
+import           Control.Eff.Reader.Strict
 
 import           Data.UUID               hiding ( null )
 import           Data.UUID.V4
@@ -131,15 +133,19 @@ gameLoopServer arguments loadedGameMaps gameLoopStateTvar sessionMapTvar broadca
         eventMapTvar     <- newTVarIO $ mapFromList []
         gameMapTvar      <- newTVarIO $ GameMaps loadedGameMaps 0
         let env :: Env = Env broadcastChan
-                      gameLoopStateTvar
-                      playerActionTvar
-                      sessionMapTvar
-                      playerInGameTvar
-                      readyPlayersTvar
-                      gameMapTvar
-                      eventMapTvar
-                      (fps arguments)
-        _ <- async (eventLoop env)
+                             gameLoopStateTvar
+                             playerActionTvar
+                             sessionMapTvar
+                             playerInGameTvar
+                             readyPlayersTvar
+                             gameMapTvar
+                             eventMapTvar
+                             (fps arguments)
+        _ <- async
+            (runLift . runReader env $ runStdoutLoggingT $ filterLogger
+                (\_ level -> level /= LevelDebug)
+                eventLoop
+            )
         $logInfo "Start game loop"
         runGameLoop env gameLoopStateTvar broadcastChan playerActionTvar
         return ()

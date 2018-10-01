@@ -8,7 +8,12 @@ module WaterWars.Server.Env
     )
 where
 
-import           ClassyPrelude
+import           ClassyPrelude           hiding ( Reader
+                                                , ask
+                                                )
+import           Control.Eff
+import           Control.Eff.Reader.Strict
+
 import           WaterWars.Core.Game
 
 import           WaterWars.Server.ConnectionMgnt

@@ -35,6 +35,8 @@ library:
   - RecordWildCards
   - LambdaCase
   - FlexibleContexts
+  - FlexibleInstances
+  - MultiParamTypeClasses
   - MonoLocalBinds
 
 executables:
