@@ -4,24 +4,24 @@ import           ClassyPrelude
 
 import           Control.Monad.Logger
 
-import           Control.Concurrent                       ( threadDelay )
+import           Control.Concurrent             ( threadDelay )
 
 import           WaterWars.Core.Game
 import           WaterWars.Core.GameNg
 
-import           WaterWars.Server.OptParse
+import           WaterWars.Server.Env
 import           WaterWars.Server.ConnectionMgnt
 
 runGameLoop
     :: (MonadLogger m, MonadIO m)
-    => Arguments
+    => Env
     -> TVar GameLoopState
     -> TQueue EventMessage
     -> TVar PlayerActions
     -> m ()
-runGameLoop Arguments {..} gameLoopStateTvar broadcastChan playerActions =
+runGameLoop Env {..} gameLoopStateTvar broadcastChan playerActions =
     forever $ do
-        (GameLoopState {..}, gameEvents ) <- atomically $ do
+        (GameLoopState {..}, gameEvents) <- atomically $ do
             gameLoopState@GameLoopState {..} <- readTVar gameLoopStateTvar
             actions                          <- emptyPlayerActions playerActions
             let (events, newState) =
@@ -32,7 +32,7 @@ runGameLoop Arguments {..} gameLoopStateTvar broadcastChan playerActions =
         -- putStrLn $ tshow gameState
         let message = EventGameLoopMessage gameState gameEvents
         atomically $ writeTQueue broadcastChan message
-        liftIO $ threadDelay (round (1000000 / fps))
+        liftIO $ threadDelay (round (1000000 / gameFps))
 
 allGameTicks :: GameMap -> [Map Player Action] -> GameState -> [GameState]
 allGameTicks _ [] s = [s]

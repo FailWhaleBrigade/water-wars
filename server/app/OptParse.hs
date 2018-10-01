@@ -1,4 +1,4 @@
-module WaterWars.Server.OptParse where
+module OptParse where
 
 
 import ClassyPrelude
@@ -27,7 +27,7 @@ hostnameParser = strOption
     (  long "hostname"
     ++ metavar "Hostname"
     ++ help "Hostname where to run"
-    ++ value "0.0.0.0"
+    ++ value "localhost"
     )
 
 portParser :: Parser Int

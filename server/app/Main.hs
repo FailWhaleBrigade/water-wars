@@ -2,30 +2,30 @@
 
 module Main where
 
-import ClassyPrelude
-import Network.WebSockets hiding (newClientConnection)
+import           ClassyPrelude
+import           Network.WebSockets      hiding ( newClientConnection )
 
-import Control.Monad.Logger
+import           Control.Monad.Logger
 
-import Data.UUID          hiding ( null )
-import Data.UUID.V4
+import           Data.UUID               hiding ( null )
+import           Data.UUID.V4
 
-import Options.Applicative
+import           Options.Applicative
 
-import System.Remote.Monitoring
+import           System.Remote.Monitoring
 
-import WaterWars.Core.DefaultGame
-import WaterWars.Core.Game
-import WaterWars.Core.Terrain.Read
+import           WaterWars.Core.DefaultGame
+import           WaterWars.Core.Game
+import           WaterWars.Core.Terrain.Read
 
-import WaterWars.Network.Protocol    as Protocol
+import           WaterWars.Network.Protocol    as Protocol
 
-import WaterWars.Server.ConnectionMgnt
-import WaterWars.Server.GameLoop
-import WaterWars.Server.ClientConnection
-import WaterWars.Server.EventLoop
-import WaterWars.Server.State
-import WaterWars.Server.OptParse
+import           WaterWars.Server.ConnectionMgnt
+import           WaterWars.Server.GameLoop
+import           WaterWars.Server.ClientConnection
+import           WaterWars.Server.EventLoop
+import           WaterWars.Server.Env
+import           OptParse
 
 defaultGameSetup :: GameSetup
 defaultGameSetup = GameSetup {numberOfPlayers = 4, terrainMap = "default"}
@@ -40,7 +40,7 @@ serverStateWithGameMap gameMap = GameLoopState
 main :: IO ()
 main = do
     Arguments {..} <- execParser opts
-    _              <- forkServer "localhost" monitorPort
+    _              <- forkServer "0.0.0.0" monitorPort
     runLoop Arguments {..}
   where
     opts = info
@@ -52,8 +52,9 @@ main = do
 
 runLoop :: (MonadIO m, MonadUnliftIO m) => Arguments -> m ()
 runLoop arguments = do
-    let gameMapFiles_ = fromList
-            $ if null (gameMapFiles arguments) then ["resources/game1.txt"] else gameMapFiles arguments
+    let gameMapFiles_ = fromList $ if null (gameMapFiles arguments)
+            then ["resources/game1.txt"]
+            else gameMapFiles arguments
     -- read resources
     -- TODO: this fails ugly
     terrains <- mapM readTerrainFromFile gameMapFiles_
@@ -115,13 +116,13 @@ handleConnection sessionMapTvar broadcastChan websocketConn = do
     return ()
 
 gameLoopServer
-    :: (MonadIO m, MonadLogger m, MonadUnliftIO m)
+    :: (MonadIO m, MonadUnliftIO m)
     => Arguments
     -> Seq GameMap
     -> TVar GameLoopState
     -> TVar (Map Text ClientConnection)
     -> TQueue EventMessage
-    -> m ()
+    -> LoggingT m ()
 gameLoopServer arguments loadedGameMaps gameLoopStateTvar sessionMapTvar broadcastChan
     = do
         playerActionTvar <- newTVarIO (PlayerActions (mapFromList empty))
@@ -129,15 +130,16 @@ gameLoopServer arguments loadedGameMaps gameLoopStateTvar sessionMapTvar broadca
         readyPlayersTvar <- newTVarIO mempty
         eventMapTvar     <- newTVarIO $ mapFromList []
         gameMapTvar      <- newTVarIO $ GameMaps loadedGameMaps 0
-        let sharedState = SharedState broadcastChan
-                                      gameLoopStateTvar
-                                      playerActionTvar
-                                      sessionMapTvar
-                                      playerInGameTvar
-                                      readyPlayersTvar
-                                      gameMapTvar
-                                      eventMapTvar
-        _ <- async (eventLoop sharedState)
+        let env :: Env = Env broadcastChan
+                      gameLoopStateTvar
+                      playerActionTvar
+                      sessionMapTvar
+                      playerInGameTvar
+                      readyPlayersTvar
+                      gameMapTvar
+                      eventMapTvar
+                      (fps arguments)
+        _ <- async (eventLoop env)
         $logInfo "Start game loop"
-        runGameLoop arguments gameLoopStateTvar broadcastChan playerActionTvar
+        runGameLoop env gameLoopStateTvar broadcastChan playerActionTvar
         return ()

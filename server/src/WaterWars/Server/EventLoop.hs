@@ -2,36 +2,32 @@
 
 module WaterWars.Server.EventLoop where
 
-import ClassyPrelude
+import           ClassyPrelude
 
-import Control.Monad.Logger
+import           Control.Monad.Logger
 
-import WaterWars.Network.Protocol
-import WaterWars.Core.Game
-import WaterWars.Server.State
+import           WaterWars.Network.Protocol
+import           WaterWars.Core.Game
+import           WaterWars.Server.Env
 
-eventLoop :: (MonadIO m, MonadLogger m) => SharedState -> m ()
-eventLoop sharedState@SharedState {..} = forever $ do
+eventLoop :: MonadIO m => Env -> LoggingT m ()
+eventLoop env@Env {..} = forever $ do
     message <- atomically $ readTQueue eventQueue
     $logDebug $ "Read a new event loop message: " ++ tshow message
     case message of
         -- handle messages sent by a client connection
         EventClientMessage sessionId clientMsg ->
-            handleClientMessages sharedState sessionId clientMsg
+            handleClientMessages env sessionId clientMsg
 
         -- handle messages sent from the gameloop
         EventGameLoopMessage gameStateUpdate gameEvents ->
-            handleGameLoopMessages sharedState gameStateUpdate gameEvents
+            handleGameLoopMessages env gameStateUpdate gameEvents
 
         -- TODO: handle messages sent from websocket app
 
 handleGameLoopMessages
-    :: (MonadIO m, MonadLogger m)
-    => SharedState
-    -> GameState
-    -> GameEvents
-    -> m ()
-handleGameLoopMessages SharedState {..} gameStateUpdate gameEvents = do
+    :: (MonadIO m) => Env -> GameState -> GameEvents -> LoggingT m ()
+handleGameLoopMessages Env {..} gameStateUpdate gameEvents = do
     sessionMap <- readTVarIO connectionMapTvar
     let gameTick = gameTicks gameStateUpdate
     broadcastMessage (GameStateMessage gameStateUpdate gameEvents) sessionMap
@@ -62,17 +58,13 @@ handleGameLoopMessages SharedState {..} gameStateUpdate gameEvents = do
         Nothing    -> return ()
         Just event -> do
             $logInfo "An event is being executed"
-            futureToAction event SharedState {..}
+            futureToAction event Env {..}
 
 
 
 handleClientMessages
-    :: (MonadIO m, MonadLogger m)
-    => SharedState
-    -> Text
-    -> ClientMessage
-    -> m ()
-handleClientMessages SharedState {..} sessionId clientMsg = case clientMsg of
+    :: (MonadIO m) => Env -> Text -> ClientMessage -> LoggingT m ()
+handleClientMessages Env {..} sessionId clientMsg = case clientMsg of
     LoginMessage _ -> do
         -- TODO: Handle reconnects
         $logInfo ("Login message from \"" ++ sessionId ++ "\"")
@@ -108,7 +100,7 @@ handleClientMessages SharedState {..} sessionId clientMsg = case clientMsg of
                         removePlayer
                         serverState
                         (playerDescription player)
-                writeTVar   gameLoopTvar      serverState'
+                writeTVar gameLoopTvar serverState'
                 modifyTVar' connectionMapTvar (deleteMap sessionId)
                 modifyTVar' playerMapTvar     (deleteMap sessionId)
                 modifyTVar' readyPlayersTvar  (deleteSet sessionId)
@@ -161,20 +153,18 @@ handleClientMessages SharedState {..} sessionId clientMsg = case clientMsg of
                                      (insertMap (gameTick + 240) StartGame)
             return ()
 
-        return ()
 
 broadcastMessage
     :: MonadIO m => ServerMessage -> Map Text ClientConnection -> m ()
 broadcastMessage serverMessage sessionMap = forM_ sessionMap
     $ \conn -> atomically $ writeTQueue (readChannel conn) serverMessage
 
-futureToAction
-    :: (MonadLogger m, MonadIO m) => FutureEvent -> SharedState -> m ()
+futureToAction :: (MonadLogger m, MonadIO m) => FutureEvent -> Env -> m ()
 futureToAction ResetGame = restartGameCallback
 futureToAction StartGame = startGameCallback
 
-startGameCallback :: (MonadLogger m, MonadIO m) => SharedState -> m ()
-startGameCallback SharedState {..} = do
+startGameCallback :: (MonadLogger m, MonadIO m) => Env -> m ()
+startGameCallback Env {..} = do
     gameTick <- gameTicks . gameState <$> readTVarIO gameLoopTvar
     $logInfo $ "Send the Game start message: " ++ tshow gameTick
     atomically $ modifyTVar' gameLoopTvar startGame
@@ -182,12 +172,12 @@ startGameCallback SharedState {..} = do
     sessionMap <- readTVarIO connectionMapTvar
     broadcastMessage GameStartMessage sessionMap
 
-restartGameCallback :: (MonadLogger m, MonadIO m) => SharedState -> m ()
-restartGameCallback SharedState {..} = do
+restartGameCallback :: (MonadLogger m, MonadIO m) => Env -> m ()
+restartGameCallback Env {..} = do
     $logInfo $ "Restart the game"
     (sessionMap, newGameMap_) <- atomically $ do
         writeTVar readyPlayersTvar mempty -- demand that everyone ready's up again
-        sessionMap  <- readTVar connectionMapTvar
+        sessionMap   <- readTVar connectionMapTvar
         nextGameMap_ <- nextGameMap gameMapTvar
 
         modifyTVar' gameLoopTvar $ \gameLoop ->
@@ -207,10 +197,10 @@ restartGameCallback SharedState {..} = do
 
                 stoppedGameLoop = gameLoop
                     { gameState   = GameState
-                        { inGamePlayers   = inGamePlayers'
-                        , gameDeadPlayers = DeadPlayers empty
-                        , ..
-                        }
+                                        { inGamePlayers   = inGamePlayers'
+                                        , gameDeadPlayers = DeadPlayers empty
+                                        , ..
+                                        }
                     , gameRunning = False
                     , gameMap     = nextGameMap_
                     }
@@ -219,7 +209,5 @@ restartGameCallback SharedState {..} = do
 
         return (sessionMap, nextGameMap_)
 
-    broadcastMessage ResetGameMessage            sessionMap
+    broadcastMessage ResetGameMessage             sessionMap
     broadcastMessage (GameMapMessage newGameMap_) sessionMap
-
-

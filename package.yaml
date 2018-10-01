@@ -22,7 +22,7 @@ library:
   - base
   - classy-prelude
   - array
-  - extensible-effects >= 3 && < 3.1
+  - extensible-effects >= 3.1 && < 3.2
   - extra
   - cereal
   source-dirs: library

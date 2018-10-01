@@ -1,19 +1,20 @@
-module WaterWars.Server.State
-    (SharedState(..)
-    , FutureEvent (..)
+module WaterWars.Server.Env
+    ( Env(..)
+    , FutureEvent(..)
     , EventMap
-    , GameMaps (..)
+    , GameMaps(..)
     , nextGameMap
     , module WaterWars.Server.ConnectionMgnt
-    ) where
+    )
+where
 
-import ClassyPrelude
-import WaterWars.Core.Game
+import           ClassyPrelude
+import           WaterWars.Core.Game
 
-import WaterWars.Server.ConnectionMgnt
+import           WaterWars.Server.ConnectionMgnt
 
-data SharedState =
-    SharedState
+data Env =
+    Env
         { eventQueue :: TQueue EventMessage
         , gameLoopTvar ::  TVar GameLoopState
         , playerActionTvar ::  TVar PlayerActions
@@ -22,6 +23,7 @@ data SharedState =
         , readyPlayersTvar ::  TVar (Set Text)
         , gameMapTvar :: TVar GameMaps
         , eventMapTvar :: TVar EventMap
+        , gameFps :: Float
         }
 
 type EventMap = Map Integer FutureEvent
@@ -41,11 +43,5 @@ nextGameMap :: TVar GameMaps -> STM GameMap
 nextGameMap tvar = do
     GameMaps {..} <- readTVar tvar
     let nextGameMapIndex = (currentGameMapIndex + 1) `mod` length gameMaps
-    writeTVar
-        tvar
-        GameMaps
-            { currentGameMapIndex = nextGameMapIndex
-            , ..
-            }
+    writeTVar tvar GameMaps {currentGameMapIndex = nextGameMapIndex, ..}
     return (gameMaps `indexEx` nextGameMapIndex)
-
