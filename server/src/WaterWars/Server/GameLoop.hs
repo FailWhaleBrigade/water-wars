@@ -10,29 +10,30 @@ import           WaterWars.Core.Game
 import           WaterWars.Core.GameNg
 
 import           WaterWars.Server.Env
-import           WaterWars.Server.ConnectionMgnt
 
 runGameLoop
     :: (MonadLogger m, MonadIO m)
     => Env
-    -> TVar GameLoopState
-    -> TQueue EventMessage
-    -> TVar PlayerActions
     -> m ()
-runGameLoop Env {..} gameLoopStateTvar broadcastChan playerActions =
+runGameLoop Env {..} =
     forever $ do
+        let ServerEnv {..} = serverEnv
+        let GameEnv {..} = gameEnv
+        let NetworkEnv {..} = networkEnv
+        let GameConfig {..} = gameConfig
+
         (GameLoopState {..}, gameEvents) <- atomically $ do
-            gameLoopState@GameLoopState {..} <- readTVar gameLoopStateTvar
-            actions                          <- emptyPlayerActions playerActions
+            gameLoopState@GameLoopState {..} <- readTVar gameLoopTvar
+            actions                          <- emptyPlayerActions playerActionTvar
             let (events, newState) =
                     runGameTick gameRunning gameMap gameState actions
             let newgameState = gameLoopState { gameState = newState }
-            writeTVar gameLoopStateTvar newgameState
+            writeTVar gameLoopTvar newgameState
             return (newgameState, events)
         -- putStrLn $ tshow gameState
         let message = EventGameLoopMessage gameState gameEvents
-        atomically $ writeTQueue broadcastChan message
-        liftIO $ threadDelay (round (1000000 / gameFps))
+        atomically $ writeTQueue eventQueue message
+        liftIO $ threadDelay (round (1000000 / fps))
 
 allGameTicks :: GameMap -> [Map Player Action] -> GameState -> [GameState]
 allGameTicks _ [] s = [s]

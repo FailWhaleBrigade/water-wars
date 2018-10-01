@@ -91,14 +91,15 @@ websocketServer Arguments {..} sessionMapTvar broadcastChan =
                        (handleConnection sessionMapTvar broadcastChan)
 
 handleConnection
-    :: TVar (Map Text ClientConnection)
+    :: (MonadIO m, MonadUnliftIO m)
+    => TVar (Map Text ClientConnection)
     -> TQueue EventMessage
     -> PendingConnection
-    -> IO ()
+    -> m ()
 handleConnection sessionMapTvar broadcastChan websocketConn = do
-    connHandle <- acceptRequest websocketConn
+    connHandle <- liftIO $ acceptRequest websocketConn
     commChan   <- newTQueueIO -- to receive messages
-    sessionId  <- toText <$> nextRandom -- uniquely identify connections
+    sessionId  <- liftIO $ toText <$> nextRandom -- uniquely identify connections
     let conn = newClientConnection sessionId connHandle commChan broadcastChan
     atomically $ modifyTVar' sessionMapTvar (insertMap sessionId conn)
     runStdoutLoggingT
@@ -132,20 +133,29 @@ gameLoopServer arguments loadedGameMaps gameLoopStateTvar sessionMapTvar broadca
         readyPlayersTvar <- newTVarIO mempty
         eventMapTvar     <- newTVarIO $ mapFromList []
         gameMapTvar      <- newTVarIO $ GameMaps loadedGameMaps 0
-        let env :: Env = Env broadcastChan
-                             gameLoopStateTvar
-                             playerActionTvar
-                             sessionMapTvar
-                             playerInGameTvar
-                             readyPlayersTvar
-                             gameMapTvar
-                             eventMapTvar
-                             (fps arguments)
+        networkEnv <- pure NetworkEnv 
+            { connectionMapTvar = sessionMapTvar 
+            }
+        gameEnv <- pure GameEnv 
+            { playerMapTvar = playerInGameTvar
+            , readyPlayersTvar = readyPlayersTvar
+            , eventMapTvar= eventMapTvar 
+            }
+        gameConfig <- pure GameConfig 
+            { fps = gameFps arguments 
+            , gameMapTvar = gameMapTvar 
+            }
+        serverEnv <- pure ServerEnv 
+            { eventQueue = broadcastChan
+            , gameLoopTvar = gameLoopStateTvar
+            , playerActionTvar = playerActionTvar
+            }
+        let env :: Env = Env {..}
         _ <- async
-            (runLift . runReader env $ runStdoutLoggingT $ filterLogger
+            (runLift . runReader env . runStdoutLoggingT $ filterLogger
                 (\_ level -> level /= LevelDebug)
                 eventLoop
             )
         $logInfo "Start game loop"
-        runGameLoop env gameLoopStateTvar broadcastChan playerActionTvar
+        runGameLoop env
         return ()

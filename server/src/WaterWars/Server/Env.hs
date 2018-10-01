@@ -1,5 +1,9 @@
 module WaterWars.Server.Env
     ( Env(..)
+    , NetworkEnv(..)
+    , GameEnv(..)
+    , GameConfig(..)
+    , ServerEnv(..)
     , FutureEvent(..)
     , EventMap
     , GameMaps(..)
@@ -8,11 +12,7 @@ module WaterWars.Server.Env
     )
 where
 
-import           ClassyPrelude           hiding ( Reader
-                                                , ask
-                                                )
-import           Control.Eff
-import           Control.Eff.Reader.Strict
+import           ClassyPrelude           hiding ( Reader )
 
 import           WaterWars.Core.Game
 
@@ -20,15 +20,35 @@ import           WaterWars.Server.ConnectionMgnt
 
 data Env =
     Env
+        { serverEnv :: ServerEnv
+        , networkEnv :: NetworkEnv
+        , gameEnv :: GameEnv
+        , gameConfig :: GameConfig
+        }
+
+newtype NetworkEnv =
+    NetworkEnv
+        { connectionMapTvar ::  TVar (Map Text ClientConnection)
+        }
+
+data GameEnv =
+    GameEnv
+        { playerMapTvar  ::  TVar (Map Text InGamePlayer)
+        , readyPlayersTvar ::  TVar (Set Text)
+        , eventMapTvar :: TVar EventMap
+        }
+
+data ServerEnv =
+    ServerEnv
         { eventQueue :: TQueue EventMessage
         , gameLoopTvar ::  TVar GameLoopState
         , playerActionTvar ::  TVar PlayerActions
-        , connectionMapTvar ::  TVar (Map Text ClientConnection)
-        , playerMapTvar  ::  TVar (Map Text InGamePlayer)
-        , readyPlayersTvar ::  TVar (Set Text)
+        }
+
+data GameConfig =
+    GameConfig
+        { fps :: Float
         , gameMapTvar :: TVar GameMaps
-        , eventMapTvar :: TVar EventMap
-        , gameFps :: Float
         }
 
 type EventMap = Map Integer FutureEvent

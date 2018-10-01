@@ -3,7 +3,6 @@
 module WaterWars.Server.EventLoop where
 
 import           ClassyPrelude           hiding ( ask
-                                                , asks
                                                 , Reader
                                                 )
 import           Control.Eff
@@ -18,7 +17,7 @@ import           WaterWars.Server.Env
 eventLoop
     :: (Member (Reader Env) r, MonadIO m, Lifted m r) => LoggingT (Eff r) ()
 eventLoop = forever $ do
-    queue   <- lift $ reader eventQueue
+    queue   <- lift $ reader (eventQueue . serverEnv)
     message <- atomically $ readTQueue queue
     $logDebug $ "Read a new event loop message: " ++ tshow message
     case message of
@@ -38,9 +37,12 @@ handleGameLoopMessages
     -> GameEvents
     -> LoggingT (Eff r) ()
 handleGameLoopMessages gameStateUpdate gameEvents = do
-    Env {..}   <- lift ask
-    sessionMap <- readTVarIO connectionMapTvar
-    let gameTick = gameTicks gameStateUpdate
+    Env {..} <- lift ask
+    let ServerEnv {..}  = serverEnv
+    let GameEnv {..}    = gameEnv
+    let NetworkEnv {..} = networkEnv
+
+    let gameTick        = gameTicks gameStateUpdate
     broadcastMessage (GameStateMessage gameStateUpdate gameEvents)
     gameIsRunning <- gameRunning <$> readTVarIO gameLoopTvar
 
@@ -81,6 +83,10 @@ handleClientMessages
 handleClientMessages sessionId clientMsg = do
 
     Env {..} <- lift ask
+    let ServerEnv {..}  = serverEnv
+    let GameEnv {..}    = gameEnv
+    let NetworkEnv {..} = networkEnv
+
     case clientMsg of
         LoginMessage _ -> do
             -- TODO: Handle reconnects
@@ -165,8 +171,7 @@ handleClientMessages sessionId clientMsg = do
                     ++ sessionId
                     ++ "\" was the last one."
                     )
-                sessionMap <- readTVarIO connectionMapTvar
-                gameTick   <- gameTicks . gameState <$> readTVarIO gameLoopTvar
+                gameTick <- gameTicks . gameState <$> readTVarIO gameLoopTvar
                 -- notify that the game will start
                 broadcastMessage
                     (GameWillStartMessage (GameStart (gameTick + 240)))
@@ -183,7 +188,7 @@ broadcastMessage
     => ServerMessage
     -> LoggingT (Eff r) ()
 broadcastMessage serverMessage = do
-    sessionMap' <- lift (reader connectionMapTvar)
+    sessionMap' <- lift (reader (connectionMapTvar . networkEnv))
     session     <- readTVarIO sessionMap'
     forM_ (session :: Map Text ClientConnection)
         $ \conn -> atomically $ writeTQueue (readChannel conn) serverMessage
@@ -199,6 +204,9 @@ startGameCallback
     :: (Member (Reader Env) r, MonadIO m, Lifted m r) => LoggingT (Eff r) ()
 startGameCallback = do
     Env {..} <- lift ask
+    let ServerEnv {..}  = serverEnv
+    let GameEnv {..}    = gameEnv
+    let GameConfig {..} = gameConfig
     gameTick <- gameTicks . gameState <$> readTVarIO gameLoopTvar
     $logInfo $ "Send the Game start message: " ++ tshow gameTick
     atomically $ modifyTVar' gameLoopTvar startGame
@@ -209,6 +217,9 @@ restartGameCallback
     :: (Member (Reader Env) r, MonadIO m, Lifted m r) => LoggingT (Eff r) ()
 restartGameCallback = do
     Env {..} <- lift ask
+    let ServerEnv {..}  = serverEnv
+    let GameEnv {..}    = gameEnv
+    let GameConfig {..} = gameConfig
     $logInfo "Restart the game"
     newGameMap_ <- atomically $ do
         writeTVar readyPlayersTvar mempty -- demand that everyone ready's up again
