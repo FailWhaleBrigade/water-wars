@@ -14,7 +14,7 @@ import           WaterWars.Core.Game.State
 newtype GameEvents = GameEvents
     { getGameEvents :: Seq GameEvent
     }
-    deriving (Read, Show, Eq, Monoid, Generic)
+    deriving (Read, Show, Eq, Semigroup, Monoid, Generic)
 
 newtype GameEvent = ShotProjectile Projectile
     deriving (Read, Show, Eq, Generic)
