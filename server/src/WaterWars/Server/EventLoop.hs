@@ -8,19 +8,20 @@ import           ClassyPrelude           hiding ( ask
                                                 )
 import           Control.Eff
 import           Control.Eff.Reader.Strict
+import           Control.Eff.Log
+import qualified Control.Eff.Log as EffLog
 import           Control.Eff.Lift        hiding ( lift )
-import           Control.Monad.Logger
 
 import           WaterWars.Network.Protocol
 import           WaterWars.Core.Game
 import           WaterWars.Server.Env
 
 eventLoop
-    :: (Member (Reader Env) r, MonadIO m, Lifted m r) => LoggingT (Eff r) ()
+    :: (Member (Log String) r, Member (Reader Env) r, MonadIO m, Lifted m r) => Eff r ()
 eventLoop = forever $ do
-    queue   <- lift $ reader eventQueue
+    queue   <- reader eventQueue
     message <- atomically $ readTQueue queue
-    $logDebug $ "Read a new event loop message: " ++ tshow message
+    EffLog.logE$ "Read a new event loop message: " ++ show message
     case message of
         -- handle messages sent by a client connection
         EventClientMessage sessionId clientMsg ->
@@ -33,12 +34,12 @@ eventLoop = forever $ do
         -- TODO: handle messages sent from websocket app
 
 handleGameLoopMessages
-    :: (Member (Reader Env) r, MonadIO m, Lifted m r)
+    :: (Member (Log String) r, Member (Reader Env) r, MonadIO m, Lifted m r)
     => GameState
     -> GameEvents
-    -> LoggingT (Eff r) ()
+    -> Eff r ()
 handleGameLoopMessages gameStateUpdate gameEvents = do
-    Env {..}   <- lift ask
+    Env {..}   <- ask
     sessionMap <- readTVarIO connectionMapTvar
     let gameTick = gameTicks gameStateUpdate
     broadcastMessage (GameStateMessage gameStateUpdate gameEvents)
@@ -51,7 +52,7 @@ handleGameLoopMessages gameStateUpdate gameEvents = do
             <= 1
             )
         $ do
-              $logInfo "Restarting the game"
+              EffLog.logE "Restarting the game"
               atomically $ do
                   modifyTVar' gameLoopTvar stopGame
                   modifyTVar' eventMapTvar
@@ -68,23 +69,22 @@ handleGameLoopMessages gameStateUpdate gameEvents = do
     case eventMay of
         Nothing    -> return ()
         Just event -> do
-            $logInfo "An event is being executed"
+            EffLog.logE "An event is being executed"
             futureToAction event
 
 
 
 handleClientMessages
-    :: (Member (Reader Env) r, MonadIO m, Lifted m r)
+    :: (Member (Log String) r, Member (Reader Env) r, MonadIO m, Lifted m r)
     => Text
     -> ClientMessage
-    -> LoggingT (Eff r) ()
+    -> Eff r ()
 handleClientMessages sessionId clientMsg = do
-
-    Env {..} <- lift ask
+    Env {..} <- ask
     case clientMsg of
         LoginMessage _ -> do
             -- TODO: Handle reconnects
-            $logInfo ("Login message from \"" ++ sessionId ++ "\"")
+            EffLog.logE ("Login message from \"" ++ unpack sessionId ++ "\"")
             -- Create new Player
             let player = newInGamePlayer (Player sessionId) (Location (0, 0))
             -- Tell the game loop engine about the newly connected player
@@ -108,7 +108,7 @@ handleClientMessages sessionId clientMsg = do
             return ()
 
         LogoutMessage Logout -> do
-            $logInfo ("Logout message from \"" ++ sessionId ++ "\"")
+            EffLog.logE ("Logout message from \"" ++ unpack sessionId ++ "\"")
             playerMay <- lookup sessionId <$> readTVarIO playerMapTvar
             case playerMay of
                 Nothing     -> return ()
@@ -132,7 +132,7 @@ handleClientMessages sessionId clientMsg = do
             playerMay <- lookup sessionId <$> readTVarIO playerMapTvar
             case playerMay of
                 Nothing -> do
-                    $logWarn
+                    EffLog.logE
                         "Received a message that did not belong to any player"
                     return ()
                 Just InGamePlayer {..} -> atomically $ do
@@ -146,7 +146,7 @@ handleClientMessages sessionId clientMsg = do
             return ()
 
         ClientReadyMessage ClientReady -> do
-            $logInfo ("Player \"" ++ sessionId ++ "\" is ready")
+            EffLog.logE ("Player \"" ++ unpack sessionId ++ "\" is ready")
 
             allPlayersReady <- atomically $ do
                 readySet  <- readTVar readyPlayersTvar
@@ -160,9 +160,9 @@ handleClientMessages sessionId clientMsg = do
                         return $ keysSet playerMap == readySet'
 
             when allPlayersReady $ do
-                $logInfo
+                EffLog.logE
                     (  "Everyone is ready. \""
-                    ++ sessionId
+                    ++ unpack sessionId
                     ++ "\" was the last one."
                     )
                 sessionMap <- readTVarIO connectionMapTvar
@@ -179,37 +179,37 @@ handleClientMessages sessionId clientMsg = do
 
 
 broadcastMessage
-    :: (Member (Reader Env) r, MonadIO m, Lifted m r)
+    :: (Member (Log String) r, Member (Reader Env) r, MonadIO m, Lifted m r)
     => ServerMessage
-    -> LoggingT (Eff r) ()
+    -> Eff r ()
 broadcastMessage serverMessage = do
-    sessionMap' <- lift (reader connectionMapTvar)
+    sessionMap' <- reader connectionMapTvar
     session     <- readTVarIO sessionMap'
     forM_ (session :: Map Text ClientConnection)
         $ \conn -> atomically $ writeTQueue (readChannel conn) serverMessage
 
 futureToAction
-    :: (Member (Reader Env) r, MonadIO m, Lifted m r)
+    :: (Member (Log String) r, Member (Reader Env) r, MonadIO m, Lifted m r)
     => FutureEvent
-    -> LoggingT (Eff r) ()
+    -> Eff r ()
 futureToAction ResetGame = restartGameCallback
 futureToAction StartGame = startGameCallback
 
 startGameCallback
-    :: (Member (Reader Env) r, MonadIO m, Lifted m r) => LoggingT (Eff r) ()
+    :: (Member (Log String) r, Member (Reader Env) r, MonadIO m, Lifted m r) => Eff r ()
 startGameCallback = do
-    Env {..} <- lift ask
+    Env {..} <- ask
     gameTick <- gameTicks . gameState <$> readTVarIO gameLoopTvar
-    $logInfo $ "Send the Game start message: " ++ tshow gameTick
+    EffLog.logE $ "Send the Game start message: " ++ show gameTick
     atomically $ modifyTVar' gameLoopTvar startGame
 
     broadcastMessage GameStartMessage
 
 restartGameCallback
-    :: (Member (Reader Env) r, MonadIO m, Lifted m r) => LoggingT (Eff r) ()
+    :: (Member (Log String) r, Member (Reader Env) r, MonadIO m, Lifted m r) => Eff r ()
 restartGameCallback = do
-    Env {..} <- lift ask
-    $logInfo "Restart the game"
+    Env {..} <- ask
+    EffLog.logE "Restart the game"
     newGameMap_ <- atomically $ do
         writeTVar readyPlayersTvar mempty -- demand that everyone ready's up again
         nextGameMap_ <- nextGameMap gameMapTvar

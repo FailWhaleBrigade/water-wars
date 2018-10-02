@@ -1,12 +1,14 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE DataKinds #-}
 
 module Main where
 
-import           ClassyPrelude
+import           ClassyPrelude hiding (Reader)
 import           Network.WebSockets      hiding ( newClientConnection )
 
 import           Control.Monad.Logger
+import           Control.Eff
 import           Control.Eff.Lift
+import           Control.Eff.Log (Log, runLog, stdoutLogger, Logger)
 import           Control.Eff.Reader.Strict
 
 import           Data.UUID               hiding ( null )
@@ -141,11 +143,14 @@ gameLoopServer arguments loadedGameMaps gameLoopStateTvar sessionMapTvar broadca
                              gameMapTvar
                              eventMapTvar
                              (fps arguments)
-        _ <- async
-            (runLift . runReader env $ runStdoutLoggingT $ filterLogger
-                (\_ level -> level /= LevelDebug)
+
+        _ <- liftIO $
+                async .
+                runLift .
+                runLog (stdoutLogger :: Logger IO String) .
+                runReader env $
                 eventLoop
-            )
-        $logInfo "Start game loop"
+
+        -- $logInfo "Start game loop"
         runGameLoop env gameLoopStateTvar broadcastChan playerActionTvar
         return ()

@@ -11,6 +11,8 @@ extra-deps:
 - heavy-logger-0.3.2.0
 - text-format-heavy-0.1.5.1
 - proteaaudio-0.7.0.1
+- git: git@github.com:power-fungus/log-effect.git
+  commit: 20c8a3e978d7a901da2814e3c5b47fc96843bba6
 
 nix:
   pure: false
