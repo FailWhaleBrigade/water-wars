@@ -12,6 +12,7 @@ import           Control.Monad.Logger
 
 import           WaterWars.Network.Protocol
 import           WaterWars.Core.Game
+import           WaterWars.Server.ConnectionMgnt
 import           WaterWars.Server.Env
 
 eventLoop
@@ -188,8 +189,8 @@ broadcastMessage
     => ServerMessage
     -> LoggingT (Eff r) ()
 broadcastMessage serverMessage = do
-    sessionMap' <- lift (reader (connectionMapTvar . networkEnv))
-    session     <- readTVarIO sessionMap'
+    env :: Env <- lift ask
+    session <- readTVarIO $ getConnections env
     forM_ (session :: Map Text ClientConnection)
         $ \conn -> atomically $ writeTQueue (readChannel conn) serverMessage
 

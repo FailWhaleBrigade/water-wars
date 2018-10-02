@@ -1,16 +1,4 @@
-module WaterWars.Server.Env
-    ( Env(..)
-    , NetworkEnv(..)
-    , GameEnv(..)
-    , GameConfig(..)
-    , ServerEnv(..)
-    , FutureEvent(..)
-    , EventMap
-    , GameMaps(..)
-    , nextGameMap
-    , module WaterWars.Server.ConnectionMgnt
-    )
-where
+module WaterWars.Server.Env where
 
 import           ClassyPrelude           hiding ( Reader )
 
@@ -25,6 +13,15 @@ data Env =
         , gameEnv :: GameEnv
         , gameConfig :: GameConfig
         }
+
+class HasNetwork a where
+    getConnections :: a -> TVar (Map Text ClientConnection)
+
+instance HasNetwork NetworkEnv where
+    getConnections NetworkEnv {..} = connectionMapTvar
+
+instance HasNetwork Env where
+    getConnections Env {..} = connectionMapTvar networkEnv
 
 newtype NetworkEnv =
     NetworkEnv
