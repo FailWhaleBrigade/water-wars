@@ -11,7 +11,7 @@ import qualified Control.Eff.Log               as EffLog
 import           WaterWars.Core.Game
 import           WaterWars.Network.Protocol
 import           WaterWars.Server.Env
-import           WaterWars.Server.EventQueue
+import           WaterWars.Server.Events
 import           WaterWars.Server.Action.Util
 
 

@@ -7,19 +7,19 @@ module WaterWars.Server.ConnectionMgnt
     , newClientConnection
     , addInGamePlayer
     , removePlayer
-    , module WaterWars.Server.EventQueue
-    ) where
+    )
+where
 
-import ClassyPrelude
+import           ClassyPrelude
 
-import qualified Network.WebSockets as WS
+import qualified Network.WebSockets            as WS
 
-import WaterWars.Network.Protocol
-import WaterWars.Network.Connection
+import           WaterWars.Network.Protocol
+import           WaterWars.Network.Connection
 
-import WaterWars.Core.Game
+import           WaterWars.Core.Game
 
-import WaterWars.Server.EventQueue
+import           WaterWars.Server.Events
 
 data ClientConnection = ClientConnection
     { connectionId  :: Text -- ^Session id, uniquely identifies players

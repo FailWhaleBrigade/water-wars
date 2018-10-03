@@ -1,4 +1,4 @@
-module WaterWars.Server.EventQueue where
+module WaterWars.Server.Events where
 
 import ClassyPrelude
 import WaterWars.Core.Game

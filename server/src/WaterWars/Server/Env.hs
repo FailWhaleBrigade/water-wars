@@ -5,6 +5,7 @@ import           ClassyPrelude           hiding ( Reader )
 import           WaterWars.Core.Game
 
 import           WaterWars.Server.ConnectionMgnt
+import           WaterWars.Server.Events
 
 data Env =
     Env

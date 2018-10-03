@@ -32,6 +32,7 @@ import           WaterWars.Server.GameLoop
 import           WaterWars.Server.ClientConnection
 import           WaterWars.Server.EventLoop
 import           WaterWars.Server.Env
+import           WaterWars.Server.Events
 import           OptParse
 
 defaultGameSetup :: GameSetup

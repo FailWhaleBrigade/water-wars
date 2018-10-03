@@ -9,6 +9,7 @@ import           WaterWars.Core.GameNg
 
 import           WaterWars.Server.ConnectionMgnt
 import           WaterWars.Server.Env
+import           WaterWars.Server.Events
 
 runGameLoop :: MonadIO m => Env -> m ()
 runGameLoop Env {..} = forever $ do
