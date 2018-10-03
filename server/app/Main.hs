@@ -2,18 +2,23 @@
 
 module Main where
 
-import           ClassyPrelude hiding (Reader)
-import           Network.WebSockets      hiding ( newClientConnection )
+import           ClassyPrelude           hiding ( Reader )
 
 import           Control.Monad.Logger
-import           Control.Eff
+import           Control.Monad.Base             ( MonadBase(..) )
+import           Control.Eff                    ( )
 import           Control.Eff.Lift
-import           Control.Eff.Log (Log, runLog, stdoutStringLogger, Logger)
+import           Control.Eff.Log                ( Log
+                                                , runLog
+                                                , Logger
+                                                )
 import           Control.Eff.Reader.Strict
 
 import           Data.UUID               hiding ( null )
 import           Data.UUID.V4
+import           Data.Time
 
+import           Network.WebSockets      hiding ( newClientConnection )
 import           Options.Applicative
 
 import           System.Remote.Monitoring
@@ -144,13 +149,20 @@ gameLoopServer arguments loadedGameMaps gameLoopStateTvar sessionMapTvar broadca
                              eventMapTvar
                              (fps arguments)
 
-        _ <- liftIO $
-                async .
-                runLift .
-                runLog stdoutStringLogger .
-                runReader env $
-                eventLoop
+        _ <-
+            liftIO
+            $ async
+            . runLift
+            . runLog stdoutDateTextLogger
+            . runReader env
+            $ eventLoop
 
         -- $logInfo "Start game loop"
         runGameLoop env gameLoopStateTvar broadcastChan playerActionTvar
         return ()
+
+stdoutDateTextLogger :: MonadBase IO m => Logger m Text
+stdoutDateTextLogger msg = liftBase $ do
+    time <- getCurrentTime
+    let fmtTime = formatTime defaultTimeLocale rfc822DateFormat time
+    say $ pack fmtTime ++ ": " ++ msg
