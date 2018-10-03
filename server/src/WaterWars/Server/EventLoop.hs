@@ -16,6 +16,7 @@ import           Control.Eff.Lift        hiding ( lift )
 import           WaterWars.Network.Protocol
 import           WaterWars.Core.Game
 import           WaterWars.Server.Env
+import           WaterWars.Server.Action.Start
 import           WaterWars.Server.Action.Restart
 import           WaterWars.Server.Action.Util
 
@@ -172,7 +173,7 @@ handleClientMessages sessionId clientMsg = do
                 broadcastMessage
                     (GameWillStartMessage (GameStart (gameTick + 240)))
 
-                -- add callbakc to start the game
+                -- add callback to start the game
                 atomically $ modifyTVar'
                     eventMapTvar
                     (insertMap (gameTick + 240) StartGame)
@@ -185,17 +186,3 @@ futureToAction
     -> Eff r ()
 futureToAction ResetGame = restartGameCallback
 futureToAction StartGame = startGameCallback
-
-startGameCallback
-    :: (Member (Log Text) r, Member (Reader Env) r, MonadIO m, Lifted m r)
-    => Eff r ()
-startGameCallback = do
-    Env {..} <- ask
-    gameTick <- gameTicks . gameState <$> readTVarIO gameLoopTvar
-    EffLog.logE $ "Send the Game start message: " ++ tshow gameTick
-    atomically $ modifyTVar' gameLoopTvar startGame
-
-    broadcastMessage GameStartMessage
-
-
-
