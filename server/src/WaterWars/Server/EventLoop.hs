@@ -4,7 +4,6 @@
 module WaterWars.Server.EventLoop where
 
 import           ClassyPrelude           hiding ( ask
-                                                , asks
                                                 , Reader
                                                 )
 import           Control.Eff
@@ -15,6 +14,7 @@ import           Control.Eff.Lift        hiding ( lift )
 
 import           WaterWars.Network.Protocol
 import           WaterWars.Core.Game
+import           WaterWars.Server.ConnectionMgnt
 import           WaterWars.Server.Env
 import           WaterWars.Server.Action.Start
 import           WaterWars.Server.Action.Restart
@@ -22,7 +22,7 @@ import           WaterWars.Server.Action.Util
 
 eventLoop :: ('[Log Text, Reader Env] <:: r, MonadIO m, Lifted m r) => Eff r ()
 eventLoop = forever $ do
-    queue   <- reader eventQueue
+    queue   <- reader (eventQueue . serverEnv)
     message <- atomically $ readTQueue queue
     EffLog.logE $ "Read a new event loop message: " ++ tshow message
     case message of
@@ -42,7 +42,10 @@ handleGameLoopMessages
     -> GameEvents
     -> Eff r ()
 handleGameLoopMessages gameStateUpdate gameEvents = do
-    Env {..} <- ask
+    ServerEnv {..}  <- reader serverEnv
+    GameEnv {..}    <- reader gameEnv
+    NetworkEnv {..} <- reader networkEnv
+
     let gameTick = gameTicks gameStateUpdate
     broadcastMessage (GameStateMessage gameStateUpdate gameEvents)
     gameIsRunning <- gameRunning <$> readTVarIO gameLoopTvar
@@ -82,7 +85,10 @@ handleClientMessages
     -> ClientMessage
     -> Eff r ()
 handleClientMessages sessionId clientMsg = do
-    Env {..} <- ask
+    ServerEnv {..}  <- reader serverEnv
+    GameEnv {..}    <- reader gameEnv
+    NetworkEnv {..} <- reader networkEnv
+
     case clientMsg of
         LoginMessage _ -> do
             -- TODO: Handle reconnects
@@ -178,7 +184,6 @@ handleClientMessages sessionId clientMsg = do
                     eventMapTvar
                     (insertMap (gameTick + 240) StartGame)
                 return ()
-
 
 futureToAction
     :: (Member (Log Text) r, Member (Reader Env) r, MonadIO m, Lifted m r)

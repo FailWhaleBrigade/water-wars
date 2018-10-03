@@ -11,6 +11,7 @@ import qualified Control.Eff.Log               as EffLog
 import           WaterWars.Core.Game
 import           WaterWars.Network.Protocol
 import           WaterWars.Server.Env
+import           WaterWars.Server.EventQueue
 import           WaterWars.Server.Action.Util
 
 
@@ -18,7 +19,10 @@ restartGameCallback
     :: (Member (Log Text) r, Member (Reader Env) r, MonadIO m, Lifted m r)
     => Eff r ()
 restartGameCallback = do
-    Env {..} <- ask
+    ServerEnv {..}  <- reader serverEnv
+    GameEnv {..}    <- reader gameEnv
+    NetworkEnv {..} <- reader networkEnv
+    GameConfig {..} <- reader gameConfig
     EffLog.logE ("Restart the game" :: Text)
     newGameMap_ <- atomically $ do
         writeTVar readyPlayersTvar mempty -- demand that everyone ready's up again

@@ -107,8 +107,7 @@ handleConnection sessionMapTvar broadcastChan websocketConn = do
     clientGameThread
             stdoutDateTextLogger
             conn
-            ( liftIO
-            . atomically
+            ( atomically
             . writeTQueue broadcastChan
             . EventClientMessage sessionId
             )
@@ -135,15 +134,22 @@ gameLoopServer arguments loadedGameMaps gameLoopStateTvar sessionMapTvar broadca
         readyPlayersTvar <- newTVarIO mempty
         eventMapTvar     <- newTVarIO $ mapFromList []
         gameMapTvar      <- newTVarIO $ GameMaps loadedGameMaps 0
-        let env :: Env = Env broadcastChan
-                             gameLoopStateTvar
-                             playerActionTvar
-                             sessionMapTvar
-                             playerInGameTvar
-                             readyPlayersTvar
-                             gameMapTvar
-                             eventMapTvar
-                             (fps arguments)
+        let networkEnv = NetworkEnv {connectionMapTvar = sessionMapTvar}
+        let gameEnv = GameEnv
+                { playerMapTvar    = playerInGameTvar
+                , readyPlayersTvar = readyPlayersTvar
+                , eventMapTvar     = eventMapTvar
+                }
+        let gameConfig = GameConfig
+                { fps         = gameFps arguments
+                , gameMapTvar = gameMapTvar
+                }
+        let serverEnv = ServerEnv
+                { eventQueue       = broadcastChan
+                , gameLoopTvar     = gameLoopStateTvar
+                , playerActionTvar = playerActionTvar
+                }
+        let env :: Env = Env {..}
 
         _ <-
             liftIO
@@ -154,7 +160,7 @@ gameLoopServer arguments loadedGameMaps gameLoopStateTvar sessionMapTvar broadca
             $ eventLoop
 
         -- $logInfo "Start game loop"
-        runGameLoop env gameLoopStateTvar broadcastChan playerActionTvar
+        runGameLoop env
         return ()
 
 stdoutDateTextLogger :: MonadBase IO m => Logger m Text

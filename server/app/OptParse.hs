@@ -8,7 +8,7 @@ data Arguments =
     Arguments
         { hostname :: Text
         , port :: Int
-        , fps :: Float
+        , gameFps :: Float
         , monitorPort :: Int
         , gameMapFiles :: [String]
         } deriving (Show, Eq, Ord, Read)
