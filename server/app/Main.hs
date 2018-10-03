@@ -8,7 +8,7 @@ import           Network.WebSockets      hiding ( newClientConnection )
 import           Control.Monad.Logger
 import           Control.Eff
 import           Control.Eff.Lift
-import           Control.Eff.Log (Log, runLog, stdoutLogger, Logger)
+import           Control.Eff.Log (Log, runLog, stdoutStringLogger, Logger)
 import           Control.Eff.Reader.Strict
 
 import           Data.UUID               hiding ( null )
@@ -147,7 +147,7 @@ gameLoopServer arguments loadedGameMaps gameLoopStateTvar sessionMapTvar broadca
         _ <- liftIO $
                 async .
                 runLift .
-                runLog (stdoutLogger :: Logger IO String) .
+                runLog stdoutStringLogger .
                 runReader env $
                 eventLoop
 
