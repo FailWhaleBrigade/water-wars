@@ -4,12 +4,10 @@ module Main where
 
 import           ClassyPrelude           hiding ( Reader )
 
-import           Control.Monad.Logger
 import           Control.Monad.Base             ( MonadBase(..) )
 import           Control.Eff                    ( )
 import           Control.Eff.Lift
-import           Control.Eff.Log                ( Log
-                                                , runLog
+import           Control.Eff.Log                ( runLog
                                                 , Logger
                                                 )
 import           Control.Eff.Reader.Strict
@@ -76,9 +74,7 @@ runLoop arguments = do
     -- start to accept connections
     _ <- async (websocketServer arguments sessionMapTvar broadcastChan)
     forever
-        ( runStdoutLoggingT
-        $ filterLogger (\_ level -> level /= LevelDebug)
-        $ gameLoopServer arguments
+        ( gameLoopServer arguments
                          loadedGameMaps
                          gameLoopStateTvar
                          sessionMapTvar
@@ -108,9 +104,7 @@ handleConnection sessionMapTvar broadcastChan websocketConn = do
     sessionId  <- toText <$> nextRandom -- uniquely identify connections
     let conn = newClientConnection sessionId connHandle commChan broadcastChan
     atomically $ modifyTVar' sessionMapTvar (insertMap sessionId conn)
-    runStdoutLoggingT
-        $         filterLogger (\_ level -> level /= LevelDebug)
-        $         clientGameThread
+    clientGameThread
                       conn
                       ( atomically
                       . writeTQueue broadcastChan
@@ -131,7 +125,7 @@ gameLoopServer
     -> TVar GameLoopState
     -> TVar (Map Text ClientConnection)
     -> TQueue EventMessage
-    -> LoggingT m ()
+    -> m ()
 gameLoopServer arguments loadedGameMaps gameLoopStateTvar sessionMapTvar broadcastChan
     = do
         playerActionTvar <- newTVarIO (PlayerActions (mapFromList empty))

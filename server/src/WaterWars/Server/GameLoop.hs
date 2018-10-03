@@ -10,10 +10,9 @@ import           WaterWars.Core.Game
 import           WaterWars.Core.GameNg
 
 import           WaterWars.Server.Env
-import           WaterWars.Server.ConnectionMgnt
 
 runGameLoop
-    :: (MonadLogger m, MonadIO m)
+    :: (MonadIO m)
     => Env
     -> TVar GameLoopState
     -> TQueue EventMessage

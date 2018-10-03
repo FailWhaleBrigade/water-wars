@@ -56,7 +56,6 @@ executables:
     - time
     - uuid
     - ekg
-    - monad-logger
     - log-effect
     - optparse-applicative
     ghc-options:

@@ -1,8 +1,8 @@
 module OptParse where
 
 
-import ClassyPrelude
-import Options.Applicative
+import           ClassyPrelude
+import           Options.Applicative
 
 data Arguments =
     Arguments
@@ -63,10 +63,9 @@ gameMapParser :: Parser [String]
 gameMapParser = many
     (argument
         str
-        (  metavar "Game Map ..."
-        ++ help
-               (  "List of play fields that the server should "
-               ++ "serve in a cycle everytime a game has been won"
-               )
+        (metavar "Game Map ..." ++ help
+            (  "List of play fields that the server should "
+            ++ "serve in a cycle everytime a game has been won"
+            )
         )
     )

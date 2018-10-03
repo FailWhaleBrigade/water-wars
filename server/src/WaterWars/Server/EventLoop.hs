@@ -1,5 +1,3 @@
-{-# LANGUAGE TemplateHaskell #-}
-
 module WaterWars.Server.EventLoop where
 
 import           ClassyPrelude           hiding ( ask
@@ -15,6 +13,8 @@ import           Control.Eff.Lift        hiding ( lift )
 import           WaterWars.Network.Protocol
 import           WaterWars.Core.Game
 import           WaterWars.Server.Env
+import           WaterWars.Server.Action.Restart
+import           WaterWars.Server.Action.Util
 
 eventLoop
     :: (Member (Log Text) r, Member (Reader Env) r, MonadIO m, Lifted m r)
@@ -40,8 +40,7 @@ handleGameLoopMessages
     -> GameEvents
     -> Eff r ()
 handleGameLoopMessages gameStateUpdate gameEvents = do
-    Env {..}   <- ask
-    sessionMap <- readTVarIO connectionMapTvar
+    Env {..} <- ask
     let gameTick = gameTicks gameStateUpdate
     broadcastMessage (GameStateMessage gameStateUpdate gameEvents)
     gameIsRunning <- gameRunning <$> readTVarIO gameLoopTvar
@@ -167,8 +166,7 @@ handleClientMessages sessionId clientMsg = do
                     ++ sessionId
                     ++ "\" was the last one."
                     )
-                sessionMap <- readTVarIO connectionMapTvar
-                gameTick   <- gameTicks . gameState <$> readTVarIO gameLoopTvar
+                gameTick <- gameTicks . gameState <$> readTVarIO gameLoopTvar
                 -- notify that the game will start
                 broadcastMessage
                     (GameWillStartMessage (GameStart (gameTick + 240)))
@@ -179,16 +177,6 @@ handleClientMessages sessionId clientMsg = do
                     (insertMap (gameTick + 240) StartGame)
                 return ()
 
-
-broadcastMessage
-    :: (Member (Log Text) r, Member (Reader Env) r, MonadIO m, Lifted m r)
-    => ServerMessage
-    -> Eff r ()
-broadcastMessage serverMessage = do
-    sessionMap' <- reader connectionMapTvar
-    session     <- readTVarIO sessionMap'
-    forM_ (session :: Map Text ClientConnection)
-        $ \conn -> atomically $ writeTQueue (readChannel conn) serverMessage
 
 futureToAction
     :: (Member (Log Text) r, Member (Reader Env) r, MonadIO m, Lifted m r)
@@ -208,43 +196,5 @@ startGameCallback = do
 
     broadcastMessage GameStartMessage
 
-restartGameCallback
-    :: (Member (Log Text) r, Member (Reader Env) r, MonadIO m, Lifted m r)
-    => Eff r ()
-restartGameCallback = do
-    Env {..} <- ask
-    EffLog.logE ("Restart the game" :: Text)
-    newGameMap_ <- atomically $ do
-        writeTVar readyPlayersTvar mempty -- demand that everyone ready's up again
-        nextGameMap_ <- nextGameMap gameMapTvar
 
-        modifyTVar' gameLoopTvar $ \gameLoop ->
-            let
-                GameState {..} = gameState gameLoop
-                -- add all dead players to alive ones
-                inGamePlayers' =
-                    InGamePlayers
-                        $  map (\p -> p { playerLocation = Location (0, 0) })
-                               (getInGamePlayers inGamePlayers)
-                        ++ map
-                               (\DeadPlayer {..} -> newInGamePlayer
-                                   deadPlayerDescription
-                                   (Location (0, 0))
-                               )
-                               (getDeadPlayers gameDeadPlayers)
-            in
-                gameLoop
-                    { gameState   = GameState
-                                        { inGamePlayers   = inGamePlayers'
-                                        , gameDeadPlayers = DeadPlayers empty
-                                        , ..
-                                        }
-                    , gameRunning = False
-                    , gameMap     = nextGameMap_
-                    }
 
-        return nextGameMap_
-
-    broadcastMessage ResetGameMessage
-    broadcastMessage (GameMapMessage newGameMap_)
-    
