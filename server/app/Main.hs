@@ -74,11 +74,11 @@ runLoop arguments = do
     -- start to accept connections
     _ <- async (websocketServer arguments sessionMapTvar broadcastChan)
     forever
-        ( gameLoopServer arguments
-                         loadedGameMaps
-                         gameLoopStateTvar
-                         sessionMapTvar
-                         broadcastChan
+        (gameLoopServer arguments
+                        loadedGameMaps
+                        gameLoopStateTvar
+                        sessionMapTvar
+                        broadcastChan
         )
 
 
@@ -105,12 +105,14 @@ handleConnection sessionMapTvar broadcastChan websocketConn = do
     let conn = newClientConnection sessionId connHandle commChan broadcastChan
     atomically $ modifyTVar' sessionMapTvar (insertMap sessionId conn)
     clientGameThread
-                      conn
-                      ( atomically
-                      . writeTQueue broadcastChan
-                      . EventClientMessage sessionId
-                      )
-                      (atomically $ readTQueue commChan)
+            stdoutDateTextLogger
+            conn
+            ( liftIO
+            . atomically
+            . writeTQueue broadcastChan
+            . EventClientMessage sessionId
+            )
+            (atomically $ readTQueue commChan)
         `finally` ( atomically
                   . writeTQueue broadcastChan
                   . EventClientMessage sessionId

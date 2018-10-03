@@ -1,60 +1,58 @@
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TemplateHaskell #-}
-
+{-# LANGUAGE DataKinds #-}
 module WaterWars.Server.ClientConnection where
 
 import           ClassyPrelude
+import           Control.Eff
+import           Control.Eff.Log
+import qualified Control.Eff.Log               as EffLog
+import           Control.Eff.Lift        hiding ( lift )
 
 import           WaterWars.Network.Connection
 import           WaterWars.Network.Protocol
 
+import           WaterWars.Server.ConnectionMgnt
+
 clientGameThread
-    :: ( MonadUnliftIO m
-       , MonadIO m
-       , NetworkConnection c
-       , ReceiveType c ~ ClientMessage
-       , SendType c ~ ServerMessage
-       )
-    => c -- ^Connection of the client
-    -> (ClientMessage -> m ()) -- ^Send Message to Eventloop
-    -> m ServerMessage -- ^Reads action to send from a monadic function
-    -> m () -- ^Void or absurd, should never return
-clientGameThread conn sendAction receiveAction =
-    -- If any of these threads die, kill both threads and return, be careful for this swallows exceptions
-    race_ (clientReceive conn sendAction) (clientSend conn receiveAction)
+    :: Logger IO Text -- ^Logger implemetation
+    -> ClientConnection -- ^Connection of the client
+    -> (ClientMessage -> Eff '[Log Text, Lift IO] ()) -- ^Send Message to Eventloop
+    -> Eff '[Log Text, Lift IO] ServerMessage -- ^Reads action to send from a monadic function
+    -> IO () -- ^Should never return
+clientGameThread logger conn sendAction receiveAction = race_
+          -- If any of these threads die, kill both threads and return, be careful for this swallows exceptions
+    (clientReceive logger conn sendAction)
+    (clientSend logger conn receiveAction)
 
 
 clientReceive
-    :: ( MonadIO m
-       , NetworkConnection c
-       , ReceiveType c ~ ClientMessage
-       )
-    => c -- ^Connection of the client
-    -> (ClientMessage -> m ()) -- ^Send Message to Eventloop
-    -> m () -- ^Void or absurd, should never return
-clientReceive conn sendAction = forever $ do
-    -- $logDebug "Wait for data message"
+    :: Logger IO Text -- ^Logger implemetation
+    -> ClientConnection -- ^Connection of the client
+    -> (ClientMessage -> Eff '[Log Text, Lift IO] ()) -- ^Send Message to Eventloop
+    -> IO () -- ^Void or absurd, should never return
+clientReceive logger conn sendAction = forever . runLift . runLog logger $ do -- Eff '[Log Text, Lift IO] ()
+    EffLog.logE ("Wait for data message" :: Text)
     msg <- receive conn
     case msg of
-        Left msg_ -> do return ()
-            -- $logWarn "Could not read message"
-            -- $logDebug $ "Could not read message: " ++ tshow msg_
+        Left msg_ -> do
+            EffLog.logE ("Could not read message" :: Text)
+            EffLog.logE ("Could not read message: " ++ tshow msg_)
         Right playerAction -> do
-            -- $logDebug $ "Read a message: " ++ tshow playerAction
-            sendAction playerAction
+            EffLog.logE ("Read a message: " ++ tshow playerAction)
+            sendAction playerAction 
             return ()
     -- TODO: should i sleep here for some time to avoid DOS-attack? yes
 
 clientSend
-    :: ( MonadIO m
-       , NetworkConnection c
-       , SendType c ~ ServerMessage
-       )
-    => c -- ^Connection of the client
-    -> m ServerMessage -- ^Reads action to send from a monadic function
-    -> m () -- ^Void or absurd, should never return
-clientSend conn receiveAction = forever $ do
-    -- $logDebug "Wait for message"
-    cmd <- receiveAction
-    send conn cmd
-    return ()
+    :: Logger IO Text -- ^Logger implemetation
+    -> ClientConnection -- ^Connection of the client
+    -> Eff '[Log Text, Lift IO] ServerMessage -- ^Reads action to send from a monadic function
+    -> IO () -- ^Void or absurd, should never return
+clientSend logger conn receiveAction =
+    forever
+        . runLift
+        . runLog logger
+        $ do -- Eff '[Log Text, Lift IO] ()
+              EffLog.logE ("Wait for message" :: Text)
+              cmd <- receiveAction
+              send conn cmd
+              return ()

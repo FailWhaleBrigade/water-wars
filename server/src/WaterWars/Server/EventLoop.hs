@@ -1,3 +1,6 @@
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TypeOperators #-}
+
 module WaterWars.Server.EventLoop where
 
 import           ClassyPrelude           hiding ( ask
@@ -16,9 +19,7 @@ import           WaterWars.Server.Env
 import           WaterWars.Server.Action.Restart
 import           WaterWars.Server.Action.Util
 
-eventLoop
-    :: (Member (Log Text) r, Member (Reader Env) r, MonadIO m, Lifted m r)
-    => Eff r ()
+eventLoop :: ('[Log Text, Reader Env] <:: r, MonadIO m, Lifted m r) => Eff r ()
 eventLoop = forever $ do
     queue   <- reader eventQueue
     message <- atomically $ readTQueue queue

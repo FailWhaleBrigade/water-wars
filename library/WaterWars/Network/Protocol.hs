@@ -47,7 +47,7 @@ newtype GameSetupResponse = GameSetupResponse
     } deriving (Show, Read, Eq, Generic)
     deriving anyclass Serialize
 
-    -- |Signals that an error has happened during game initialization
+-- |Signals that an error has happened during game initialization
 data SetupError
     = InvalidAmountOfPlayers
     | UnknownMap

@@ -2,8 +2,6 @@ module WaterWars.Server.GameLoop where
 
 import           ClassyPrelude
 
-import           Control.Monad.Logger
-
 import           Control.Concurrent             ( threadDelay )
 
 import           WaterWars.Core.Game
