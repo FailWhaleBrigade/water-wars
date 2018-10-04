@@ -1,33 +1,15 @@
 module WaterWars.Server.Events where
 
-import ClassyPrelude
-import WaterWars.Core.Game
+import           ClassyPrelude
+import           WaterWars.Core.Game
 
-import WaterWars.Network.Protocol
+import           WaterWars.Network.Protocol
+import           WaterWars.Server.ConnectionMgnt
+
+type Connection = ClientConnection ServerMessage EventMessage
 
 data EventMessage
     = EventClientMessage Text ClientMessage
     | EventGameLoopMessage GameState GameEvents
-    deriving (Show, Eq, Read)
+    | Register Text Connection
 
-data GameLoopState = GameLoopState
-    { gameMap     :: GameMap
-    , gameState   :: GameState
-    , gameRunning :: Bool
-    } deriving (Show, Eq)
-
-newtype PlayerActions = PlayerActions
-    { getPlayerActions :: Map Player Action
-    } deriving (Show, Eq)
-
-
-modifyGameState
-    :: (GameState -> a -> GameState) -> GameLoopState -> a -> GameLoopState
-modifyGameState f GameLoopState {..} a =
-    GameLoopState {gameState = f gameState a, ..}
-
-startGame :: GameLoopState -> GameLoopState
-startGame GameLoopState {..} = GameLoopState {gameRunning = True, ..}
-
-stopGame :: GameLoopState -> GameLoopState
-stopGame GameLoopState {..} = GameLoopState {gameRunning = False, ..}

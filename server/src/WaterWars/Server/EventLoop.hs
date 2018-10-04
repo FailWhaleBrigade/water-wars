@@ -6,6 +6,7 @@ module WaterWars.Server.EventLoop where
 import           ClassyPrelude           hiding ( ask
                                                 , Reader
                                                 )
+
 import           Control.Eff
 import           Control.Eff.Reader.Strict
 import           Control.Eff.Log
@@ -21,205 +22,217 @@ import           WaterWars.Server.Action.Start
 import           WaterWars.Server.Action.Restart
 import           WaterWars.Server.Action.Util
 
-eventLoop :: ('[Log Text, Reader Env] <:: r, MonadIO m, Lifted m r) => Eff r ()
-eventLoop = forever $ do
-    queue   <- reader (eventQueue . serverEnv)
+
+data Command
+    = StartGameCmd
+    | StartGameInCmd Integer
+    | StopGameCmd
+    | ResetGameCmd
+    | PauseGameCmd
+    | GameOverCmd
+    | AddPlayerAction Text PlayerAction
+    | AddFuture Integer FutureEvent
+    | RemoveFuture Integer
+    | ReadyUpPlayer Text
+    | AddPlayer Text
+    | ConnectPlayer Text Connection
+    | RemovePlayer Text
+    | Broadcast ServerMessage
+    | UpdateGameLoop GameState
+    deriving (Eq, Show)
+
+runEventLoop
+    :: MonadUnliftIO m
+    => Logger m Text
+    -> TVar Env
+    -> TQueue EventMessage
+    -> m ()
+runEventLoop logger envTvar queue = do
+    env     <- readTVarIO envTvar
     message <- atomically $ readTQueue queue
-    EffLog.logE $ "Read a new event loop message: " ++ tshow message
-    case message of
-        -- handle messages sent by a client connection
-        EventClientMessage sessionId clientMsg ->
-            handleClientMessages sessionId clientMsg
+    let actions = eventLoop message env
+    newEnv <- runLift . runLog logger $ handleCmd actions env
+    atomically $ modifyTVar' envTvar (const newEnv)
+    runEventLoop logger envTvar queue
 
-        -- handle messages sent from the gameloop
-        EventGameLoopMessage gameStateUpdate gameEvents ->
-            handleGameLoopMessages gameStateUpdate gameEvents
+eventLoop :: EventMessage -> Env -> [Command]
+eventLoop (EventClientMessage sessionId clientMsg) env = case clientMsg of
+    LoginMessage     _      -> [AddPlayer sessionId]
 
-        -- TODO: handle messages sent from websocket app
+    LogoutMessage    Logout -> [RemovePlayer sessionId]
 
-handleGameLoopMessages
-    :: (Member (Log Text) r, Member (Reader Env) r, MonadIO m, Lifted m r)
-    => GameState
-    -> GameEvents
-    -> Eff r ()
-handleGameLoopMessages gameStateUpdate gameEvents = do
-    ServerEnv {..}  <- reader serverEnv
-    GameEnv {..}    <- reader gameEnv
-    NetworkEnv {..} <- reader networkEnv
-
-    let gameTick = gameTicks gameStateUpdate
-    broadcastMessage (GameStateMessage gameStateUpdate gameEvents)
-    gameIsRunning <- gameRunning <$> readTVarIO gameLoopTvar
-
-    -- check if someone has won the game
-    when
-            (  gameIsRunning
-            && length (getInGamePlayers $ inGamePlayers gameStateUpdate)
-            <= 1
-            )
-        $ do
-              EffLog.logE ("Restarting the game" :: Text)
-              atomically $ do
-                  modifyTVar' gameLoopTvar stopGame
-                  modifyTVar' eventMapTvar
-                              (insertMap (gameTick + 240) ResetGame)
-
-    eventMay <- atomically $ do
-        eventMap <- readTVar eventMapTvar
-        case lookup gameTick eventMap of
-            Nothing    -> return Nothing
-            Just event -> do
-                modifyTVar' eventMapTvar (deleteMap gameTick)
-                return $ Just event
-
-    case eventMay of
-        Nothing    -> return ()
-        Just event -> do
-            EffLog.logE ("An event is being executed" :: Text)
-            futureToAction event
-
-
-
-handleClientMessages
-    :: (Member (Log Text) r, Member (Reader Env) r, MonadIO m, Lifted m r)
-    => Text
-    -> ClientMessage
-    -> Eff r ()
-handleClientMessages sessionId clientMsg = case clientMsg of
-    LoginMessage     login  -> loginMessage sessionId login
-
-    LogoutMessage    logout -> logoutMessage sessionId logout
-
-    GameSetupMessage setup  -> gameSetupMessage sessionId setup
+    GameSetupMessage _      -> []
 
     PlayerActionMessage playerAction ->
-        playerActionMessage sessionId playerAction
+        [AddPlayerAction sessionId playerAction]
 
-    ClientReadyMessage clientReady -> clientReadyMessage sessionId clientReady
+    ClientReadyMessage ClientReady ->
+        let
+            readyPlayers_ :: Int = length (readyPlayers $ gameEnv env)
+            connectedPlayers_ :: Int = length (connectionMap $ networkEnv env)
+            cmd = [ StartGameInCmd 240 | readyPlayers_ >= connectedPlayers_ ]
+        in
+            ReadyUpPlayer sessionId : cmd
 
-futureToAction
-    :: (Member (Log Text) r, Member (Reader Env) r, MonadIO m, Lifted m r)
-    => FutureEvent
-    -> Eff r ()
-futureToAction ResetGame = restartGameCallback
-futureToAction StartGame = startGameCallback
 
-loginMessage
-    :: (Member (Log Text) r, Member (Reader Env) r, MonadIO m, Lifted m r)
-    => Text
-    -> Login
-    -> Eff r ()
-loginMessage sessionId _ = do
-    ServerEnv {..}  <- reader serverEnv
-    GameEnv {..}    <- reader gameEnv
-    NetworkEnv {..} <- reader networkEnv
-            -- TODO: Handle reconnects
-    EffLog.logE ("Login message from \"" ++ sessionId ++ "\"")
-    -- Create new Player
-    let player = newInGamePlayer (Player sessionId) (Location (0, 0))
-    -- Tell the game loop engine about the newly connected player
-    (connectionMay, gameMap_) <- atomically $ do
-        serverState <- readTVar gameLoopTvar
-        let serverState' = modifyGameState addInGamePlayer serverState player
-        writeTVar gameLoopTvar serverState'
-        sessionMap <- readTVar connectionMapTvar
-        modifyTVar' playerMapTvar (insertMap sessionId player)
-        return (lookup sessionId sessionMap, gameMap serverState)
-    -- If a connection is found then send required information
-    case connectionMay of
-        Nothing         -> return ()
-        Just connection -> atomically $ do
-            writeTQueue
-                (readChannel connection)
-                (LoginResponseMessage (LoginResponse sessionId player))
-            writeTQueue (readChannel connection) (GameMapMessage gameMap_)
-    return ()
+eventLoop (EventGameLoopMessage gameStateUpdate gameEvents) Env {..}
+    = let
+          ServerEnv {..} = serverEnv
+          GameEnv {..}   = gameEnv
+          gameTick       = gameTicks gameStateUpdate
 
-logoutMessage
-    :: (Member (Log Text) r, Member (Reader Env) r, MonadIO m, Lifted m r)
-    => Text
-    -> Logout
-    -> Eff r ()
-logoutMessage sessionId Logout = do
-    ServerEnv {..}  <- reader serverEnv
-    GameEnv {..}    <- reader gameEnv
-    NetworkEnv {..} <- reader networkEnv
-    EffLog.logE ("Logout message from \"" ++ sessionId ++ "\"")
-    playerMay <- lookup sessionId <$> readTVarIO playerMapTvar
-    case playerMay of
-        Nothing     -> return ()
-        Just player -> atomically $ do
-            serverState <- readTVar gameLoopTvar
-            let serverState' = modifyGameState removePlayer
-                                               serverState
-                                               (playerDescription player)
-            writeTVar gameLoopTvar serverState'
-            modifyTVar' connectionMapTvar (deleteMap sessionId)
-            modifyTVar' playerMapTvar     (deleteMap sessionId)
-            modifyTVar' readyPlayersTvar  (deleteSet sessionId)
-    return ()
+          gameOverCmd =
+              case
+                      ( serverState
+                      , length
+                          (getInGamePlayers $ inGamePlayers gameStateUpdate)
+                      )
+                  of
+                      (Running, 0) ->
+                          [StopGameCmd, AddFuture (gameTick + 240) ResetGame]
+                      (Running, 1) ->
+                          [GameOverCmd, AddFuture (gameTick + 240) ResetGame]
+                      _ -> []
+          actionToExecute = case lookup gameTick eventMap of
+              Nothing        -> []
+              Just ResetGame -> [ResetGameCmd, RemoveFuture gameTick]
+              Just StartGame -> [StartGameCmd, RemoveFuture gameTick]
+      in
+          [ UpdateGameLoop gameStateUpdate
+          , Broadcast (GameStateMessage gameStateUpdate gameEvents)
+          ]
+          ++ gameOverCmd
+          ++ actionToExecute
 
-gameSetupMessage
-    :: (Member (Log Text) r, Member (Reader Env) r, MonadIO m, Lifted m r)
-    => Text
-    -> GameSetup
-    -> Eff r ()
-gameSetupMessage _ _ = return ()
+eventLoop (Register uuid conn) _ = [ConnectPlayer uuid conn]
 
-playerActionMessage
-    :: (Member (Log Text) r, Member (Reader Env) r, MonadIO m, Lifted m r)
-    => Text
-    -> PlayerAction
-    -> Eff r ()
-playerActionMessage sessionId playerAction = do
-    ServerEnv {..}  <- reader serverEnv
-    GameEnv {..}    <- reader gameEnv
-    NetworkEnv {..} <- reader networkEnv
-    playerMay       <- lookup sessionId <$> readTVarIO playerMapTvar
-    case playerMay of
-        Nothing -> do
-            EffLog.logE
-                ("Received a message that did not belong to any player" :: Text)
-            return ()
-        Just InGamePlayer {..} -> atomically $ do
-            PlayerActions {..} <- readTVar playerActionTvar
-            let getPlayerActions' = insertWith (++)
-                                               playerDescription
-                                               (getAction playerAction)
-                                               getPlayerActions
-            writeTVar playerActionTvar (PlayerActions getPlayerActions')
-    return ()
+handleCmd
+    :: ('[Log Text] <:: r, MonadIO m, Lifted m r)
+    => [Command]
+    -> Env
+    -> Eff r Env
+handleCmd []       env          = return env
+handleCmd (x : xs) env@Env {..} = do
+    env' <- case x of
+        StartGameCmd -> do
+            runReader env startGameCallback
+            return env { serverEnv = serverEnv { serverState = Running } }
 
-clientReadyMessage
-    :: (Member (Log Text) r, Member (Reader Env) r, MonadIO m, Lifted m r)
-    => Text
-    -> ClientReady
-    -> Eff r ()
-clientReadyMessage sessionId ClientReady = do
-    ServerEnv {..}  <- reader serverEnv
-    GameEnv {..}    <- reader gameEnv
-    NetworkEnv {..} <- reader networkEnv
-    EffLog.logE ("Player \"" ++ sessionId ++ "\" is ready")
+        StartGameInCmd soon -> do
+            let gameTick = gameTicks . gameState $ gameLoop serverEnv
+            let msg      = GameWillStartMessage (GameStart (gameTick + soon))
+            runReader env (broadcastMessage msg)
+            return env
 
-    allPlayersReady <- atomically $ do
-        readySet  <- readTVar readyPlayersTvar
-        playerMap <- readTVar playerMapTvar
-        -- could be improved with multi way if
-        if member sessionId readySet
-            then return False
-            else do
-                let readySet' = insertSet sessionId readySet
-                writeTVar readyPlayersTvar readySet'
-                return $ keysSet playerMap == readySet'
+        StopGameCmd ->
+            return env { serverEnv = serverEnv { serverState = Over } }
 
-    when allPlayersReady $ do
-        EffLog.logE
-            ("Everyone is ready. \"" ++ sessionId ++ "\" was the last one.")
-        gameTick <- gameTicks . gameState <$> readTVarIO gameLoopTvar
-        -- notify that the game will start
-        broadcastMessage (GameWillStartMessage (GameStart (gameTick + 240)))
+        ResetGameCmd -> runReader env restartGameCallback
 
-        -- add callback to start the game
-        atomically $ modifyTVar' eventMapTvar
-                                 (insertMap (gameTick + 240) StartGame)
-        return ()
+        PauseGameCmd ->
+            return env { serverEnv = serverEnv { serverState = Paused } }
+
+        GameOverCmd ->
+            -- establish winner
+            return env { serverEnv = serverEnv { serverState = Over } }
+
+        AddPlayerAction sessionId action -> do
+            let GameEnv {..} = gameEnv
+            let playerMay    = lookup sessionId playerMap
+            case playerMay of
+                Nothing -> do
+                    EffLog.logE
+                        ("Received a message that did not belong to any player" :: Text
+                        )
+                    return env
+                Just InGamePlayer {..} -> do
+                    let PlayerActions {..} = playerAction
+                    let newActions = PlayerActions $ insertWith
+                            (++)
+                            (Player sessionId)
+                            (getAction action)
+                            getPlayerActions
+                    return env { gameEnv = gameEnv { playerAction = newActions }
+                               }
+        AddFuture trigger event -> return env
+            { serverEnv =
+                serverEnv
+                    { eventMap = insertMap trigger event (eventMap serverEnv)
+                    }
+            }
+        RemoveFuture trigger -> return env
+            { serverEnv =
+                serverEnv { eventMap = deleteMap trigger (eventMap serverEnv) }
+            }
+        ReadyUpPlayer sessionId -> return env
+            { gameEnv =
+                gameEnv
+                    { readyPlayers = insertSet sessionId (readyPlayers gameEnv)
+                    }
+            }
+        AddPlayer sessionId -> do
+            let player   = newInGamePlayer (Player sessionId) (Location (0, 0))
+            let connMay  = lookup sessionId (connectionMap networkEnv)
+            let gameMap_ = gameMap $ gameLoop serverEnv
+            let addedPlayer =
+                    modifyGameState addInGamePlayer (gameLoop serverEnv) player
+            case connMay of
+                Nothing   -> return env
+                Just conn -> do
+                    atomically $ do
+                        writeTQueue
+                            (readChannel conn)
+                            (LoginResponseMessage
+                                (LoginResponse sessionId player)
+                            )
+                        writeTQueue (readChannel conn) (GameMapMessage gameMap_)
+                    return env
+                        { gameEnv   =
+                            gameEnv
+                                { playerMap = insertMap sessionId
+                                                        player
+                                                        (playerMap gameEnv)
+                                }
+                        , serverEnv = serverEnv { gameLoop = addedPlayer }
+                        }
+        ConnectPlayer uuid conn -> return env
+            { networkEnv =
+                networkEnv
+                    { connectionMap = insertMap uuid
+                                                conn
+                                                (connectionMap networkEnv)
+                    }
+            }
+
+        RemovePlayer sessionId -> return env
+            { gameEnv    =
+                gameEnv
+                    { readyPlayers = deleteSet sessionId (readyPlayers gameEnv)
+                    , playerMap    = deleteMap sessionId (playerMap gameEnv)
+                    }
+            , networkEnv =
+                networkEnv
+                    { connectionMap = deleteMap sessionId
+                                                (connectionMap networkEnv)
+                    }
+            , serverEnv  = serverEnv
+                               { gameLoop = modifyGameState
+                                                removePlayer
+                                                (gameLoop serverEnv)
+                                                (Player sessionId)
+                               }
+            }
+        Broadcast msg -> do
+            EffLog.logE $ tshow msg
+            runReader env (broadcastMessage msg)
+            return env
+        UpdateGameLoop newgameState -> return env
+            { serverEnv =
+                serverEnv
+                    { gameLoop = (gameLoop serverEnv) { gameState = newgameState
+                                                      }
+                    }
+            , gameEnv   = gameEnv { playerAction = PlayerActions mempty }
+            }
+
+    handleCmd xs env'

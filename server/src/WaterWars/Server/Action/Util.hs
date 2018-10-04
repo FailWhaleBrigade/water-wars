@@ -8,6 +8,7 @@ import           Control.Eff.Reader.Strict
 import           Control.Eff.Lift
 import           WaterWars.Network.Protocol
 import           WaterWars.Server.Env
+import           WaterWars.Server.Events
 import           WaterWars.Server.ConnectionMgnt
 
 
@@ -16,7 +17,6 @@ broadcastMessage
     => ServerMessage
     -> Eff r ()
 broadcastMessage serverMessage = do
-    sessionMap' <- reader (connectionMapTvar . networkEnv)
-    session     <- readTVarIO sessionMap'
-    forM_ (session :: Map Text ClientConnection)
+    session <- reader (connectionMap . networkEnv)
+    forM_ (session :: Map Text Connection)
         $ \conn -> atomically $ writeTQueue (readChannel conn) serverMessage

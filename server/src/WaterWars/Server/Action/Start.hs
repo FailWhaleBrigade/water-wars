@@ -11,7 +11,6 @@ import qualified Control.Eff.Log               as EffLog
 import           WaterWars.Core.Game
 import           WaterWars.Network.Protocol
 import           WaterWars.Server.Env
-import           WaterWars.Server.Events
 import           WaterWars.Server.Action.Util
 
 
@@ -20,8 +19,9 @@ startGameCallback
     => Eff r ()
 startGameCallback = do
     ServerEnv {..} <- reader serverEnv
-    gameTick <- gameTicks . gameState <$> readTVarIO gameLoopTvar
+    let gameTick = gameTicks . gameState $ gameLoop
     EffLog.logE $ "Send the Game start message: " ++ tshow gameTick
-    atomically $ modifyTVar' gameLoopTvar startGame
+    --atomically $ modifyTVar' serverStateTvar (const Running)
 
     broadcastMessage GameStartMessage
+

@@ -35,15 +35,9 @@ import           WaterWars.Server.Env
 import           WaterWars.Server.Events
 import           OptParse
 
-defaultGameSetup :: GameSetup
-defaultGameSetup = GameSetup {numberOfPlayers = 4, terrainMap = "default"}
-
 serverStateWithGameMap :: GameMap -> GameLoopState
-serverStateWithGameMap gameMap = GameLoopState
-    { gameMap     = gameMap
-    , gameState   = defaultGameState
-    , gameRunning = False
-    }
+serverStateWithGameMap gameMap =
+    GameLoopState {gameMap = gameMap, gameState = defaultGameState}
 
 main :: IO ()
 main = do
@@ -58,7 +52,7 @@ main = do
         <> header "Fail Whale Brigade presents Water Wars."
         )
 
-runLoop :: (MonadIO m, MonadUnliftIO m) => Arguments -> m ()
+runLoop :: MonadUnliftIO m => Arguments -> m ()
 runLoop arguments = do
     let gameMapFiles_ = fromList $ if null (gameMapFiles arguments)
             then ["resources/game1.txt"]
@@ -68,101 +62,76 @@ runLoop arguments = do
     terrains <- mapM readTerrainFromFile gameMapFiles_
     let loadedGameMaps = map (`GameMap` defaultDecoration) terrains
     -- Initialize server state
-    broadcastChan     <- newTQueueIO
-    gameLoopStateTvar <- newTVarIO
-        $ serverStateWithGameMap (headEx loadedGameMaps)
-    sessionMapTvar <- newTVarIO $ mapFromList []
+    messageQueue <- newTQueueIO
     -- start to accept connections
-    _ <- async (websocketServer arguments sessionMapTvar broadcastChan)
-    forever
-        (gameLoopServer arguments
-                        loadedGameMaps
-                        gameLoopStateTvar
-                        sessionMapTvar
-                        broadcastChan
-        )
+    _            <- async (websocketServer arguments messageQueue)
+    forever (gameLoopServer arguments loadedGameMaps messageQueue)
 
 
-websocketServer
-    :: (MonadIO m, MonadUnliftIO m)
-    => Arguments
-    -> TVar (Map Text ClientConnection)
-    -> TQueue EventMessage
-    -> m ()
-websocketServer Arguments {..} sessionMapTvar broadcastChan =
-    liftIO $ runServer (unpack hostname)
-                       port
-                       (handleConnection sessionMapTvar broadcastChan)
+websocketServer :: MonadUnliftIO m => Arguments -> TQueue EventMessage -> m ()
+websocketServer Arguments {..} messageQueue =
+    liftIO $ runServer (unpack hostname) port (handleConnection messageQueue)
 
-handleConnection
-    :: TVar (Map Text ClientConnection)
-    -> TQueue EventMessage
-    -> PendingConnection
-    -> IO ()
-handleConnection sessionMapTvar broadcastChan websocketConn = do
+handleConnection :: TQueue EventMessage -> PendingConnection -> IO ()
+handleConnection messageQueue websocketConn = do
     connHandle <- acceptRequest websocketConn
     commChan   <- newTQueueIO -- to receive messages
     sessionId  <- toText <$> nextRandom -- uniquely identify connections
-    let conn = newClientConnection sessionId connHandle commChan broadcastChan
-    atomically $ modifyTVar' sessionMapTvar (insertMap sessionId conn)
+    let conn = newClientConnection sessionId
+                                   connHandle
+                                   (commChan :: TQueue ServerMessage)
+                                   (messageQueue :: TQueue EventMessage)
+    atomically $ writeTQueue messageQueue (Register sessionId conn)
     clientGameThread
             stdoutDateTextLogger
             conn
             ( atomically
-            . writeTQueue broadcastChan
+            . writeTQueue messageQueue
             . EventClientMessage sessionId
             )
             (atomically $ readTQueue commChan)
         `finally` ( atomically
-                  . writeTQueue broadcastChan
+                  . writeTQueue messageQueue
                   . EventClientMessage sessionId
                   $ LogoutMessage Logout
                   )
     return ()
 
 gameLoopServer
-    :: (MonadIO m, MonadUnliftIO m)
+    :: MonadUnliftIO m
     => Arguments
     -> Seq GameMap
-    -> TVar GameLoopState
-    -> TVar (Map Text ClientConnection)
     -> TQueue EventMessage
     -> m ()
-gameLoopServer arguments loadedGameMaps gameLoopStateTvar sessionMapTvar broadcastChan
-    = do
-        playerActionTvar <- newTVarIO (PlayerActions (mapFromList empty))
-        playerInGameTvar <- newTVarIO $ mapFromList []
-        readyPlayersTvar <- newTVarIO mempty
-        eventMapTvar     <- newTVarIO $ mapFromList []
-        gameMapTvar      <- newTVarIO $ GameMaps loadedGameMaps 0
-        let networkEnv = NetworkEnv {connectionMapTvar = sessionMapTvar}
-        let gameEnv = GameEnv
-                { playerMapTvar    = playerInGameTvar
-                , readyPlayersTvar = readyPlayersTvar
-                , eventMapTvar     = eventMapTvar
-                }
-        let gameConfig = GameConfig
-                { fps         = gameFps arguments
-                , gameMapTvar = gameMapTvar
-                }
-        let serverEnv = ServerEnv
-                { eventQueue       = broadcastChan
-                , gameLoopTvar     = gameLoopStateTvar
-                , playerActionTvar = playerActionTvar
-                }
-        let env :: Env = Env {..}
+gameLoopServer arguments loadedGameMaps messageQueue = do
+    let gameLoopState = serverStateWithGameMap (headEx loadedGameMaps)
+    let playerAction  = PlayerActions (mapFromList empty)
+    let playerInGame  = mapFromList []
+    let readyPlayers  = mempty
+    let eventMap      = mapFromList []
+    let gameMap       = GameMaps loadedGameMaps 0
+    let serverState   = WarmUp
 
-        _ <-
-            liftIO
-            $ async
-            . runLift
-            . runLog stdoutDateTextLogger
-            . runReader env
-            $ eventLoop
+    let networkEnv    = NetworkEnv {connectionMap = mempty}
+    let gameEnv = GameEnv
+            { playerMap    = playerInGame
+            , readyPlayers = readyPlayers
+            , playerAction = playerAction
+            }
+    let gameConfig = GameConfig {fps = gameFps arguments, gameMaps = gameMap}
+    let serverEnv = ServerEnv
+            { gameLoop    = gameLoopState
+            , eventMap    = eventMap
+            , serverState = serverState
+            }
+    let env :: Env = Env {..}
+    envTvar :: TVar Env <- newTVarIO env
+    let logger :: Logger IO Text = stdoutDateTextLogger
+    _ <- liftIO $async $ runEventLoop logger envTvar messageQueue
 
-        -- $logInfo "Start game loop"
-        runGameLoop env
-        return ()
+    -- $logInfo "Start game loop"
+    runGameLoop envTvar messageQueue
+    return ()
 
 stdoutDateTextLogger :: MonadBase IO m => Logger m Text
 stdoutDateTextLogger msg = liftBase $ do
