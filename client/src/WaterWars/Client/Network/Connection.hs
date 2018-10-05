@@ -168,6 +168,7 @@ updateWorld serverMsg world@World {..} = case serverMsg of
         -- between deleting all animation and the next gloss update which generates new animation as needed
         ( world
             { renderInfo     = renderInfo { playerAnimations = mapFromList [] }
+            , worldInfo      = worldInfo { winnerPlayer = Nothing }
             , lastGameUpdate = ServerUpdate
                                    { gameStateUpdate = GameState
                                        { inGamePlayers   = InGamePlayers empty
@@ -176,6 +177,24 @@ updateWorld serverMsg world@World {..} = case serverMsg of
                                        , gameTicks       = 0
                                        }
                                    }
+            }
+        , Nothing
+        )
+    StopGame ->
+        ( world
+            { worldInfo = worldInfo { countdown    = Nothing
+                                    , gameRunning  = False
+                                    , winnerPlayer = Nothing
+                                    }
+            }
+        , Nothing
+        )
+    StopGameWithWinner winner ->
+        ( world
+            { worldInfo = worldInfo { countdown    = Nothing
+                                    , gameRunning  = False
+                                    , winnerPlayer = Just winner
+                                    }
             }
         , Nothing
         )

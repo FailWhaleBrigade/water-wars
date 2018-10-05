@@ -77,6 +77,8 @@ data ServerMessage
     | GameWillStartMessage GameStart
     | GameStartMessage
     | ResetGameMessage
+    | StopGameWithWinner Player
+    | StopGame 
     deriving (Show, Eq, Read, Generic)
     deriving anyclass Serialize
 
@@ -93,32 +95,32 @@ instance Serialize Text where
     put = put . encodeUtf8
     get = decodeUtf8 <$> get
 
-instance Serialize InGamePlayer where
-instance Serialize VelocityVector where
-instance Serialize RunDirection where
-instance Serialize Location where
-instance Serialize GameMap where
-instance Serialize Terrain where
-instance Serialize TerrainDecoration where
-instance Serialize Decoration where
-instance Serialize BlockLocation where
-instance Serialize Block where
-instance Serialize BlockContent where
-instance Serialize Player where
-instance Serialize InGamePlayers where
-instance Serialize GameState where
+instance Serialize InGamePlayer
+instance Serialize VelocityVector
+instance Serialize RunDirection
+instance Serialize Location
+instance Serialize GameMap
+instance Serialize Terrain
+instance Serialize TerrainDecoration
+instance Serialize Decoration
+instance Serialize BlockLocation
+instance Serialize Block
+instance Serialize BlockContent
+instance Serialize Player
+instance Serialize InGamePlayers
+instance Serialize GameState
 instance Serialize Projectiles
 instance Serialize Projectile
-instance Serialize DeadPlayers where
-instance Serialize DeadPlayer where
+instance Serialize DeadPlayers
+instance Serialize DeadPlayer
 instance Serialize GameEvents
 instance Serialize GameEvent
 
-instance Serialize Action where
-instance Serialize RunAction where
-instance Serialize JumpAction where
-instance Serialize ShootAction where
-instance Serialize Angle where
+instance Serialize Action
+instance Serialize RunAction
+instance Serialize JumpAction
+instance Serialize ShootAction
+instance Serialize Angle
 
 class Serializable c where
     serialize :: c -> ByteString

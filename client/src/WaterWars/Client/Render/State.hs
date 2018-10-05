@@ -15,9 +15,9 @@ where
 import           ClassyPrelude
 import           Graphics.Gloss
 import           Data.Array.IArray
-import           Data.Maybe (fromJust)
+import           Data.Maybe                     ( fromJust )
 
-import           Data.List                                ( cycle )
+import           Data.List                      ( cycle )
 
 import           WaterWars.Client.Render.Terrain.Solid
 import           WaterWars.Client.Render.Config
@@ -27,7 +27,7 @@ import           WaterWars.Client.Resources.Resources
 import qualified WaterWars.Client.Network.State
                                                as NetworkState
 
-import qualified WaterWars.Core.Game     as CoreState
+import qualified WaterWars.Core.Game           as CoreState
 import           WaterWars.Core.Game
 
 import           WaterWars.Client.Render.Animation
@@ -71,6 +71,7 @@ data WorldInfo = WorldInfo
     , countdown :: Maybe Integer
     , gameRunning :: Bool
     , localPlayer :: Maybe Player
+    , winnerPlayer :: Maybe Player
     , projectiles  :: Seq CoreState.Projectile
     } deriving Show
 
@@ -124,18 +125,19 @@ initializeState resources@Resources {..} = WorldSTM <$> newTVarIO World
             }
         }
     , worldInfo      = WorldInfo
-        { jump        = False
-        , walkLeft    = False
-        , walkRight   = False
-        , duck        = False
-        , shoot       = Nothing
-        , lastShot    = Nothing
-        , exitGame    = False
-        , readyUp     = False
-        , countdown   = Nothing
-        , gameRunning = False
-        , localPlayer = Nothing
-        , projectiles = empty
+        { jump         = False
+        , walkLeft     = False
+        , walkRight    = False
+        , duck         = False
+        , shoot        = Nothing
+        , lastShot     = Nothing
+        , exitGame     = False
+        , readyUp      = False
+        , countdown    = Nothing
+        , gameRunning  = False
+        , localPlayer  = Nothing
+        , winnerPlayer = Nothing
+        , projectiles  = empty
         }
     , networkInfo    = Nothing
     , lastGameUpdate = ServerUpdate
@@ -152,10 +154,11 @@ setTerrain :: CoreState.TerrainDecoration -> CoreState.Terrain -> World -> World
 setTerrain decoration terrain World {..} = World
     { renderInfo = renderInfo
         { solids      = fromList (blockPositions terrainArray blockMap')
-        , decorations = fromList
-            (decorationPositions (terrainDecorationArray decoration)
-                                 decorationMap'
-            )
+        , decorations =
+            fromList
+                (decorationPositions (terrainDecorationArray decoration)
+                                     decorationMap'
+                )
         }
     , ..
     }

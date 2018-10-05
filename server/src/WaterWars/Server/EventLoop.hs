@@ -82,30 +82,33 @@ eventLoop (ClientMessageEvent sessionId clientMsg) env = case clientMsg of
         in  cmd
 
 
-eventLoop (GameLoopMessageEvent gameStateUpdate gameEvents) Env {..}
-    = let
-          ServerEnv {..} = serverEnv
-          GameEnv {..}   = gameEnv
-          gameTick       = gameTicks gameStateUpdate
-          players        = getInGamePlayers $ inGamePlayers gameStateUpdate
-          gameOverCmd    = case (serverState, length players) of
-              (Running, 0) ->
-                  [StopGameCmd, AddFutureCmd (gameTick + 240) ResetGame]
-              (Running, 1) ->
-                  [ GameOverCmd (playerDescription $ players `indexEx` 0)
-                  , AddFutureCmd (gameTick + 240) ResetGame
-                  ]
-              _ -> []
-          actionToExecute = case lookup gameTick eventMap of
-              Nothing        -> []
-              Just ResetGame -> [ResetGameCmd, RemoveFutureCmd gameTick]
-              Just StartGame -> [StartGameCmd, RemoveFutureCmd gameTick]
-      in
-          [ UpdateGameLoopCmd gameStateUpdate
-          , BroadcastCmd (GameStateMessage gameStateUpdate gameEvents)
-          ]
-          ++ gameOverCmd
-          ++ actionToExecute
+eventLoop (GameLoopMessageEvent gameStateUpdate gameEvents) Env {..} =
+    let ServerEnv {..} = serverEnv
+        GameEnv {..}   = gameEnv
+        gameTick       = gameTicks gameStateUpdate
+        players        = getInGamePlayers $ inGamePlayers gameStateUpdate
+        winner         = playerDescription $ players `indexEx` 0
+        gameOverCmd    = case (serverState, length players) of
+            (Running, 0) ->
+                [ StopGameCmd
+                , BroadcastCmd StopGame
+                , AddFutureCmd (gameTick + 240) ResetGame
+                ]
+            (Running, 1) ->
+                [ GameOverCmd winner
+                , BroadcastCmd (StopGameWithWinner winner)
+                , AddFutureCmd (gameTick + 240) ResetGame
+                ]
+            _ -> []
+        actionToExecute = case lookup gameTick eventMap of
+            Nothing        -> []
+            Just ResetGame -> [ResetGameCmd, RemoveFutureCmd gameTick]
+            Just StartGame -> [StartGameCmd, RemoveFutureCmd gameTick]
+    in  [ UpdateGameLoopCmd gameStateUpdate
+        , BroadcastCmd (GameStateMessage gameStateUpdate gameEvents)
+        ]
+        ++ gameOverCmd
+        ++ actionToExecute
 
 eventLoop (RegisterEvent uuid conn) _ = [ConnectPlayerCmd uuid conn]
 
@@ -137,7 +140,6 @@ handleCmd_ env@Env {..} cmd = case cmd of
         return env { serverEnv = serverEnv { serverState = Paused } }
 
     GameOverCmd winner ->
-        -- establish winner
         return env { serverEnv = serverEnv { serverState = Over } }
 
     AddPlayerCmdActionCmd sessionId action -> do
