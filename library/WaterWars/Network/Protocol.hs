@@ -5,11 +5,10 @@
 
 module WaterWars.Network.Protocol where
 
-import ClassyPrelude
+import           ClassyPrelude
 
-import Data.Serialize
-import WaterWars.Network.Connection
-import WaterWars.Core.Game
+import           Data.Serialize
+import           WaterWars.Core.Game
 
 -- |Datatype to login to a game server.
 -- So far, only a reconnect options is supported.
@@ -77,7 +76,7 @@ data ServerMessage
     | GameStateMessage GameState GameEvents
     | GameWillStartMessage GameStart
     | GameStartMessage
-    | ResetGameMessage 
+    | ResetGameMessage
     deriving (Show, Eq, Read, Generic)
     deriving anyclass Serialize
 
@@ -121,13 +120,14 @@ instance Serialize JumpAction where
 instance Serialize ShootAction where
 instance Serialize Angle where
 
+class Serializable c where
+    serialize :: c -> ByteString
+    deserialize :: ByteString -> Either String c
 
 instance Serializable ClientMessage where
     serialize = runPut . put
-instance Deserializable ClientMessage where
     deserialize = runGet get
 
 instance Serializable ServerMessage where
     serialize = runPut . put
-instance Deserializable ServerMessage where
     deserialize = runGet get

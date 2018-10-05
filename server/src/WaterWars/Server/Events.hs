@@ -8,7 +8,7 @@ import           WaterWars.Server.ConnectionMgnt
 type Connection = ClientConnection ServerMessage EventMessage
 
 data EventMessage
-    = EventClientMessage Player ClientMessage
-    | EventGameLoopMessage GameState GameEvents
-    | Register Player Connection
+    = ClientMessageEvent Player ClientMessage
+    | GameLoopMessageEvent GameState GameEvents
+    | RegisterEvent Player Connection
 

@@ -55,7 +55,7 @@ runEventLoop logger envTvar queue = forever $ do
     atomically $ modifyTVar' envTvar (const newEnv)
 
 eventLoop :: EventMessage -> Env -> [Command]
-eventLoop (EventClientMessage sessionId clientMsg) env = case clientMsg of
+eventLoop (ClientMessageEvent sessionId clientMsg) env = case clientMsg of
     LoginMessage     _      -> [AddPlayerCmd sessionId]
 
     LogoutMessage    Logout -> [RemovePlayerCmd sessionId]
@@ -82,7 +82,7 @@ eventLoop (EventClientMessage sessionId clientMsg) env = case clientMsg of
         in  cmd
 
 
-eventLoop (EventGameLoopMessage gameStateUpdate gameEvents) Env {..}
+eventLoop (GameLoopMessageEvent gameStateUpdate gameEvents) Env {..}
     = let
           ServerEnv {..} = serverEnv
           GameEnv {..}   = gameEnv
@@ -107,7 +107,7 @@ eventLoop (EventGameLoopMessage gameStateUpdate gameEvents) Env {..}
           ++ gameOverCmd
           ++ actionToExecute
 
-eventLoop (Register uuid conn) _ = [ConnectPlayerCmd uuid conn]
+eventLoop (RegisterEvent uuid conn) _ = [ConnectPlayerCmd uuid conn]
 
 handleCmd
     :: ('[Log Text] <:: r, MonadIO m, Lifted m r)

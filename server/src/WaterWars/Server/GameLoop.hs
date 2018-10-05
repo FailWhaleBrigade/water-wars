@@ -25,6 +25,6 @@ runGameLoop tvar queue = forever $ do
         let newgameState = gameLoopState { gameState = newState }
         return (newgameState, events)
 
-    let message = EventGameLoopMessage (gameState gameLoop_) gameEvents
+    let message = GameLoopMessageEvent (gameState gameLoop_) gameEvents
     atomically $ writeTQueue queue message
     liftIO $ threadDelay (round (1000000 / fps (gameConfig env)))

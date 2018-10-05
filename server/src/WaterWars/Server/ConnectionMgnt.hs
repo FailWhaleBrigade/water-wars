@@ -4,6 +4,8 @@
 module WaterWars.Server.ConnectionMgnt
     ( ClientConnection(..)
     , newClientConnection
+    , send
+    , receive
     )
 where
 
@@ -12,7 +14,6 @@ import           ClassyPrelude
 import qualified Network.WebSockets            as WS
 
 import           WaterWars.Network.Protocol
-import           WaterWars.Network.Connection
 
 data ClientConnection a b = ClientConnection
     { connectionId  :: Text -- ^Session id, uniquely identifies players
@@ -30,18 +31,15 @@ instance Ord (ClientConnection a b)  where
 instance Show (ClientConnection a b)  where
     show ClientConnection {..} = "ClientConnection { connectionId = " ++ show connectionId ++ "}"
 
-instance NetworkConnection (ClientConnection a b)  where
-    type SendType (ClientConnection a b)  = ServerMessage
-    type ReceiveType (ClientConnection a b)  = ClientMessage
-    send :: MonadIO m=> ClientConnection a b  -> ServerMessage -> m ()
-    send conn toSend = do
-        let msg = serialize toSend
-        liftIO $ WS.sendTextData (connection conn) msg
+send :: MonadIO m => ClientConnection a b -> ServerMessage -> m ()
+send conn toSend = do
+    let msg = serialize toSend
+    liftIO $ WS.sendTextData (connection conn) msg
 
-    receive :: MonadIO m => ClientConnection a b -> m (Either String ClientMessage)
-    receive conn = do
-        msg <- liftIO $ WS.receiveData (connection conn)
-        return $ deserialize msg
+receive :: MonadIO m => ClientConnection a b -> m (Either String ClientMessage)
+receive conn = do
+    msg <- liftIO $ WS.receiveData (connection conn)
+    return $ deserialize msg
 
 newClientConnection
     :: Text -> WS.Connection -> TQueue a -> TQueue b -> ClientConnection a b

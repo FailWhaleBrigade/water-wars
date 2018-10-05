@@ -81,17 +81,17 @@ handleConnection messageQueue websocketConn = do
                                    connHandle
                                    (commChan :: TQueue ServerMessage)
                                    (messageQueue :: TQueue EventMessage)
-    atomically $ writeTQueue messageQueue (Register (Player sessionId) conn)
+    atomically $ writeTQueue messageQueue (RegisterEvent (Player sessionId) conn)
     clientGameThread
             stdoutDateTextLogger
             conn
-            (atomically . writeTQueue messageQueue . EventClientMessage
+            (atomically . writeTQueue messageQueue . ClientMessageEvent
                 (Player sessionId)
             )
             (atomically $ readTQueue commChan)
         `finally` ( atomically
                   . writeTQueue messageQueue
-                  . EventClientMessage (Player sessionId)
+                  . ClientMessageEvent (Player sessionId)
                   $ LogoutMessage Logout
                   )
     return ()

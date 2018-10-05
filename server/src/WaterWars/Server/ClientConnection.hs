@@ -7,10 +7,10 @@ import           Control.Eff.Log
 import qualified Control.Eff.Log               as EffLog
 import           Control.Eff.Lift        hiding ( lift )
 
-import           WaterWars.Network.Connection
 import           WaterWars.Network.Protocol
 
 import           WaterWars.Server.Events
+import           WaterWars.Server.ConnectionMgnt
 
 clientGameThread
     :: Logger IO Text -- ^Logger implemetation
