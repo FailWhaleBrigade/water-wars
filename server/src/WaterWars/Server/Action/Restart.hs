@@ -14,10 +14,10 @@ import           WaterWars.Server.Env
 import           WaterWars.Server.Action.Util
 
 
-restartGameCallback
+restartGame
     :: (Member (Log Text) r, Member (Reader Env) r, MonadIO m, Lifted m r)
     => Eff r Env
-restartGameCallback = do
+restartGame = do
     env@Env {..} <- ask
     let ServerEnv {..}  = serverEnv
     let GameConfig {..} = gameConfig

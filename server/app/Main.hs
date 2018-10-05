@@ -65,7 +65,7 @@ runLoop arguments = do
     messageQueue <- newTQueueIO
     -- start to accept connections
     _            <- async (websocketServer arguments messageQueue)
-    forever (gameLoopServer arguments loadedGameMaps messageQueue)
+    gameServer arguments loadedGameMaps messageQueue
 
 
 websocketServer :: MonadUnliftIO m => Arguments -> TQueue EventMessage -> m ()
@@ -85,9 +85,8 @@ handleConnection messageQueue websocketConn = do
     clientGameThread
             stdoutDateTextLogger
             conn
-            ( atomically
-            . writeTQueue messageQueue
-            . EventClientMessage (Player sessionId)
+            (atomically . writeTQueue messageQueue . EventClientMessage
+                (Player sessionId)
             )
             (atomically $ readTQueue commChan)
         `finally` ( atomically
@@ -97,13 +96,13 @@ handleConnection messageQueue websocketConn = do
                   )
     return ()
 
-gameLoopServer
+gameServer
     :: MonadUnliftIO m
     => Arguments
     -> Seq GameMap
     -> TQueue EventMessage
     -> m ()
-gameLoopServer arguments loadedGameMaps messageQueue = do
+gameServer arguments loadedGameMaps messageQueue = do
     let gameLoopState = serverStateWithGameMap (headEx loadedGameMaps)
     let playerAction  = PlayerActions (mapFromList empty)
     let playerInGame  = mapFromList []
@@ -127,10 +126,10 @@ gameLoopServer arguments loadedGameMaps messageQueue = do
     let env :: Env = Env {..}
     envTvar :: TVar Env <- newTVarIO env
     let logger :: Logger IO Text = stdoutDateTextLogger
-    _ <- liftIO $async $ runEventLoop logger envTvar messageQueue
+    liftIO $ race_ (runEventLoop logger envTvar messageQueue)
+                        (runGameLoop envTvar messageQueue)
 
     -- $logInfo "Start game loop"
-    runGameLoop envTvar messageQueue
     return ()
 
 stdoutDateTextLogger :: MonadBase IO m => Logger m Text

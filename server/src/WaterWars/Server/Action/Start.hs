@@ -14,10 +14,10 @@ import           WaterWars.Server.Env
 import           WaterWars.Server.Action.Util
 
 
-startGameCallback
+startGame
     :: (Member (Log Text) r, Member (Reader Env) r, MonadIO m, Lifted m r)
     => Eff r ()
-startGameCallback = do
+startGame = do
     ServerEnv {..} <- reader serverEnv
     let gameTick = gameTicks . gameState $ gameLoop
     EffLog.logE $ "Send the Game start message: " ++ tshow gameTick

@@ -120,7 +120,7 @@ handleCmd_
     :: ('[Log Text] <:: r, MonadIO m, Lifted m r) => Env -> Command -> Eff r Env
 handleCmd_ env@Env {..} cmd = case cmd of
     StartGameCmd -> do
-        runReader env startGameCallback
+        runReader env startGame
         return env { serverEnv = serverEnv { serverState = Running } }
 
     StartGameInCmd soon -> do
@@ -131,7 +131,7 @@ handleCmd_ env@Env {..} cmd = case cmd of
 
     StopGameCmd  -> return env { serverEnv = serverEnv { serverState = Over } }
 
-    ResetGameCmd -> runReader env restartGameCallback
+    ResetGameCmd -> runReader env restartGame
 
     PauseGameCmd ->
         return env { serverEnv = serverEnv { serverState = Paused } }
