@@ -71,7 +71,7 @@ eventLoop (EventClientMessage sessionId clientMsg) env = case clientMsg of
             connectedPlayers_ :: Int = length (connectionMap $ networkEnv env)
             gameTick = gameTicks . gameState . gameLoop $ serverEnv env
             isAlreadyReady =
-                not $ member sessionId (readyPlayers $ gameEnv env)
+                member sessionId (readyPlayers $ gameEnv env)
             cmd = if not isAlreadyReady
                 then if readyPlayers_ + 1 >= connectedPlayers_
                     then
