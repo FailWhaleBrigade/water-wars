@@ -4,7 +4,6 @@ import           ClassyPrelude           hiding ( Reader )
 
 import           WaterWars.Core.Game
 
-import           WaterWars.Server.ConnectionMgnt
 import           WaterWars.Server.Events
 
 data Env =
@@ -13,47 +12,55 @@ data Env =
         , networkEnv :: NetworkEnv
         , gameEnv :: GameEnv
         , gameConfig :: GameConfig
-        }
-
-class HasNetwork a where
-    getConnections :: a -> TVar (Map Text ClientConnection)
-
-instance HasNetwork NetworkEnv where
-    getConnections NetworkEnv {..} = connectionMapTvar
-
-instance HasNetwork Env where
-    getConnections Env {..} = connectionMapTvar networkEnv
+        } deriving (Show)
 
 newtype NetworkEnv =
     NetworkEnv
-        { connectionMapTvar ::  TVar (Map Text ClientConnection)
-        }
+        { connectionMap ::  Map Player Connection
+        } deriving (Show)
 
 data GameEnv =
     GameEnv
-        { playerMapTvar  ::  TVar (Map Text InGamePlayer)
-        , readyPlayersTvar ::  TVar (Set Text)
-        , eventMapTvar :: TVar EventMap
-        }
+        { playerMap  ::  Map Player InGamePlayer
+        , readyPlayers ::  Set Player
+        , playerAction ::  PlayerActions
+        } deriving (Show)
 
 data ServerEnv =
     ServerEnv
-        { eventQueue :: TQueue EventMessage
-        , gameLoopTvar ::  TVar GameLoopState
-        , playerActionTvar ::  TVar PlayerActions
-        }
+        { gameLoop :: GameLoopState
+        , eventMap :: EventMap
+        , serverState :: ServerState
+        } deriving (Show)
 
 data GameConfig =
     GameConfig
         { fps :: Float
-        , gameMapTvar :: TVar GameMaps
-        }
+        , gameMaps :: GameMaps
+        } deriving (Show)
+
+data ServerState
+    = Paused
+    | Running
+    | Over
+    | WarmUp
+    deriving (Eq, Ord, Enum, Show)
 
 type EventMap = Map Integer FutureEvent
 
+data GameLoopState = GameLoopState
+    { gameMap     :: GameMap
+    , gameState   :: GameState
+    } deriving (Show, Eq)
+
+newtype PlayerActions = PlayerActions
+    { getPlayerActions :: Map Player Action
+    } deriving (Show, Eq)
+
+
 data GameMaps =
     GameMaps
-        { gameMaps :: Seq GameMap
+        { gameMapsList :: Seq GameMap
         , currentGameMapIndex :: Int
         } deriving (Show, Eq, Read)
 
@@ -62,9 +69,15 @@ data FutureEvent
     | StartGame
     deriving (Show, Read, Eq, Ord, Enum)
 
-nextGameMap :: TVar GameMaps -> STM GameMap
-nextGameMap tvar = do
-    GameMaps {..} <- readTVar tvar
-    let nextGameMapIndex = (currentGameMapIndex + 1) `mod` length gameMaps
-    writeTVar tvar GameMaps {currentGameMapIndex = nextGameMapIndex, ..}
-    return (gameMaps `indexEx` nextGameMapIndex)
+advanceGameMaps :: GameMaps -> GameMaps
+advanceGameMaps GameMaps {..} =
+    let nextGameMapIndex = (currentGameMapIndex + 1) `mod` length gameMapsList
+    in  GameMaps {currentGameMapIndex = nextGameMapIndex, ..}
+
+currentMap :: GameMaps -> GameMap
+currentMap GameMaps {..} = gameMapsList `indexEx` currentGameMapIndex
+
+modifyGameState
+    :: (GameState -> a -> GameState) -> GameLoopState -> a -> GameLoopState
+modifyGameState f GameLoopState {..} a =
+    GameLoopState {gameState = f gameState a, ..}

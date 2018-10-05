@@ -1,44 +1,30 @@
-module WaterWars.Server.GameLoop where
+module WaterWars.Server.GameLoop
+    ( runGameLoop
+    )
+where
 
 import           ClassyPrelude
 
 import           Control.Concurrent             ( threadDelay )
-
-import           WaterWars.Core.Game
 import           WaterWars.Core.GameNg
 
-import           WaterWars.Server.ConnectionMgnt
 import           WaterWars.Server.Env
 import           WaterWars.Server.Events
 
-runGameLoop :: MonadIO m => Env -> m ()
-runGameLoop Env {..} = forever $ do
-    let ServerEnv {..}  = serverEnv
-    let GameEnv {..}    = gameEnv
-    let NetworkEnv {..} = networkEnv
-    let GameConfig {..} = gameConfig
+runGameLoop :: MonadIO m => TVar Env -> TQueue EventMessage -> m ()
+runGameLoop tvar queue = forever $ do
 
-    (GameLoopState {..}, gameEvents) <- atomically $ do
-        gameLoopState@GameLoopState {..} <- readTVar gameLoopTvar
-        actions                          <- emptyPlayerActions playerActionTvar
+    env                     <- readTVarIO tvar
+    (gameLoop_, gameEvents) <- atomically $ do
+        let ServerEnv {..}                   = serverEnv env
+        let GameEnv {..}                     = gameEnv env
+        let gameLoopState@GameLoopState {..} = gameLoop
+        let actions                          = getPlayerActions playerAction
         let (events, newState) =
-                runGameTick gameRunning gameMap gameState actions
+                runGameTick (Running == serverState) gameMap gameState actions
         let newgameState = gameLoopState { gameState = newState }
-        writeTVar gameLoopTvar newgameState
         return (newgameState, events)
-    -- putStrLn $ tshow gameState
-    let message = EventGameLoopMessage gameState gameEvents
-    atomically $ writeTQueue eventQueue message
-    liftIO $ threadDelay (round (1000000 / fps))
 
-allGameTicks :: GameMap -> [Map Player Action] -> GameState -> [GameState]
-allGameTicks _ [] s = [s]
-allGameTicks gameMap (actions : rest) initialState =
-    initialState : allGameTicks
-        gameMap
-        rest
-        (snd $ runGameTick True gameMap initialState actions)
-
-emptyPlayerActions :: TVar PlayerActions -> STM (Map Player Action)
-emptyPlayerActions playerActions =
-    getPlayerActions <$> swapTVar playerActions (PlayerActions (mapFromList []))
+    let message = GameLoopMessageEvent (gameState gameLoop_) gameEvents
+    atomically $ writeTQueue queue message
+    liftIO $ threadDelay (round (1000000 / fps (gameConfig env)))

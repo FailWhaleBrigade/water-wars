@@ -25,6 +25,7 @@ library:
   - time
   - uuid
   - log-effect
+  - pretty-simple
   source-dirs: src
   default-extensions:
   - DeriveGeneric

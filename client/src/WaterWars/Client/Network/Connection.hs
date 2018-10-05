@@ -15,32 +15,36 @@ import           Control.Monad.Logger
 import           Control.Concurrent
 
 import           WaterWars.Client.Render.State
-import           WaterWars.Client.Network.State           ( NetworkConfig(..)
-                                                          , NetworkInfo(..)
-                                                          , Connection
-                                                          , newConnection
-                                                          )
+import           WaterWars.Client.Network.State ( NetworkConfig(..)
+                                                , NetworkInfo(..)
+                                                , Connection
+                                                , newConnection
+                                                , send
+                                                , receive
+                                                )
 
 import           WaterWars.Network.Protocol    as Protocol
-import           WaterWars.Network.Connection
 
 import           WaterWars.Core.Game           as CoreState
 
 connectionThread
     :: MonadIO m => Maybe NetworkInfo -> NetworkConfig -> WorldSTM -> m ()
 connectionThread _ NetworkConfig {..} world = forever $ do
-    _ :: Either SomeException () <- liftIO $ try $ WS.runClient
-        hostName
-        portId
-        ""
-        (\conn -> do
-            say "Connection has been opened"
-            let connection = newConnection conn
-            -- TODO: this setup code should be refactored soon-ish
-            send connection (LoginMessage (Login Nothing))
-            _ <- async $ receiveUpdates world connection
-            sendUpdates world connection
-        )
+    _ :: Either SomeException () <-
+        liftIO
+        $ try
+        $ WS.runClient
+              hostName
+              portId
+              ""
+              (\conn -> do
+                  say "Connection has been opened"
+                  let connection = newConnection conn
+                  -- TODO: this setup code should be refactored soon-ish
+                  send connection (LoginMessage (Login Nothing))
+                  _ <- async $ receiveUpdates world connection
+                  sendUpdates world connection
+              )
 
     --case ret of
     --    Left (WS.CloseRequest _ _) ->
@@ -80,7 +84,6 @@ receiveUpdates (WorldSTM tvar) conn =
                           1
                           0
                           1
-                      return ()
 
               return ()
 
@@ -166,13 +169,13 @@ updateWorld serverMsg world@World {..} = case serverMsg of
         ( world
             { renderInfo     = renderInfo { playerAnimations = mapFromList [] }
             , lastGameUpdate = ServerUpdate
-                { gameStateUpdate = GameState
-                    { inGamePlayers   = InGamePlayers empty
-                    , gameDeadPlayers = DeadPlayers empty
-                    , gameProjectiles = Projectiles empty
-                    , gameTicks       = 0
-                    }
-                }
+                                   { gameStateUpdate = GameState
+                                       { inGamePlayers   = InGamePlayers empty
+                                       , gameDeadPlayers = DeadPlayers empty
+                                       , gameProjectiles = Projectiles empty
+                                       , gameTicks       = 0
+                                       }
+                                   }
             }
         , Nothing
         )
@@ -187,7 +190,7 @@ extractGameAction worldTvar = do
                | walkRight = Just (RunAction RunRight)
                | otherwise = Nothing
     let jmpCmd = if jump then Just JumpAction else Nothing
-    let shootCmd = do -- maybe monad
+    let shootCmd = do -- Maybe Shoot
             shootTarget  <- shoot
             player       <- localPlayer
             inGamePlayer <- find ((== player) . playerDescription)

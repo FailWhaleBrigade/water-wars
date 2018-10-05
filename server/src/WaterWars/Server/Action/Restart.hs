@@ -11,49 +11,48 @@ import qualified Control.Eff.Log               as EffLog
 import           WaterWars.Core.Game
 import           WaterWars.Network.Protocol
 import           WaterWars.Server.Env
-import           WaterWars.Server.Events
 import           WaterWars.Server.Action.Util
 
 
-restartGameCallback
+restartGame
     :: (Member (Log Text) r, Member (Reader Env) r, MonadIO m, Lifted m r)
-    => Eff r ()
-restartGameCallback = do
-    ServerEnv {..}  <- reader serverEnv
-    GameEnv {..}    <- reader gameEnv
-    NetworkEnv {..} <- reader networkEnv
-    GameConfig {..} <- reader gameConfig
+    => Eff r Env
+restartGame = do
+    env@Env {..} <- ask
+    let ServerEnv {..}  = serverEnv
+    let GameConfig {..} = gameConfig
+    let newGameMap      = advanceGameMaps gameMaps
+    let current         = currentMap newGameMap
+    let GameState {..}  = gameState gameLoop
+    let inGamePlayers' =
+            InGamePlayers
+                $  map resetPlayer  (getInGamePlayers inGamePlayers)
+                ++ map revivePlayer (getDeadPlayers gameDeadPlayers)
+
+
     EffLog.logE ("Restart the game" :: Text)
-    newGameMap_ <- atomically $ do
-        writeTVar readyPlayersTvar mempty -- demand that everyone ready's up again
-        nextGameMap_ <- nextGameMap gameMapTvar
-
-        modifyTVar' gameLoopTvar $ \gameLoop ->
-            let
-                GameState {..} = gameState gameLoop
-                -- add all dead players to alive ones
-                inGamePlayers' =
-                    InGamePlayers
-                        $  map (\p -> p { playerLocation = Location (0, 0) })
-                               (getInGamePlayers inGamePlayers)
-                        ++ map
-                               (\DeadPlayer {..} -> newInGamePlayer
-                                   deadPlayerDescription
-                                   (Location (0, 0))
-                               )
-                               (getDeadPlayers gameDeadPlayers)
-            in
-                gameLoop
-                    { gameState   = GameState
-                                        { inGamePlayers   = inGamePlayers'
-                                        , gameDeadPlayers = DeadPlayers empty
-                                        , ..
-                                        }
-                    , gameRunning = False
-                    , gameMap     = nextGameMap_
-                    }
-
-        return nextGameMap_
-
     broadcastMessage ResetGameMessage
-    broadcastMessage (GameMapMessage newGameMap_)
+    broadcastMessage (GameMapMessage current)
+
+    return env
+        { serverEnv = serverEnv
+                          { gameLoop    =
+                              GameLoopState
+                                  { gameState = GameState
+                                      { inGamePlayers   = inGamePlayers'
+                                      , gameDeadPlayers = DeadPlayers empty
+                                      , ..
+                                      }
+                                  , gameMap   = current
+                                  }
+                          , serverState = WarmUp
+                          }
+        , gameEnv   = gameEnv { readyPlayers = mempty }
+        }
+
+revivePlayer :: DeadPlayer -> InGamePlayer
+revivePlayer DeadPlayer {..} =
+    newInGamePlayer deadPlayerDescription (Location (0, 0))
+
+resetPlayer :: InGamePlayer -> InGamePlayer
+resetPlayer p = p { playerLocation = Location (0, 0) }
