@@ -21,7 +21,6 @@ startGameCallback = do
     ServerEnv {..} <- reader serverEnv
     let gameTick = gameTicks . gameState $ gameLoop
     EffLog.logE $ "Send the Game start message: " ++ tshow gameTick
-    --atomically $ modifyTVar' serverStateTvar (const Running)
 
     broadcastMessage GameStartMessage
 

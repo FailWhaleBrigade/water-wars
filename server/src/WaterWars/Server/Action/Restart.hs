@@ -47,6 +47,7 @@ restartGameCallback = do
                                   }
                           , serverState = WarmUp
                           }
+        , gameEnv   = gameEnv { readyPlayers = mempty }
         }
 
 revivePlayer :: DeadPlayer -> InGamePlayer
