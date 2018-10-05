@@ -67,18 +67,22 @@ eventLoop (EventClientMessage sessionId clientMsg) env = case clientMsg of
 
     ClientReadyMessage ClientReady ->
         let
-            readyPlayers_ :: Int     = length (readyPlayers $ gameEnv env)
+            readyPlayers_ :: Int = length (readyPlayers $ gameEnv env)
             connectedPlayers_ :: Int = length (connectionMap $ networkEnv env)
             gameTick = gameTicks . gameState . gameLoop $ serverEnv env
-            cmd                      = if readyPlayers_ >= connectedPlayers_
-                then [StartGameInCmd 240, AddFuture (gameTick + 240) StartGame]
+            isAlreadyReady =
+                not $ member sessionId (readyPlayers $ gameEnv env)
+            cmd = if not isAlreadyReady
+                then if readyPlayers_ + 1 >= connectedPlayers_
+                    then
+                        [ StartGameInCmd 240
+                        , AddFuture (gameTick + 240) StartGame
+                        , ReadyUpPlayer sessionId
+                        ]
+                    else [ReadyUpPlayer sessionId]
                 else []
-            readyPlayer =
-                [ ReadyUpPlayer sessionId
-                | not $ member sessionId (readyPlayers $ gameEnv env)
-                ]
         in
-            readyPlayer ++ cmd
+            cmd
 
 
 eventLoop (EventGameLoopMessage gameStateUpdate gameEvents) Env {..}
