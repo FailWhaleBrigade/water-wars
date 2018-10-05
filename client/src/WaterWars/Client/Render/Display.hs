@@ -50,20 +50,21 @@ render World {..} = Gloss.pictures
     deadPlayerPictures :: [Picture]
     deadPlayerPictures = map (deadPlayerToPicture renderInfo) deadPlayers
 
-    isPlayerAlive :: Maybe Player -> Bool
-    isPlayerAlive lp =
-        case lp >>= \p -> find ((== p) . playerDescription) livingPlayers of
-            Nothing -> False
-            Just _  -> True
+    stateOf :: Maybe Player -> PlayerState
+    stateOf Nothing = Disconnected
+    stateOf (Just p)
+        | isJust $ find ((== p) . playerDescription) livingPlayers = Alive
+        | otherwise = Dead
 
     serverTextMessage :: Maybe Picture
-    serverTextMessage = if isNothing localPlayer
-        then Just (displayText (displayAnimation connectingAnimation))
-        else if not $ isPlayerAlive localPlayer
-            then Just (displayText youLostTexture)
-            else if localPlayer == winnerPlayer
-                then Just (displayText youWinTexture)
-                else Nothing
+    serverTextMessage
+        | state == Disconnected = Just
+            (displayText (displayAnimation connectingAnimation))
+        | state == Dead = Just (displayText youLostTexture)
+        | state == Alive && localPlayer == winnerPlayer = Just
+            (displayText youWinTexture)
+        | otherwise = Nothing
+        where state = stateOf localPlayer
 
     playerPicture :: Maybe Picture
     playerPicture = do
@@ -172,3 +173,5 @@ displayAnimation Animation {..} = headEx animationPictures
 
 displayText :: Picture -> Picture
 displayText = translate 0 100
+
+data PlayerState = Alive | Disconnected | Dead deriving (Eq, Show, Enum, Bounded)

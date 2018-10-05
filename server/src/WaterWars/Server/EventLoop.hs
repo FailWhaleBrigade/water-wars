@@ -1,7 +1,10 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
 
-module WaterWars.Server.EventLoop where
+module WaterWars.Server.EventLoop
+    ( runEventLoop
+    )
+where
 
 import           ClassyPrelude           hiding ( ask
                                                 , Reader
