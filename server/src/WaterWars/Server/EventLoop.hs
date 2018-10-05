@@ -29,7 +29,7 @@ data Command
     | StopGameCmd
     | ResetGameCmd
     | PauseGameCmd
-    | GameOverCmd
+    | GameOverCmd Player
     | AddPlayerAction Player PlayerAction
     | AddFuture Integer FutureEvent
     | RemoveFuture Integer
@@ -90,18 +90,17 @@ eventLoop (EventGameLoopMessage gameStateUpdate gameEvents) Env {..}
           ServerEnv {..} = serverEnv
           GameEnv {..}   = gameEnv
           gameTick       = gameTicks gameStateUpdate
-
+          players = getInGamePlayers $ inGamePlayers gameStateUpdate
           gameOverCmd =
               case
                       ( serverState
-                      , length
-                          (getInGamePlayers $ inGamePlayers gameStateUpdate)
+                      , length players
                       )
                   of
                       (Running, 0) ->
                           [StopGameCmd, AddFuture (gameTick + 240) ResetGame]
                       (Running, 1) ->
-                          [GameOverCmd, AddFuture (gameTick + 240) ResetGame]
+                          [GameOverCmd (playerDescription $ players `indexEx` 0), AddFuture (gameTick + 240) ResetGame]
                       _ -> []
           actionToExecute = case lookup gameTick eventMap of
               Nothing        -> []
@@ -143,7 +142,7 @@ handleCmd_ env@Env {..} cmd = case cmd of
     PauseGameCmd ->
         return env { serverEnv = serverEnv { serverState = Paused } }
 
-    GameOverCmd ->
+    GameOverCmd winner ->
         -- establish winner
         return env { serverEnv = serverEnv { serverState = Over } }
 
