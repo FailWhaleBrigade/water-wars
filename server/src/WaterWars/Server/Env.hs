@@ -16,13 +16,13 @@ data Env =
 
 newtype NetworkEnv =
     NetworkEnv
-        { connectionMap ::  Map Text Connection
+        { connectionMap ::  Map Player Connection
         } deriving (Show)
 
 data GameEnv =
     GameEnv
-        { playerMap  ::  Map Text InGamePlayer
-        , readyPlayers ::  Set Text
+        { playerMap  ::  Map Player InGamePlayer
+        , readyPlayers ::  Set Player
         , playerAction ::  PlayerActions
         } deriving (Show)
 

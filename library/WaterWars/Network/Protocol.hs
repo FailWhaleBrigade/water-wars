@@ -14,14 +14,14 @@ import WaterWars.Core.Game
 -- |Datatype to login to a game server.
 -- So far, only a reconnect options is supported.
 newtype Login = Login
-    { sessionId :: Maybe Text
+    { sessionId :: Maybe Player
     } deriving (Show, Read, Eq, Generic)
     deriving anyclass Serialize
 
 -- |Response to a Login request.
 -- Either fails with an error message or succeeds with the session id
 data LoginResponse = LoginResponse
-    { successSessionId :: Text
+    { successSessionId :: Player
     , successPlayer    :: InGamePlayer
     } deriving (Show, Read, Eq, Generic)
     deriving anyclass Serialize
