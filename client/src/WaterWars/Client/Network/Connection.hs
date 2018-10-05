@@ -19,7 +19,8 @@ import           WaterWars.Client.Network.State ( NetworkConfig(..)
                                                 , NetworkInfo(..)
                                                 , Connection
                                                 , newConnection
-                                                , send, receive
+                                                , send
+                                                , receive
                                                 )
 
 import           WaterWars.Network.Protocol    as Protocol
