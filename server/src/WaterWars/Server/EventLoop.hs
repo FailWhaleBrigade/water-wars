@@ -135,9 +135,11 @@ handleCmd_ env@Env {..} cmd = case cmd of
         runReader env (broadcastMessage msg)
         return env
 
-    StopGameCmd  -> return env { serverEnv = serverEnv { serverState = Over } }
+    StopGameCmd -> return env { serverEnv = serverEnv { serverState = Over } }
 
-    ResetGameCmd -> runReader env restartGame
+    ResetGameCmd ->
+        -- TODO: this should not have side effects if possible
+        runReader env restartGame
 
     PauseGameCmd ->
         return env { serverEnv = serverEnv { serverState = Paused } }
@@ -162,6 +164,7 @@ handleCmd_ env@Env {..} cmd = case cmd of
                         (getAction action)
                         getPlayerActions
                 return env { gameEnv = gameEnv { playerAction = newActions } }
+
     AddFutureCmd trigger event -> return env
         { serverEnv =
             serverEnv { eventMap = insertMap trigger event (eventMap serverEnv)

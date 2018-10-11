@@ -16,7 +16,7 @@ extra-deps:
 nix:
   pure: false
   packages:
-  - mesa
+  - mesa_glu
   - freeglut
   - pkgconfig
   - zlib
