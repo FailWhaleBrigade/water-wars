@@ -26,10 +26,6 @@ cabal.project.local
 
 # End of https://www.gitignore.io/api/haskell
 
-# generated cabal file
-
-*.cabal
-
 ### Ignore all bitmaps because they are too large
 
 *.bmp
@@ -39,3 +35,4 @@ cabal.project.local
 *.log
 water-wars-client.log
 water-wars-server.log
+stack.yaml.lock
