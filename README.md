@@ -1,46 +1,100 @@
-# [water-wars][]
+# Water-Wars
 
 [![Build Status](https://travis-ci.org/FailWhaleBrigade/water-wars.svg?branch=frontend)](https://travis-ci.org/FailWhaleBrigade/water-wars)
-Thanks for starting a project with Haskeleton! If you haven't heard of it
-before, I suggest reading the introductory blog post. You can find it here:
-<http://taylor.fausak.me/2014/03/04/haskeleton-a-haskell-project-skeleton/>.
 
-Before you get started, there are a few things that this template couldn't
-provide for you. You should:
+## Build project with stack
 
-- Add a synopsis to `package.yaml`. It should be a short (one sentence)
-    explanation of your project.
+Start the server.
 
-- Add a description to `package.yaml`. This can be whatever you want it to
-    be.
+```bash
+> stack build
+> stack exec water-wars-server -- --help
+Fail Whale Brigade presents Water Wars.
 
-- Add a category to `package.yaml`. A list of categories is available on
-    Hackage at <http://hackage.haskell.org/packages>.
+Usage: water-wars-server [--hostname Hostname] [-p|--port Port] [-s|--fps FPS]
+                         [--monitor Port] [Game Map ...]
+  Start an instance of the water-wars server.
 
-- Rename `library/Example.hs` to whatever you want your top-level module to
-    be called. Typically this is the same as your package name but in
-    `CamelCase` instead of `kebab-case`.
-
-    - Don't forget to rename the reference to it in
-        `executable/Main.hs`!
-
-- If you are on an older version of Stack (<1.0.4), delete `package.yaml` and
-    remove `/*.cabal` from your `.gitignore`.
-
-Once you've done that, start working on your project with the Stack commands
-you know and love.
-
-``` sh
-# Build the project.
-stack build
-
-# Run the test suite.
-stack test
-
-# Generate documentation.
-stack haddock
+Available options:
+  --hostname Hostname      Hostname where to run
+  -p,--port Port           Port for the Server to listen to
+  -s,--fps FPS             Number of frames per second that the server shall
+                           perform
+  --monitor Port           Port for the performance monitor server
+  Game Map ...             List of play fields that the server should serve in a
+                           cycle everytime a game has been won
+  -h,--help                Show this help text
+> stack exec water-wars-server -- -p 9999 --hostname "0.0.0.0" resources/game1.txt
 ```
 
-Thanks again, and happy hacking!
+Start the client:
 
-[water-wars]: https://github.com/githubuser/water-wars
+```bash
+> stack build
+> stack exec water-wars-client -- --help
+Fail Whale Brigade presents Water Wars.
+
+Usage: water-wars-client [--hostname Hostname] [-p|--port Port] [-q|--quiet]
+                         [--monitor Port] [--fullscreen]
+  Start an instance of the water-wars client.
+
+Available options:
+  --hostname Hostname      Hostname of the Server Instance
+  -p,--port Port           Port to connect to
+  -q,--quiet               Silences the music of the game
+  --monitor Port           Port for the performance monitor server
+  --fullscreen             Starts the game in fullscreen mode
+  -h,--help                Show this help text
+> stack exec water-wars-client -- -p 9999 --hostname "0.0.0.0" --fullscreen
+```
+
+Exit the game with alt+f4.
+
+### Build project with cabal
+
+
+Start the server.
+
+```bash
+> cabal v2-build all
+> cabal v2-run exe:water-wars-server -- --help
+Fail Whale Brigade presents Water Wars.
+
+Usage: water-wars-server [--hostname Hostname] [-p|--port Port] [-s|--fps FPS]
+                         [--monitor Port] [Game Map ...]
+  Start an instance of the water-wars server.
+
+Available options:
+  --hostname Hostname      Hostname where to run
+  -p,--port Port           Port for the Server to listen to
+  -s,--fps FPS             Number of frames per second that the server shall
+                           perform
+  --monitor Port           Port for the performance monitor server
+  Game Map ...             List of play fields that the server should serve in a
+                           cycle everytime a game has been won
+  -h,--help                Show this help text
+> cabal v2-run exe:water-wars-server -- -p 9999 --hostname "0.0.0.0" resources/game1.txt
+```
+
+Start the client:
+
+```bash
+> cabal v2-build all
+> cabal v2-run exe:water-wars-client -- --help
+Fail Whale Brigade presents Water Wars.
+
+Usage: water-wars-client [--hostname Hostname] [-p|--port Port] [-q|--quiet]
+                         [--monitor Port] [--fullscreen]
+  Start an instance of the water-wars client.
+
+Available options:
+  --hostname Hostname      Hostname of the Server Instance
+  -p,--port Port           Port to connect to
+  -q,--quiet               Silences the music of the game
+  --monitor Port           Port for the performance monitor server
+  --fullscreen             Starts the game in fullscreen mode
+  -h,--help                Show this help text
+> cabal v2-run exe:water-wars-client -- -p 9999 --hostname "0.0.0.0" --fullscreen
+```
+
+Exit the game with alt+f4.
