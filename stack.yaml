@@ -1,4 +1,4 @@
-resolver: lts-12.16
+resolver: lts-12.26
 
 packages:
 - .
@@ -14,13 +14,10 @@ extra-deps:
   commit: 0b45a1da2c3b17df1b42bde0d9d6f5097f05cc67
 
 nix:
-  pure: false
+        # pure: false
   packages:
-  - libGLU_combined
-  - mesa_glu
+  - mesa_noglu
   - freeglut
-  - pkgconfig
   - zlib
-  - pcre
   - gmp
   - libpulseaudio

@@ -6,11 +6,8 @@ stdenv.mkDerivation {
     zlib
     ncurses
  
-    pkgconfig
     mesa_noglu
-    # libGLU_combined
     freeglut
-    # glew
     libpulseaudio
  ];
   src = null;
