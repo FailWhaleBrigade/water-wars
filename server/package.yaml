@@ -1,17 +1,13 @@
-name: water-wars
+name: water-wars-server
 version: '0.0.0'
 github: "FailWhaleBrigade/water-wars"
 license: MIT
 author: "Fendor, VeryMilkyJoe, Power-Fungus"
 maintainer: "Fendor, VeryMilkyJoe, Power-Fungus"
-synopsis: The core of WaterWars
+synopsis: Water Wars server library
 
 extra-source-files:
-- CHANGELOG.md
-- LICENSE.md
 - package.yaml
-- README.md
-- stack.yaml
 
 ghc-options:
 - -Wall
@@ -20,12 +16,17 @@ ghc-options:
 library:
   dependencies:
   - base
-  - classy-prelude
   - array
+  - classy-prelude
   - extensible-effects >= 3.1 && < 3.2
-  - extra
-  - cereal
-  source-dirs: library
+  - water-wars
+  - websockets
+  - transformers-base
+  - time
+  - uuid
+  - log-effect
+  - pretty-simple
+  source-dirs: src
   default-extensions:
   - DeriveGeneric
   - NamedFieldPuns
@@ -35,44 +36,32 @@ library:
   - RecordWildCards
   - LambdaCase
   - FlexibleContexts
+  - FlexibleInstances
+  - MultiParamTypeClasses
   - MonoLocalBinds
 
-benchmarks:
-  water-wars-benchmarks:
-    source-dirs: benchmark
+executables:
+  water-wars-server:
+    source-dirs: app
     main: Main.hs
     dependencies:
     - base
-    - water-wars
-    - criterion
-    ghc-options:
-    - -rtsopts
-    - -threaded
-    - -with-rtsopts=-N
-    default-extensions:
-    - NamedFieldPuns
-    - OverloadedStrings
-    - NoImplicitPrelude
-    - ScopedTypeVariables
-    - RecordWildCards
-
-tests:
-  water-wars-test-suite:
-    source-dirs: test-suite
-    main: Main.hs
-    dependencies:
-    - base
-    - water-wars
-    - classy-prelude
-    - tasty
-    - tasty-hspec
-    - tasty-hunit
-    - hspec
-    - HUnit
     - array
+    - classy-prelude
+    - extensible-effects >= 3.1 && < 3.2
+    - water-wars
+    - water-wars-server
+    - websockets
+    - transformers-base
+    - time
+    - uuid
+    - ekg
+    - log-effect
+    - optparse-applicative
     ghc-options:
     - -rtsopts
     - -threaded
+    - -O2
     - -with-rtsopts=-N
     default-extensions:
     - NamedFieldPuns
@@ -80,3 +69,4 @@ tests:
     - NoImplicitPrelude
     - ScopedTypeVariables
     - RecordWildCards
+    - FlexibleContexts

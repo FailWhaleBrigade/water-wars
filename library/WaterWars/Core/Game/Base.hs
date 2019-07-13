@@ -11,9 +11,11 @@ data RunDirection = RunLeft | RunRight
 newtype Location = Location (Float, Float)
   deriving (Show, Read, Eq, Ord, Generic)
 
+instance Semigroup Location where
+    (Location (x, y)) <> (Location (a, b)) = Location (x + a, y + b)
+
 instance Monoid Location where
     mempty = Location (0, 0)
-    mappend (Location (x, y)) (Location (a, b)) = Location (x + a, y + b)
 
 data VelocityVector = VelocityVector
     { velocityX :: Float

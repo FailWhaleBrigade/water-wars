@@ -2,16 +2,14 @@ module WaterWars.Core.Terrain.Read where
 
 import           ClassyPrelude
 import           WaterWars.Core.Game.Map
-import           System.IO                                ( openFile )
 import           Data.Array.IArray
 import           Data.List                                ( transpose )
 
 readTerrainFromFile :: MonadIO m => FilePath -> m Terrain
 readTerrainFromFile terrainFilePath = do
-    terrainFile           <- liftIO $ openFile terrainFilePath ReadMode
-    content :: ByteString <- hGetContents terrainFile
+    content <- readFileUtf8 terrainFilePath 
     let extractedTerrain =
-            charMatrixToTerrain . lines . unpack . decodeUtf8 $ content
+            charMatrixToTerrain . map unpack . filter (not . isPrefixOf "#") . lines $ content
     case extractedTerrain of
         Left  err -> do
             putStrLn err
