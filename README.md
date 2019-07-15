@@ -117,3 +117,17 @@ Some c lib dependencies:
 * pulseaudio
 * freeglut
 * mesa
+
+### Pictures
+
+Loading Screen:
+
+![Loading Screen](picutures/loading.png)
+
+Alone in the server:
+
+![Alone in the server](picutures/alone.png)
+
+When you have won:
+
+![Win](picutures/win.png)
