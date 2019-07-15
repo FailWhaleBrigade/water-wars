@@ -1,18 +1,5 @@
 # Water Wars in Haskell
 
-*Course Details*
-
-183.653 Methodical, industrial Software-Engineering using the Haskell functional language
-3 ECTS
-Summer semester 2018
-Presentation 25.6.2018
-
-*Participants*
-
-* Hannes Siebenhandl 013273009
-* Samuel Pilz 01327391
-* Jana Chadt 01528032 
-
 ## Game Design
 
 Water Wars is a 2D platform shooter game, which is played in short, fast-paced rounds. In order for the game to be fair, all players should see the same state at all times, this is handled using a server that repeatedly informs all clients about the current game state.

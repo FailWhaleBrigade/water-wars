@@ -9,7 +9,7 @@ However, since this course should take about 75 hours per person, you can imagin
 ## How To Play
 
 You have to host a server and connect with a client. In the beginning, the game is in a warm-up phase, e.g. you cant kill other players on the server.
-When all players are ready, the game starts. The players signal that they are ready by pressing `enter` on the keyboard. You can use `w`, `a`, and `d` to move, while `s` is the jump button. You can aim with the mouse where you want to shoot the bubble. Be careful, it takes a second or two to shoot again, so if you are close to the enemy and you miss, it might cost you your crown!
+When all players are ready, the game starts. The players signal that they are ready by pressing `enter` on the keyboard. You can use `w`, `a`, and `d` to move, while `w` is the jump button. You can aim with the mouse where you want to shoot the bubble. Be careful, it takes a second or two to shoot again, so if you are close to the enemy and you miss, it might cost you your crown!
 When only one player is alive, they are the victor! After a short amount of time, the next map is chosen, which may be just the same again, if you didn't create another one. The game never ends, so you have to eventually stop.
 
 ## Build project with stack
@@ -122,12 +122,12 @@ Some c lib dependencies:
 
 Loading Screen:
 
-![Loading Screen](picutures/loading.png)
+![Loading Screen](https://github.com/FailWhaleBrigade/water-wars/blob/master/pictures/loading.png)
 
 Alone in the server:
 
-![Alone in the server](picutures/alone.png)
+![Alone in the server](https://github.com/FailWhaleBrigade/water-wars/blob/master/pictures/alone.png)
 
 When you have won:
 
-![Win](picutures/win.png)
+![Win](https://github.com/FailWhaleBrigade/water-wars/blob/master/pictures/win.png)
