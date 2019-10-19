@@ -12,8 +12,6 @@ import           ClassyPrelude           hiding ( ask
 
 import           Control.Eff
 import           Control.Eff.Reader.Strict
-import           Control.Eff.Log
-import qualified Control.Eff.Log               as EffLog
 import           Control.Eff.Lift        hiding ( lift )
 
 import           WaterWars.Network.Protocol
@@ -46,15 +44,14 @@ data Command
 
 runEventLoop
     :: MonadUnliftIO m
-    => Logger m Text
-    -> TVar Env
+    => TVar Env
     -> TQueue EventMessage
     -> m ()
-runEventLoop logger envTvar queue = forever $ do
+runEventLoop envTvar queue = forever $ do
     env     <- readTVarIO envTvar
     message <- atomically $ readTQueue queue
     let actions = eventLoop message env
-    newEnv <- runLift . runLog logger $ handleCmd actions env
+    newEnv <- runLift $ handleCmd actions env
     atomically $ modifyTVar' envTvar (const newEnv)
 
 eventLoop :: EventMessage -> Env -> [Command]
@@ -116,14 +113,14 @@ eventLoop (GameLoopMessageEvent gameStateUpdate gameEvents) Env {..} =
 eventLoop (RegisterEvent uuid conn) _ = [ConnectPlayerCmd uuid conn]
 
 handleCmd
-    :: ('[Log Text] <:: r, MonadIO m, Lifted m r)
+    :: (MonadIO m, Lifted m r)
     => [Command]
     -> Env
     -> Eff r Env
 handleCmd cmds env = foldM handleCmd_ env cmds
 
 handleCmd_
-    :: ('[Log Text] <:: r, MonadIO m, Lifted m r) => Env -> Command -> Eff r Env
+    :: (MonadIO m, Lifted m r) => Env -> Command -> Eff r Env
 handleCmd_ env@Env {..} cmd = case cmd of
     StartGameCmd -> do
         runReader env startGame
@@ -152,9 +149,6 @@ handleCmd_ env@Env {..} cmd = case cmd of
         let playerMay    = lookup sessionId playerMap
         case playerMay of
             Nothing -> do
-                EffLog.logE
-                    ("Received a message that did not belong to any player" :: Text
-                    )
                 return env
             Just InGamePlayer {..} -> do
                 let PlayerActions {..} = playerAction
@@ -227,7 +221,6 @@ handleCmd_ env@Env {..} cmd = case cmd of
                            }
         }
     BroadcastCmd msg -> do
-        EffLog.logE $ tshow msg
         runReader env (broadcastMessage msg)
         return env
     UpdateGameLoopCmd newgameState -> return env

@@ -10,8 +10,6 @@ extra-deps:
 - extra-1.6.8
 - th-format-0.1.2.0
 - proteaaudio-0.7.0.1
-- git: https://github.com/power-fungus/log-effect.git
-  commit: 0b45a1da2c3b17df1b42bde0d9d6f5097f05cc67
 
 nix:
   pure: false

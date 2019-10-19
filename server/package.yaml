@@ -24,7 +24,6 @@ library:
   - transformers-base
   - time
   - uuid
-  - log-effect
   - pretty-simple
   source-dirs: src
   default-extensions:
@@ -56,7 +55,6 @@ executables:
     - time
     - uuid
     - ekg
-    - log-effect
     - optparse-applicative
     ghc-options:
     - -rtsopts

@@ -39,3 +39,5 @@ cabal.project.local
 *.log
 water-wars-client.log
 water-wars-server.log
+
+*.yaml.lock
