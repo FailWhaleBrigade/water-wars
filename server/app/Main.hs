@@ -7,9 +7,6 @@ import           ClassyPrelude           hiding ( Reader )
 import           Control.Monad.Base             ( MonadBase(..) )
 import           Control.Eff                    ( )
 import           Control.Eff.Lift
-import           Control.Eff.Log                ( runLog
-                                                , Logger
-                                                )
 import           Control.Eff.Reader.Strict
 
 import           Data.UUID               hiding ( null )
@@ -83,7 +80,6 @@ handleConnection messageQueue websocketConn = do
                                    (messageQueue :: TQueue EventMessage)
     atomically $ writeTQueue messageQueue (RegisterEvent (Player sessionId) conn)
     clientGameThread
-            stdoutDateTextLogger
             conn
             (atomically . writeTQueue messageQueue . ClientMessageEvent
                 (Player sessionId)
@@ -125,15 +121,7 @@ gameServer arguments loadedGameMaps messageQueue = do
             }
     let env :: Env = Env {..}
     envTvar :: TVar Env <- newTVarIO env
-    let logger :: Logger IO Text = stdoutDateTextLogger
-    liftIO $ race_ (runEventLoop logger envTvar messageQueue)
+    liftIO $ race_ (runEventLoop envTvar messageQueue)
                         (runGameLoop envTvar messageQueue)
 
-    -- $logInfo "Start game loop"
     return ()
-
-stdoutDateTextLogger :: MonadBase IO m => Logger m Text
-stdoutDateTextLogger msg = liftBase $ do
-    time <- getCurrentTime
-    let fmtTime = formatTime defaultTimeLocale rfc822DateFormat time
-    say $ pack fmtTime ++ ": " ++ msg
