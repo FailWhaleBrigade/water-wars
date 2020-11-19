@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE DataKinds #-}
 
 module Main where
@@ -34,6 +35,7 @@ import           WaterWars.Server.EventLoop
 import           WaterWars.Server.Env
 import           WaterWars.Server.Events
 import           OptParse
+import           System.Exit
 
 serverStateWithGameMap :: GameMap -> GameLoopState
 serverStateWithGameMap gameMap =
@@ -54,18 +56,22 @@ main = do
 
 runLoop :: MonadUnliftIO m => Arguments -> m ()
 runLoop arguments = do
-    let gameMapFiles_ = fromList $ if null (gameMapFiles arguments)
+    let -- gameMapFiles_ :: [FilePath]
+        gameMapFiles_ = fromList $ if null (gameMapFiles arguments)
             then ["resources/game1.txt"]
             else gameMapFiles arguments
     -- read resources
     -- TODO: this fails ugly
-    terrains <- mapM readTerrainFromFile gameMapFiles_
-    let loadedGameMaps = map (`GameMap` defaultDecoration) terrains
-    -- Initialize server state
-    messageQueue <- newTQueueIO
-    -- start to accept connections
-    _            <- async (websocketServer arguments messageQueue)
-    gameServer arguments loadedGameMaps messageQueue
+    terrains_ <- (mapM readTerrainFromFile gameMapFiles_)
+    case sequenceA terrains_ of
+        Nothing -> liftIO $ exitWith (ExitFailure 2)
+        Just terrains -> do
+            let loadedGameMaps = map (`GameMap` defaultDecoration) terrains
+            -- Initialize server state
+            messageQueue <- newTQueueIO
+            -- start to accept connections
+            _            <- async (websocketServer arguments messageQueue)
+            gameServer arguments loadedGameMaps messageQueue
 
 
 websocketServer :: MonadUnliftIO m => Arguments -> TQueue EventMessage -> m ()

@@ -78,12 +78,14 @@ receiveUpdates (WorldSTM tvar) conn =
                           let (world', maybeEvents) = updateWorld msg world
                           writeTVar tvar world'
                           return (world', maybeEvents)
-                      when (isJust events) $ liftIO $ soundPlay
-                          (shootSound . resources $ renderInfo world')
-                          1
-                          1
-                          0
-                          1
+                      when (isJust events) $ liftIO $ do
+                          _ <- soundPlay
+                            (shootSound . resources $ renderInfo world')
+                            1
+                            1
+                            0
+                            1
+                          pure ()
 
               return ()
 

@@ -5,19 +5,19 @@ import           WaterWars.Core.Game.Map
 import           Data.Array.IArray
 import           Data.List                                ( transpose )
 
-readTerrainFromFile :: MonadIO m => FilePath -> m Terrain
+readTerrainFromFile :: MonadIO m => FilePath -> m (Maybe Terrain)
 readTerrainFromFile terrainFilePath = do
-    content <- readFileUtf8 terrainFilePath 
+    content <- readFileUtf8 terrainFilePath
     let extractedTerrain =
             charMatrixToTerrain . map unpack . filter (not . isPrefixOf "#") . lines $ content
     case extractedTerrain of
         Left  err -> do
             putStrLn err
-            fail ""
+            pure Nothing
         Right x   -> do
             let Terrain a = x
             print $ bounds a
-            return x
+            return $ Just x
 
 
 -- TODO: make bounds generic
