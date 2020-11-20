@@ -1,6 +1,6 @@
 with import <nixpkgs> {};
 stdenv.mkDerivation {
-  name = "haskell-ide-engine";
+  name = "water-wars";
   buildInputs = [
     gmp
     zlib
@@ -10,6 +10,7 @@ stdenv.mkDerivation {
     libGLU
     libGL
 
+    cabal-install
     freeglut
     libpulseaudio
  ];
