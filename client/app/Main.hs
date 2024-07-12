@@ -6,9 +6,7 @@ import Control.Monad.Except
 import Graphics.Gloss
 import Graphics.Gloss.Interface.IO.Game
 
-import Sound.ProteaAudio
-
-import System.Remote.Monitoring
+-- import Sound.ProteaAudio.SDL
 
 import Options.Applicative
 
@@ -19,6 +17,7 @@ import WaterWars.Client.Render.State
 import WaterWars.Client.Render.Display (renderIO)
 
 import WaterWars.Client.Network.Connection (NetworkConfig(..), connectionThread)
+import Control.Monad.Fail (fail)
 
 window :: Bool -> Display
 window False = InWindow "Water Wars" (800, 600) (10, 10)
@@ -42,14 +41,9 @@ main :: IO ()
 main = do
     Arguments {..} <- execParser opts
 
-    case performanceMonitoring of
-        Nothing          -> return ()
-        Just monitorPort -> void $ forkServer "localhost" monitorPort
-
-
-    unless quiet $ do
-        success <- initAudio 64 44100 1024 -- max channels, mixing frequency, mixing buffer size
-        unless success $ fail "failed to initialize the audio system"
+    -- unless quiet $ do
+    --     success <- initAudio 64 44100 1024 -- max channels, mixing frequency, mixing buffer size
+    --     unless success $ fail "failed to initialize the audio system"
 
     resourcesEither <- runExceptT setup
     case resourcesEither of
@@ -62,8 +56,8 @@ main = do
                                       (NetworkConfig port (unpack hostname))
                                       worldStm
                     )
-            sample <- sampleFromFile "resources/sounds/Bubble_Game.ogg" 1.0
-            soundLoop sample 1 1 0 1
+            -- sample <- sampleFromFile "resources/sounds/Bubble_Game.ogg" 1.0
+            -- soundLoop sample 1 1 0 1
             playIO (window fullScreen)
                    backgroundColor
                    fps

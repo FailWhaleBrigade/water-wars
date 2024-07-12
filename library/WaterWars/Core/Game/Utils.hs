@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeOperators #-}
 module WaterWars.Core.Game.Utils
     ( module WaterWars.Core.Game.Utils
     , module WaterWars.Core.Game.State
@@ -10,9 +11,10 @@ import           ClassyPrelude                     hiding ( Reader
                                                           , ask
                                                           )
 
-import           Control.Eff
-import           Control.Eff.Reader.Strict
-import           Control.Eff.State.Strict
+
+import           Effectful.State.Dynamic as State
+import           Effectful.Reader.Static
+import           Effectful
 
 import           Data.Array.IArray
 
@@ -102,15 +104,15 @@ velocityVectorFromPolar :: Speed -> Angle -> VelocityVector
 velocityVectorFromPolar (Speed speed) (Angle angle) =
     VelocityVector (speed * cos angle) (speed * sin angle)
 
-addProjectile :: Member (State GameState) e => Projectile -> Eff e ()
+addProjectile :: State GameState :> e => Projectile -> Eff e ()
 addProjectile projectile = do
-    Projectiles projectiles <- gets gameProjectiles
+    Projectiles projectiles <- State.gets gameProjectiles
     let newProjectiles = projectile `cons` projectiles
     modify $ \s -> s { gameProjectiles = Projectiles newProjectiles }
 
-removeProjectiles :: Member (State GameState) e => Set Projectile -> Eff e ()
+removeProjectiles :: State GameState :> e => Set Projectile -> Eff e ()
 removeProjectiles ps = do
-    Projectiles projectiles <- gets gameProjectiles
+    Projectiles projectiles <- State.gets gameProjectiles
     let newProjectiles = filter (`notElem` ps) projectiles
     modify $ \s -> s { gameProjectiles = Projectiles newProjectiles }
 
@@ -125,9 +127,9 @@ newDeadPlayer tick InGamePlayer{..} = DeadPlayer
     , playerDeathTick = tick
     }
 
-addDeadPlayers :: Member (State GameState) e => [DeadPlayer] -> Eff e ()
+addDeadPlayers :: State GameState :> e => [DeadPlayer] -> Eff e ()
 addDeadPlayers ps = do
-    DeadPlayers deadPlayers <- gets gameDeadPlayers
+    DeadPlayers deadPlayers <- State.gets gameDeadPlayers
     let newDeadPlayers =  deadPlayers ++ fromList ps
     modify $ \s -> s { gameDeadPlayers = DeadPlayers newDeadPlayers }
 
@@ -170,39 +172,39 @@ blockRangeX b = (blockLeftX b, blockRightX b)
 blockRangeY :: BlockLocation -> (Float, Float)
 blockRangeY b = (blockBotY b, blockTopY b)
 
-asks :: Member (Reader s) r => (s -> a) -> Eff r a
+asks :: Reader s :> r => (s -> a) -> Eff r a
 asks f = map f ask
 {-# INLINE asks #-}
 
-gets :: Member (State s) r => (s -> a) -> Eff r a
+gets :: State s :> r => (s -> a) -> Eff r a
 gets f = map f get
 {-# INLINE gets #-}
 
 
 mapMOverPlayers
-    :: (Member (State GameState) e, Member (Reader GameMap) e)
+    :: (State GameState :> e, Reader GameMap :> e)
     => (InGamePlayer -> Eff e InGamePlayer)
     -> Eff e ()
 mapMOverPlayers mapping = do
-    InGamePlayers players <- gets inGamePlayers
+    InGamePlayers players <- State.gets inGamePlayers
     newPlayers            <- mapM mapping players
     modify $ \s -> s { inGamePlayers = InGamePlayers newPlayers }
 
 mapMOverProjectiles
-    :: (Member (State GameState) e, Member (Reader GameMap) e)
+    :: (State GameState :> e, Reader GameMap :> e)
     => (Projectile -> Eff e Projectile)
     -> Eff e ()
 mapMOverProjectiles mapping = do
-    Projectiles projectiles <- gets gameProjectiles
+    Projectiles projectiles <- State.gets gameProjectiles
     newProjectiles          <- mapM mapping projectiles
     modify $ \s -> s { gameProjectiles = Projectiles newProjectiles }
 
 filterMOverProjectiles
-    :: (Member (State GameState) e, Member (Reader GameMap) e)
+    :: (State GameState :> e, Reader GameMap :> e)
     => (Projectile -> Eff e Bool)
     -> Eff e ()
 filterMOverProjectiles predicate = do
-    Projectiles projectiles <- gets gameProjectiles
+    Projectiles projectiles <- State.gets gameProjectiles
     newProjectiles          <- filterM predicate projectiles
     modify $ \s -> s { gameProjectiles = Projectiles newProjectiles }
 

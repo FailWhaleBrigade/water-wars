@@ -1,13 +1,11 @@
 module WaterWars.Server.Action.Start where
 
 import           ClassyPrelude           hiding ( Reader
-                                                , ask
+                                                , asks
                                                 )
-import           Control.Eff
-import           Control.Eff.Reader.Strict
-import           Control.Eff.Lift
-import           Control.Eff.Log
-import qualified Control.Eff.Log               as EffLog
+import           Effectful
+import           Effectful.Reader.Static as Reader
+import           Effectful.Log
 import           WaterWars.Core.Game
 import           WaterWars.Network.Protocol
 import           WaterWars.Server.Env
@@ -15,12 +13,12 @@ import           WaterWars.Server.Action.Util
 
 
 startGame
-    :: (Member (Log Text) r, Member (Reader Env) r, MonadIO m, Lifted m r)
+    :: (Log :> r, Reader Env :> r, IOE :> r)
     => Eff r ()
 startGame = do
-    ServerEnv {..} <- reader serverEnv
+    ServerEnv {..} <- Reader.asks serverEnv
     let gameTick = gameTicks . gameState $ gameLoop
-    EffLog.logE $ "Send the Game start message: " ++ tshow gameTick
+    logTrace_ $ "Send the Game start message: " ++ tshow gameTick
 
     broadcastMessage GameStartMessage
 

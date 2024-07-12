@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeOperators #-}
 module WaterWars.Core.Physics where
 
 import           ClassyPrelude                     hiding ( Reader
@@ -7,8 +8,8 @@ import           WaterWars.Core.Game
 import           WaterWars.Core.Physics.Constants
 import           WaterWars.Core.Physics.Collision
 import           WaterWars.Core.Physics.Utils
-import           Control.Eff
-import           Control.Eff.Reader.Strict
+import           Effectful.Reader.Static as Reader
+import           Effectful
 
 
 jumpVector :: VelocityVector -> VelocityVector
@@ -38,27 +39,27 @@ verticalDragPlayer onGround player@InGamePlayer {..} =
     in  setPlayerVelocity (VelocityVector (vx * dragFactor) vy) player
 
 
-isPlayerOnGround :: Member (Reader GameMap) e => InGamePlayer -> Eff e Bool
+isPlayerOnGround :: Reader GameMap :> e => InGamePlayer -> Eff e Bool
 isPlayerOnGround player = do
-    terrain <- asks gameTerrain
+    terrain <- Reader.asks gameTerrain
     let blocksBelowFeet = mapMaybe blockBelow $ bottomPointsOfPlayer player
     return $ any (terrain `isSolidAt`) blocksBelowFeet
 
-isPlayerOnRightWall :: Member (Reader GameMap) e => InGamePlayer -> Eff e Bool
+isPlayerOnRightWall :: Reader GameMap :> e => InGamePlayer -> Eff e Bool
 isPlayerOnRightWall player = do
-    terrain <- asks gameTerrain
+    terrain <- Reader.asks gameTerrain
     let blockOnRight = mapMaybe blockRight $ rightPointsOfPlayer player
     return $ any (terrain `isSolidAt`) blockOnRight
 
-isPlayerOnLeftWall :: Member (Reader GameMap) e => InGamePlayer -> Eff e Bool
+isPlayerOnLeftWall :: Reader GameMap :> e => InGamePlayer -> Eff e Bool
 isPlayerOnLeftWall player = do
-    terrain <- asks gameTerrain
+    terrain <- Reader.asks gameTerrain
     let blockOnLeft = mapMaybe blockLeft $ leftPointsOfPlayer player
     return $ any (terrain `isSolidAt`) blockOnLeft
 
 -- TODO: try to refactor?
 doesPlayerRunAgainstWall
-    :: Member (Reader GameMap) e
+    :: Reader GameMap :> e
     => Maybe RunAction
     -> InGamePlayer
     -> Eff e Bool
@@ -78,9 +79,9 @@ blockLeft :: Location -> Maybe BlockLocation
 blockLeft (Location (x, y)) =
     getBlock $ Location (x - blockBelowTolerance, y)
 
-movePlayer :: Member (Reader GameMap) e => InGamePlayer -> Eff e InGamePlayer
+movePlayer :: Reader GameMap :> e => InGamePlayer -> Eff e InGamePlayer
 movePlayer player@InGamePlayer {..} = do
-    terrain <- asks gameTerrain
+    terrain <- Reader.asks gameTerrain
     let playerCornerPoints = collisionPointsOfPlayer player
     let newStates = map
             (\p -> (p, moveWithCollision terrain p playerVelocity))

@@ -3,11 +3,9 @@ module WaterWars.Server.Action.Restart where
 import           ClassyPrelude           hiding ( Reader
                                                 , ask
                                                 )
-import           Control.Eff
-import           Control.Eff.Reader.Strict
-import           Control.Eff.Lift
-import           Control.Eff.Log
-import qualified Control.Eff.Log               as EffLog
+import           Effectful
+import           Effectful.Reader.Static
+import           Effectful.Log
 import           WaterWars.Core.Game
 import           WaterWars.Network.Protocol
 import           WaterWars.Server.Env
@@ -15,7 +13,7 @@ import           WaterWars.Server.Action.Util
 
 
 restartGame
-    :: (Member (Log Text) r, Member (Reader Env) r, MonadIO m, Lifted m r)
+    :: (Log :> r, Reader Env :> r, IOE :> r)
     => Eff r Env
 restartGame = do
     env@Env {..} <- ask
@@ -30,7 +28,7 @@ restartGame = do
                 ++ map revivePlayer (getDeadPlayers gameDeadPlayers)
 
 
-    EffLog.logE ("Restart the game" :: Text)
+    logInfo_ ("Restart the game" :: Text)
     broadcastMessage ResetGameMessage
     broadcastMessage (GameMapMessage current)
 

@@ -5,22 +5,14 @@ module Main where
 
 import           ClassyPrelude           hiding ( Reader )
 
-import           Control.Monad.Base             ( MonadBase(..) )
-import           Control.Eff                    ( )
-import           Control.Eff.Lift
-import           Control.Eff.Log                ( runLog
-                                                , Logger
-                                                )
-import           Control.Eff.Reader.Strict
+import           Effectful                    ( )
+import           Effectful.Log
 
 import           Data.UUID               hiding ( null )
 import           Data.UUID.V4
-import           Data.Time
 
 import           Network.WebSockets      hiding ( newClientConnection )
 import           Options.Applicative
-
-import           System.Remote.Monitoring
 
 import           WaterWars.Core.DefaultGame
 import           WaterWars.Core.Game
@@ -44,7 +36,6 @@ serverStateWithGameMap gameMap =
 main :: IO ()
 main = do
     Arguments {..} <- execParser opts
-    _              <- forkServer "0.0.0.0" monitorPort
     runLoop Arguments {..}
   where
     opts = info
@@ -88,8 +79,9 @@ handleConnection messageQueue websocketConn = do
                                    (commChan :: TQueue ServerMessage)
                                    (messageQueue :: TQueue EventMessage)
     atomically $ writeTQueue messageQueue (RegisterEvent (Player sessionId) conn)
+    logger <- stdoutDateTextLogger
     clientGameThread
-            stdoutDateTextLogger
+            logger
             conn
             (atomically . writeTQueue messageQueue . ClientMessageEvent
                 (Player sessionId)
@@ -131,15 +123,13 @@ gameServer arguments loadedGameMaps messageQueue = do
             }
     let env :: Env = Env {..}
     envTvar :: TVar Env <- newTVarIO env
-    let logger :: Logger IO Text = stdoutDateTextLogger
+    logger <- liftIO stdoutDateTextLogger
     liftIO $ race_ (runEventLoop logger envTvar messageQueue)
                         (runGameLoop envTvar messageQueue)
 
     -- $logInfo "Start game loop"
     return ()
 
-stdoutDateTextLogger :: MonadBase IO m => Logger m Text
-stdoutDateTextLogger msg = liftBase $ do
-    time <- getCurrentTime
-    let fmtTime = formatTime defaultTimeLocale rfc822DateFormat time
-    say $ pack fmtTime ++ ": " ++ msg
+stdoutDateTextLogger :: IO Logger
+stdoutDateTextLogger = do
+    mkLogger "server" (say . showLogMessage Nothing)

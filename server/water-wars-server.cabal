@@ -1,14 +1,13 @@
 cabal-version: 1.12
-
-name:           water-wars-server
-version:        0.0.0
-synopsis:       Water Wars server library
-homepage:       https://github.com/FailWhaleBrigade/water-wars#readme
-bug-reports:    https://github.com/FailWhaleBrigade/water-wars/issues
-author:         Fendor, VeryMilkyJoe, Power-Fungus
-maintainer:     Fendor, VeryMilkyJoe, Power-Fungus
-license:        MIT
-build-type:     Simple
+name: water-wars-server
+version: 0.0.0
+synopsis: Water Wars server library
+homepage: https://github.com/FailWhaleBrigade/water-wars#readme
+bug-reports: https://github.com/FailWhaleBrigade/water-wars/issues
+author: Fendor, VeryMilkyJoe, Power-Fungus
+maintainer: Fendor, VeryMilkyJoe, Power-Fungus
+license: MIT
+build-type: Simple
 
 source-repository head
   type: git
@@ -16,56 +15,92 @@ source-repository head
 
 library
   exposed-modules:
-      WaterWars.Server.Action.Restart
-      WaterWars.Server.Action.Start
-      WaterWars.Server.Action.Util
-      WaterWars.Server.ClientConnection
-      WaterWars.Server.ConnectionMgnt
-      WaterWars.Server.Env
-      WaterWars.Server.EventLoop
-      WaterWars.Server.Events
-      WaterWars.Server.GameLoop
+    WaterWars.Server.Action.Restart
+    WaterWars.Server.Action.Start
+    WaterWars.Server.Action.Util
+    WaterWars.Server.ClientConnection
+    WaterWars.Server.ConnectionMgnt
+    WaterWars.Server.Env
+    WaterWars.Server.EventLoop
+    WaterWars.Server.Events
+    WaterWars.Server.GameLoop
+
   other-modules:
-      Paths_water_wars_server
+    Paths_water_wars_server
+
   hs-source-dirs:
-      src
-  default-extensions: DeriveGeneric NamedFieldPuns OverloadedStrings NoImplicitPrelude ScopedTypeVariables RecordWildCards LambdaCase FlexibleContexts FlexibleInstances MultiParamTypeClasses MonoLocalBinds
-  ghc-options: -Wall -eventlog
+    src
+
+  default-extensions:
+    DeriveGeneric
+    FlexibleContexts
+    FlexibleInstances
+    LambdaCase
+    MonoLocalBinds
+    MultiParamTypeClasses
+    NamedFieldPuns
+    NoImplicitPrelude
+    OverloadedStrings
+    RecordWildCards
+    ScopedTypeVariables
+    TypeOperators
+
+  ghc-options:
+    -Wall
+    -eventlog
+
   build-depends:
-      array
-    , base
-    , classy-prelude
-    , extensible-effects >=3.1 && <3.2
-    , log-effect
-    , pretty-simple
-    , time
-    , transformers-base
-    , uuid
-    , water-wars
-    , websockets
+    array,
+    base,
+    classy-prelude,
+    effectful-core,
+    log-effectful,
+    pretty-simple,
+    time,
+    transformers-base,
+    uuid,
+    water-wars,
+    websockets
+
   default-language: Haskell2010
 
 executable water-wars-server
   main-is: Main.hs
   other-modules:
-      OptParse
-      Paths_water_wars_server
+    OptParse
+    Paths_water_wars_server
+
   hs-source-dirs:
-      app
-  default-extensions: NamedFieldPuns OverloadedStrings NoImplicitPrelude ScopedTypeVariables RecordWildCards FlexibleContexts
-  ghc-options: -Wall -eventlog -rtsopts -threaded -O2 -with-rtsopts=-N
+    app
+
+  default-extensions:
+    FlexibleContexts
+    NamedFieldPuns
+    NoImplicitPrelude
+    OverloadedStrings
+    RecordWildCards
+    ScopedTypeVariables
+
+  ghc-options:
+    -Wall
+    -eventlog
+    -rtsopts
+    -threaded
+    -O2
+    -with-rtsopts=-N
+
   build-depends:
-      array
-    , base
-    , classy-prelude
-    , ekg
-    , extensible-effects >=3.1 && <3.2
-    , log-effect
-    , optparse-applicative
-    , time
-    , transformers-base
-    , uuid
-    , water-wars
-    , water-wars-server
-    , websockets
+    array,
+    base,
+    classy-prelude,
+    effectful-core,
+    log-effectful,
+    optparse-applicative,
+    time,
+    transformers-base,
+    uuid,
+    water-wars,
+    water-wars-server,
+    websockets
+
   default-language: Haskell2010

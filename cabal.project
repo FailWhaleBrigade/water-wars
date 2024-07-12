@@ -2,3 +2,6 @@ packages:
          ./
          ./client/
          ./server/
+
+package *
+  ghc-options: -haddock
