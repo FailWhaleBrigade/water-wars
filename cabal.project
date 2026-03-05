@@ -5,3 +5,24 @@ packages:
 
 package *
   ghc-options: -haddock
+
+source-repository-package
+  type: git
+  location: https://github.com/dmjio/miso
+  branch: master
+
+source-repository-package
+  type: git
+  location: https://github.com/haskell-wasm/network
+  tag: ab92e48e9fdf3abe214f85fdbe5301c1280e14e9
+
+with-compiler:
+  wasm32-wasi-ghc
+
+with-hc-pkg:
+  wasm32-wasi-ghc-pkg
+
+if arch(wasm32)
+  -- Required for TemplateHaskell. When using wasm32-wasi-cabal from
+  -- ghc-wasm-meta, this is superseded by the global cabal.config.
+  shared: True

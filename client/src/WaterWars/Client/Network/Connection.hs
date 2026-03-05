@@ -9,7 +9,6 @@ where
 import           ClassyPrelude
 
 import qualified Network.WebSockets            as WS
-import           Sound.ProteaAudio
 import           Control.Monad.Logger
 
 import           Control.Concurrent
@@ -78,13 +77,7 @@ receiveUpdates (WorldSTM tvar) conn =
                           let (world', maybeEvents) = updateWorld msg world
                           writeTVar tvar world'
                           return (world', maybeEvents)
-                      when (isJust events) $ liftIO $ do
-                          _ <- soundPlay
-                            (shootSound . resources $ renderInfo world')
-                            1
-                            1
-                            0
-                            1
+                      when (isJust events) $ do
                           pure ()
 
               return ()

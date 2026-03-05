@@ -1,4 +1,4 @@
-cabal-version: 2.4
+cabal-version: 3.8
 name: water-wars-client
 version: 0.0.0
 synopsis: Water Wars client library
@@ -12,6 +12,19 @@ build-type: Simple
 source-repository head
   type: git
   location: https://github.com/FailWhaleBrigade/water-wars
+
+common options
+  if arch(wasm32)
+    ghc-options:
+      -no-hs-main
+      -optl-mexec-model=reactor
+      "-optl-Wl,--export=hs_start"
+    cpp-options:
+      -DWASM
+
+  if arch(javascript)
+    ld-options:
+      -sEXPORTED_RUNTIME_METHODS=HEAP8
 
 library
   exposed-modules:
@@ -57,15 +70,16 @@ library
     monad-logger,
     mtl,
     optparse-applicative,
-    proteaaudio,
     stm,
     transformers,
     water-wars,
-    websockets,
+    -- websockets,
+    miso,
 
   default-language: Haskell2010
 
 executable water-wars-client
+  import: options
   main-is: Main.hs
   other-modules:
     Paths_water_wars_client
@@ -76,7 +90,7 @@ executable water-wars-client
   default-extensions:
     FlexibleContexts
     NamedFieldPuns
-    NoImplicitPrelude
+
     OverloadedStrings
     RecordWildCards
     ScopedTypeVariables
@@ -84,20 +98,20 @@ executable water-wars-client
   ghc-options:
     -Wall
     -rtsopts
-    -threaded
     -O2
     -with-rtsopts=-N
 
   build-depends:
     base,
     classy-prelude,
-    gloss,
+    -- gloss,
     monad-logger,
     mtl,
     optparse-applicative,
     stm,
     transformers,
     water-wars,
-    water-wars-client,
+    -- water-wars-client,
+    miso,
 
   default-language: Haskell2010

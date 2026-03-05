@@ -2,7 +2,6 @@ module WaterWars.Client.Resources.Resources where
 
 import ClassyPrelude
 import Control.Monad.Except
-import Sound.ProteaAudio
 import Graphics.Gloss.Interface.IO.Game
 
 import WaterWars.Core.Terrain.Decoration
@@ -22,7 +21,6 @@ data Resources =
         , connectingTextures :: [Picture]
         , youWinTexture :: Picture
         , youLostTexture :: Picture
-        , shootSound :: Sample
         , decorationMap :: Map Decoration Picture
         }
 
@@ -68,8 +66,6 @@ setup = do
     lostTex    <- loadPngAsBmp "resources/textures/writing/lost.png"
 
     blockMap   <- loadBlockMap
-    shootSound <- liftIO
-        $ sampleFromFile "resources/sounds/bubble_into_glass.ogg" 1.0
     return $ Resources bgTex
                        (scale 0.2 0.2 prjTex)
                        playerTex
@@ -81,7 +77,6 @@ setup = do
                        (toList connectingTex)
                        winTex
                        lostTex
-                       shootSound
                        decorationM
 
 getMermaidPaths :: String -> Int -> Int -> [String]
