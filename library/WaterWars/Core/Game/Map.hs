@@ -7,10 +7,10 @@ module WaterWars.Core.Game.Map
     )
 where
 
-import           ClassyPrelude
 import           WaterWars.Core.Terrain.Block
 import           Data.Array.IArray
 import           WaterWars.Core.Terrain.Decoration
+import GHC.Generics
 
 data GameMap = GameMap
     { gameTerrain :: Terrain

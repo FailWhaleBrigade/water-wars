@@ -1,6 +1,7 @@
 module WaterWars.Client.Render.Animation where
 
-import ClassyPrelude
+
+import Data.Text
 
 import Graphics.Gloss as Gloss
 
@@ -40,7 +41,7 @@ updatePlayerAnimation (PlayerDeathAnimation anim) =
     PlayerDeathAnimation $ updateBackgroundAnimation anim
 
 updateAnimation :: Animation -> Animation
-updateAnimation a@Animation {..} 
+updateAnimation a@Animation {..}
     | countDownTilNext == 0 =  a { animationPictures = tailEx animationPictures
            , countDownTilNext  = countDownMax
            }

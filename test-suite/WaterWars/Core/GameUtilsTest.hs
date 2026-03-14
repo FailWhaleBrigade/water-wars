@@ -1,7 +1,6 @@
 module WaterWars.Core.GameUtilsTest where
 
 import           Test.Hspec
-import           ClassyPrelude
 import           WaterWars.Core.Game
 
 gameUtilsTest :: Spec

@@ -1,7 +1,5 @@
 module OptParse where
 
-
-import           ClassyPrelude
 import           Options.Applicative
 
 data Arguments =

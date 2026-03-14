@@ -1,6 +1,5 @@
 module WaterWars.Core.Physics.Collision where
 
-import           ClassyPrelude
 import           WaterWars.Core.Game
 import           WaterWars.Core.Physics.Geometry
 import           Data.List                                ( nub )

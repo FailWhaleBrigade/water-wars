@@ -1,6 +1,5 @@
 module WaterWars.Core.Physics.Utils where
 
-import           ClassyPrelude
 import           WaterWars.Core.Game
 
 velocityBoundX :: Float -> VelocityVector -> VelocityVector

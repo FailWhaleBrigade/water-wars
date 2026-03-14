@@ -7,9 +7,10 @@ module WaterWars.Core.Game.Events
     )
 where
 
-import           ClassyPrelude
 import           WaterWars.Core.Game.Base
 import           WaterWars.Core.Game.State
+import Data.Sequence
+import GHC.Generics
 
 newtype GameEvents = GameEvents
     { getGameEvents :: Seq GameEvent

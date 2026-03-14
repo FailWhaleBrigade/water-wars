@@ -1,6 +1,6 @@
 module WaterWars.Client.Render.Terrain.Solid where
 
-import ClassyPrelude
+import           Data.Text
 import Graphics.Gloss
 
 data Solid =

@@ -1,7 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 module WaterWars.Server.ClientConnection where
 
-import           ClassyPrelude
 import           Effectful
 import           Effectful.Log
 

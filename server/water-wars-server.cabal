@@ -1,4 +1,4 @@
-cabal-version: 1.12
+cabal-version: 3.4
 name: water-wars-server
 version: 0.0.0
 synopsis: Water Wars server library
@@ -39,7 +39,6 @@ library
     MonoLocalBinds
     MultiParamTypeClasses
     NamedFieldPuns
-    NoImplicitPrelude
     OverloadedStrings
     RecordWildCards
     ScopedTypeVariables
@@ -52,7 +51,7 @@ library
   build-depends:
     array,
     base,
-    classy-prelude,
+    -- classy-prelude,
     effectful-core,
     log-effectful,
     pretty-simple,
@@ -76,7 +75,6 @@ executable water-wars-server
   default-extensions:
     FlexibleContexts
     NamedFieldPuns
-    NoImplicitPrelude
     OverloadedStrings
     RecordWildCards
     ScopedTypeVariables
@@ -92,7 +90,7 @@ executable water-wars-server
   build-depends:
     array,
     base,
-    classy-prelude,
+    -- classy-prelude,
     effectful-core,
     log-effectful,
     optparse-applicative,

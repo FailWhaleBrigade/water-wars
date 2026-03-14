@@ -3,8 +3,6 @@
 
 module Main where
 
-import           ClassyPrelude           hiding ( Reader )
-
 import           Effectful                    ( )
 import           Effectful.Log
 

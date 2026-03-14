@@ -16,12 +16,12 @@
       devShells.${system}.default = pkgs.mkShell {
         buildInputs = [
           # GHC WASM toolchain (includes wasm32-wasi-ghc, wasm32-wasi-cabal, etc.)
-          ghc-wasm-meta.packages.${system}.all_9_10
-          
+          ghc-wasm-meta.packages.${system}.all_9_14
+
           # Rust toolchain
           pkgs.rustc
           pkgs.cargo
-          
+
           # HTTP server
           pkgs.simple-http-server
         ];

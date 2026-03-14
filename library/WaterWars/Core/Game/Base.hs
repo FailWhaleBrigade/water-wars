@@ -2,9 +2,7 @@
 
 
 module WaterWars.Core.Game.Base where
-
-import           ClassyPrelude
-
+import GHC.Generics
 data RunDirection = RunLeft | RunRight
     deriving (Show, Read, Eq, Enum, Bounded, Generic)
 

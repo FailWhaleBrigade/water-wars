@@ -11,11 +11,6 @@ module WaterWars.Core.GameNg
     )
 where
 
-import           ClassyPrelude                     hiding ( Reader
-                                                          , ask
-                                                          , asks
-                                                          )
-
 import           WaterWars.Core.Game
 import           WaterWars.Core.Game.Constants
 import           WaterWars.Core.Physics
@@ -26,7 +21,6 @@ import           Effectful.Reader.Static as Reader
 import           Effectful.Writer.Dynamic
 import           Effectful
 import           Data.Array.IArray
-import           Control.Monad.Extra                      ( whenJust )
 
 runGameTick
     :: Bool

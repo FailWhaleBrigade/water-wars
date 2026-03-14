@@ -7,8 +7,10 @@ module WaterWars.Core.Game.State
     )
 where
 
-import           ClassyPrelude
 import           WaterWars.Core.Game.Base
+import GHC.Generics
+import Data.Text (Text)
+import Data.Sequence
 
 -- |Master-state of the whole game
 data GameState = GameState
@@ -21,9 +23,7 @@ data GameState = GameState
 newtype InGamePlayers = InGamePlayers
     { getInGamePlayers :: Seq InGamePlayer
     }
-    deriving (Read, Show, Eq, MonoFunctor, Semigroup, Monoid, Generic)
-
-type instance Element InGamePlayers = InGamePlayer
+    deriving (Read, Show, Eq, Semigroup, Monoid, Generic)
 
 data InGamePlayer = InGamePlayer
     { playerDescription :: Player
@@ -46,9 +46,7 @@ newtype Player = Player
 newtype DeadPlayers = DeadPlayers
     { getDeadPlayers :: Seq DeadPlayer
     }
-    deriving (Read, Show, Eq, MonoFunctor, Semigroup, Monoid, Generic)
-
-type instance Element DeadPlayers = DeadPlayer
+    deriving (Read, Show, Eq, Semigroup, Monoid, Generic)
 
 data DeadPlayer = DeadPlayer
     { deadPlayerDescription :: Player

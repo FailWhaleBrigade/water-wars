@@ -1,6 +1,6 @@
 module WaterWars.Core.DefaultGame where
 
-import           ClassyPrelude
+
 import           WaterWars.Core.Game
 import           Data.Array.IArray
 

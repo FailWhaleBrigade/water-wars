@@ -53,7 +53,6 @@ library
     LambdaCase
     MonoLocalBinds
     NamedFieldPuns
-    NoImplicitPrelude
     OverloadedStrings
     RecordWildCards
     ScopedTypeVariables
@@ -65,7 +64,7 @@ library
     JuicyPixels,
     array,
     base,
-    classy-prelude,
+    -- classy-prelude,
     gloss,
     monad-logger,
     mtl,
@@ -103,7 +102,7 @@ executable water-wars-client
 
   build-depends:
     base,
-    classy-prelude,
+    -- classy-prelude,
     -- gloss,
     monad-logger,
     mtl,

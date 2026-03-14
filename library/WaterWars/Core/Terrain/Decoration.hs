@@ -1,6 +1,5 @@
 module WaterWars.Core.Terrain.Decoration where
-
-import ClassyPrelude
+import GHC.Generics
 
 data Decoration
     = Algea

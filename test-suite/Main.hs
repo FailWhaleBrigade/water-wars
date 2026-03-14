@@ -2,7 +2,6 @@ module Main where
 -- Tasty makes it easy to test your code. It is a test framework that can
 -- combine many different types of tests into one suite. See its website for
 -- help: <http://documentup.com/feuerbach/tasty>.
-import           ClassyPrelude
 import qualified Test.Tasty
 import           Test.Tasty.Hspec
 import           WaterWars.Core.CollisionTest

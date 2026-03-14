@@ -6,7 +6,7 @@ module WaterWars.Client.Network.Connection
     )
 where
 
-import           ClassyPrelude
+import Data.Text
 
 import qualified Network.WebSockets            as WS
 import           Control.Monad.Logger

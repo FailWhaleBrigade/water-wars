@@ -6,10 +6,6 @@ module WaterWars.Server.EventLoop
     )
 where
 
-import           ClassyPrelude           hiding ( ask
-                                                , Reader
-                                                )
-
 import           Effectful
 import           Effectful.Reader.Static
 import           Effectful.Log

@@ -1,6 +1,5 @@
 module WaterWars.Core.Terrain.Read where
 
-import           ClassyPrelude
 import           WaterWars.Core.Game.Map
 import           Data.Array.IArray
 import           Data.List                                ( transpose )

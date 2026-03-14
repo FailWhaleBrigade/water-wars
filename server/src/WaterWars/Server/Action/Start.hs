@@ -1,8 +1,5 @@
 module WaterWars.Server.Action.Start where
 
-import           ClassyPrelude           hiding ( Reader
-                                                , asks
-                                                )
 import           Effectful
 import           Effectful.Reader.Static as Reader
 import           Effectful.Log

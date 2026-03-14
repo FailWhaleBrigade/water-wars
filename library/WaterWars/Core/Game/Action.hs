@@ -4,8 +4,9 @@ module WaterWars.Core.Game.Action
     )
 where
 
-import           ClassyPrelude
 import           WaterWars.Core.Game.Base
+import GHC.Generics
+import Control.Applicative ((<|>))
 
 data Action = Action
     { runAction :: Maybe RunAction

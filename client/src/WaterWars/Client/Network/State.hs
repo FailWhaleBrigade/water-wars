@@ -2,7 +2,8 @@
 {-# LANGUAGE InstanceSigs #-}
 module WaterWars.Client.Network.State where
 
-import           ClassyPrelude
+
+import Data.Text
 
 import qualified Network.WebSockets            as WS
 import           WaterWars.Network.Protocol    as Protocol

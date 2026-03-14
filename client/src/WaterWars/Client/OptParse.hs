@@ -1,7 +1,6 @@
 module WaterWars.Client.OptParse where
 
-
-import ClassyPrelude
+import Data.Text
 import Options.Applicative
 
 data Arguments =

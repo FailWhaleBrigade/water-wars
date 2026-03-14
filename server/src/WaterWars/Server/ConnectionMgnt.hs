@@ -9,8 +9,6 @@ module WaterWars.Server.ConnectionMgnt
     )
 where
 
-import           ClassyPrelude
-
 import qualified Network.WebSockets            as WS
 
 import           WaterWars.Network.Protocol

@@ -1,6 +1,6 @@
 module WaterWars.Client.Resources.Resources where
 
-import ClassyPrelude
+import           Data.Text
 import Control.Monad.Except
 import Graphics.Gloss.Interface.IO.Game
 

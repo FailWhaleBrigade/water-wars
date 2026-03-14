@@ -1,9 +1,6 @@
 {-# LANGUAGE TypeOperators #-}
 module WaterWars.Core.Physics where
 
-import           ClassyPrelude                     hiding ( Reader
-                                                          , asks
-                                                          )
 import           WaterWars.Core.Game
 import           WaterWars.Core.Physics.Constants
 import           WaterWars.Core.Physics.Collision

@@ -5,8 +5,6 @@
 
 module WaterWars.Network.Protocol where
 
-import           ClassyPrelude
-
 import           Data.Serialize
 import           WaterWars.Core.Game
 
@@ -78,7 +76,7 @@ data ServerMessage
     | GameStartMessage
     | ResetGameMessage
     | StopGameWithWinner Player
-    | StopGame 
+    | StopGame
     deriving (Show, Eq, Read, Generic)
     deriving anyclass Serialize
 

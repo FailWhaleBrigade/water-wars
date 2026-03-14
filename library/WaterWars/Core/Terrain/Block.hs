@@ -1,6 +1,6 @@
 module WaterWars.Core.Terrain.Block where
+import GHC.Generics
 
-import ClassyPrelude
 
 data BlockContent
     = Floor

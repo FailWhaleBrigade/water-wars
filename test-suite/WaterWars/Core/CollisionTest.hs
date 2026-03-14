@@ -1,7 +1,6 @@
 module WaterWars.Core.CollisionTest where
 
 import           Test.Hspec
-import           ClassyPrelude
 import           WaterWars.Core.Physics.Collision
 import           WaterWars.Core.Game
 import           WaterWars.Core.TerrainsUtils

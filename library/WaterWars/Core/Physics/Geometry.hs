@@ -1,6 +1,5 @@
 module WaterWars.Core.Physics.Geometry where
 
-import           ClassyPrelude
 import           WaterWars.Core.Game
 
 data Line = Line

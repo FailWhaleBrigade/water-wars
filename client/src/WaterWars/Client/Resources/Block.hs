@@ -1,6 +1,6 @@
 module WaterWars.Client.Resources.Block (module WaterWars.Core.Terrain.Block, BlockMap, placeSingleBlock, blocks, loadBlockMap) where
 
-import ClassyPrelude
+import           Data.Text
 import Control.Monad.Error.Class
 
 import qualified Graphics.Gloss as Gloss

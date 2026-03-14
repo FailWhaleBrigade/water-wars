@@ -7,11 +7,6 @@ module WaterWars.Core.Game.Utils
     )
 where
 
-import           ClassyPrelude                     hiding ( Reader
-                                                          , ask
-                                                          )
-
-
 import           Effectful.State.Dynamic as State
 import           Effectful.Reader.Static
 import           Effectful
@@ -23,6 +18,7 @@ import           WaterWars.Core.Game.Map
 import           WaterWars.Core.Game.Action
 import           WaterWars.Core.Physics.Constants
 import           WaterWars.Core.Game.Constants
+import Data.Set
 
 
 -- TODO: refactor?

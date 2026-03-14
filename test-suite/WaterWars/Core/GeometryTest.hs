@@ -1,7 +1,6 @@
 module WaterWars.Core.GeometryTest where
 
 import           Test.Hspec
-import           ClassyPrelude
 import           WaterWars.Core.Physics.Geometry
 import           WaterWars.Core.Game
 

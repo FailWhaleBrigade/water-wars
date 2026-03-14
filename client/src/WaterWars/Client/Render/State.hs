@@ -12,7 +12,7 @@ module WaterWars.Client.Render.State
     )
 where
 
-import           ClassyPrelude
+import           Data.Text
 import           Graphics.Gloss
 import           Data.Array.IArray
 import           Data.Maybe                     ( fromJust )

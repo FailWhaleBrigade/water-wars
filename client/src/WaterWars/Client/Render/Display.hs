@@ -1,6 +1,6 @@
 module WaterWars.Client.Render.Display where
 
-import           ClassyPrelude
+import           Data.Text
 import           Graphics.Gloss                as Gloss
 
 import           WaterWars.Client.Render.Config

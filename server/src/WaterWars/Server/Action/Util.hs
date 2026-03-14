@@ -1,9 +1,6 @@
 {-# LANGUAGE TypeOperators #-}
 module WaterWars.Server.Action.Util where
 
-import           ClassyPrelude           hiding ( Reader
-                                                , ask
-                                                )
 import           Effectful
 import           Effectful.Reader.Static as Reader
 import           WaterWars.Network.Protocol

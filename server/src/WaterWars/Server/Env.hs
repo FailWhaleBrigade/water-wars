@@ -1,6 +1,5 @@
 module WaterWars.Server.Env where
 
-import           ClassyPrelude           hiding ( Reader )
 
 import           WaterWars.Core.Game
 

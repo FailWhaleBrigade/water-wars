@@ -1,6 +1,5 @@
 module WaterWars.Client.Codec.Resource (loadPngAsBmp, bulkLoad) where
 
-import ClassyPrelude
 import qualified Codec.Picture as Juicy
 import Control.Monad.Error.Class
 
@@ -25,10 +24,10 @@ loadPngAsBmp path = do
 loadPngInMemory :: (MonadIO m, MonadError String m) => FilePath -> m (Juicy.Image Juicy.PixelRGBA8)
 loadPngInMemory path = do
     imgEither <- liftIO $ Juicy.readPng path
-    either throwError (\case 
+    either throwError (\case
         Juicy.ImageRGBA8 img -> return img
         _ -> throwError $ "Could not decode image: " ++ path
-        ) 
+        )
         imgEither
 --}
 bulkLoad :: (MonadIO m, MonadError Text m) => Seq FilePath -> m (Seq Picture)

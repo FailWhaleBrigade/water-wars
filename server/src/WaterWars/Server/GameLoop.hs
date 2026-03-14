@@ -3,8 +3,6 @@ module WaterWars.Server.GameLoop
     )
 where
 
-import           ClassyPrelude
-
 import           Control.Concurrent             ( threadDelay )
 import           WaterWars.Core.GameNg
 

@@ -1,7 +1,5 @@
 module WaterWars.Core.Game.Constants where
 
-import           ClassyPrelude
-
 defaultPlayerHeight :: Float
 defaultPlayerHeight = 1.6 * defaultPlayerWidth
 
