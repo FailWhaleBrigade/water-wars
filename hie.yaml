@@ -1,3 +1,4 @@
 cradle:
   cabal:
     cabalProject: cabal.hls.project
+    component: all
