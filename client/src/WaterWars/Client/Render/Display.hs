@@ -1,6 +1,5 @@
 module WaterWars.Client.Render.Display where
 
-import           Data.Text
 import           Graphics.Gloss                as Gloss
 
 import           WaterWars.Client.Render.Config
@@ -10,6 +9,12 @@ import           WaterWars.Client.Render.Terrain.Solid
 
 import           WaterWars.Core.Game
 import           WaterWars.Core.Game.Constants
+import Data.Sequence (Seq)
+import qualified Data.List as List
+import qualified Data.Maybe as Maybe
+import qualified Data.Foldable as Foldable
+import Control.Concurrent.STM
+import qualified Data.Map.Strict as Map
 
 -- |Convert a game state into a picture
 renderIO :: WorldSTM -> IO Picture
@@ -18,15 +23,15 @@ renderIO (WorldSTM tvar) = render <$> readTVarIO tvar
 render :: World -> Picture
 render World {..} = Gloss.pictures
     (  [backgroundTexture]
-    ++ [mantaPicture]
-    ++ toList solidPictures
-    ++ deadPlayerPictures
-    ++ playerPictures
-    ++ toList projectilePictures
-    ++ maybeToList readyPicture
-    ++ maybeToList playerPicture
-    ++ maybeToList serverTextMessage
-    ++ maybeToList shootTargetPicture
+    <> [mantaPicture]
+    <> Foldable.toList solidPictures
+    <> deadPlayerPictures
+    <> playerPictures
+    <> Foldable.toList projectilePictures
+    <> Maybe.maybeToList readyPicture
+    <> Maybe.maybeToList playerPicture
+    <> Maybe.maybeToList serverTextMessage
+    <> Maybe.maybeToList shootTargetPicture
     )
   where
     RenderInfo {..} = renderInfo
@@ -35,13 +40,13 @@ render World {..} = Gloss.pictures
     Resources {..}  = resources
 
     livingPlayers :: [InGamePlayer]
-    livingPlayers = toList $ getInGamePlayers inGamePlayers
+    livingPlayers = Foldable.toList $ getInGamePlayers inGamePlayers
 
     deadPlayers :: [DeadPlayer]
-    deadPlayers = toList
+    deadPlayers =
         (filter
             (\DeadPlayer {..} -> abs (gameTicks - playerDeathTick) < 500)
-            (getDeadPlayers gameDeadPlayers)
+            (Foldable.toList $ getDeadPlayers gameDeadPlayers)
         )
 
     playerPictures :: [Picture]
@@ -53,7 +58,7 @@ render World {..} = Gloss.pictures
     stateOf :: Maybe Player -> PlayerState
     stateOf Nothing = Disconnected
     stateOf (Just p)
-        | isJust $ find ((== p) . playerDescription) livingPlayers = Alive
+        | Maybe.isJust $ List.find ((== p) . playerDescription) livingPlayers = Alive
         | otherwise = Dead
 
     serverTextMessage :: Maybe Picture
@@ -69,15 +74,15 @@ render World {..} = Gloss.pictures
     playerPicture :: Maybe Picture
     playerPicture = do
         p     <- localPlayer
-        alive <- find ((== p) . playerDescription)
+        alive <- List.find ((== p) . playerDescription)
                       (getInGamePlayers inGamePlayers)
         Just (inGamePlayerToPicture renderInfo alive)
 
     projectilePictures :: Seq Picture
-    projectilePictures = map (projectileToPicture renderInfo) projectiles
+    projectilePictures = fmap (projectileToPicture renderInfo) projectiles
 
     solidPictures :: Seq Picture
-    solidPictures = map solidToPicture (solids ++ decorations)
+    solidPictures = fmap solidToPicture (solids <> decorations)
 
     mantaPicture :: Picture
     mantaPicture = backgroundAnimationToPicture renderInfo mantaAnimation
@@ -110,27 +115,27 @@ inGamePlayerToPicture RenderInfo {..} InGamePlayer {..} =
         directionComponent = case playerLastRunDirection of
             RunLeft  -> -1
             RunRight -> 1
-        maybeAnimation = lookup playerDescription playerAnimations
+        maybeAnimation = Map.lookup playerDescription playerAnimations
         Animation {..} =
-            playerToAnimation $ fromMaybe defaultPlayerAnimation maybeAnimation
+            playerToAnimation $ Maybe.fromMaybe defaultPlayerAnimation maybeAnimation
     in  translate (blockSize * x) (blockSize * y + blockSize * playerHeight / 2)
         $ color inGamePlayerColor
         $ scale blockSize          blockSize
         $ scale playerWidth        playerHeight
         $ scale (1 / mermaidWidth) (1 / mermaidHeight)
-        $ scale directionComponent 1 (headEx animationPictures)
+        $ scale directionComponent 1 (head animationPictures)
 
 deadPlayerToPicture :: RenderInfo -> DeadPlayer -> Picture
 deadPlayerToPicture RenderInfo {..} DeadPlayer {..}
     = let
           Resources {..}  = resources
 
-          maybeAnimation  = lookup deadPlayerDescription playerAnimations
+          maybeAnimation  = Map.lookup deadPlayerDescription playerAnimations
           Location (x, y) = case maybeAnimation of
               Just (PlayerDeathAnimation ba) -> location ba
               _                              -> deadPlayerLocation
           Animation {..} = playerToAnimation
-              $ fromMaybe defaultPlayerAnimation maybeAnimation
+              $ Maybe.fromMaybe defaultPlayerAnimation maybeAnimation
       in
           translate (blockSize * x)
                     (blockSize * y + blockSize * defaultPlayerHeight / 2)
@@ -139,7 +144,7 @@ deadPlayerToPicture RenderInfo {..} DeadPlayer {..}
           $ scale defaultPlayerWidth defaultPlayerHeight
           $ scale (1 / mermaidWidth)
                   (1 / mermaidHeight)
-                  (headEx animationPictures)
+                  (head animationPictures)
 
 projectileToPicture :: RenderInfo -> Projectile -> Picture
 projectileToPicture RenderInfo {..} p = translate
@@ -152,11 +157,11 @@ countdownToPicture :: RenderInfo -> Integer -> Picture
 countdownToPicture RenderInfo {..} tick = displayText pic
   where
     Resources {..} = resources
-    pic | tick >= 180 = countdownTextures `indexEx` 0
-        | tick >= 120 = countdownTextures `indexEx` 1
-        | tick >= 60  = countdownTextures `indexEx` 2
+    pic | tick >= 180 = countdownTextures !! 0
+        | tick >= 120 = countdownTextures !! 1
+        | tick >= 60  = countdownTextures !! 2
         | otherwise {- tick >= 0 -}
-                    = countdownTextures `indexEx` 3
+                    = countdownTextures !! 3
 
 backgroundAnimationToPicture :: RenderInfo -> BackgroundAnimation -> Picture
 backgroundAnimationToPicture _ BackgroundAnimation {..} = translate x y
@@ -169,7 +174,7 @@ backgroundAnimationToPicture _ BackgroundAnimation {..} = translate x y
     Location (x, y) = location
 
 displayAnimation :: Animation -> Picture
-displayAnimation Animation {..} = headEx animationPictures
+displayAnimation Animation {..} = head animationPictures
 
 displayText :: Picture -> Picture
 displayText = translate 0 100

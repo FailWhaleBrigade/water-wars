@@ -1,6 +1,6 @@
 module WaterWars.Client.Resources.Block (module WaterWars.Core.Terrain.Block, BlockMap, placeSingleBlock, blocks, loadBlockMap) where
 
-import           Data.Text
+import           Data.Text (Text)
 import Control.Monad.Error.Class
 
 import qualified Graphics.Gloss as Gloss
@@ -9,20 +9,27 @@ import WaterWars.Client.Render.Config
 
 import WaterWars.Client.Codec.Resource
 import WaterWars.Core.Terrain.Block
+import Data.Map.Strict (Map)
+import Control.Monad.IO.Class
+import Data.Sequence (Seq)
+import qualified Data.Sequence as Seq
+import qualified Data.Map.Strict as Map
+import qualified Data.Maybe as Maybe
+import qualified Data.Foldable as Foldable
 
 type BlockMap = Map BlockContent Gloss.Picture
 
 placeSingleBlock :: Float -> Float -> BlockContent -> BlockMap -> [Solid]
 placeSingleBlock x y block blockmap =
-    maybeToList (Solid blockSize blockSize (x, y) <$> lookup block blockmap)
+    Maybe.maybeToList (Solid blockSize blockSize (x, y) <$> Map.lookup block blockmap)
 
 loadBlockMap :: (MonadIO m, MonadError Text m) => m BlockMap
 loadBlockMap = do
     loadedTextures <- bulkLoad blocks
-    return . mapFromList $ zip [Floor .. Ceil] (toList loadedTextures)
+    return . Map.fromList $ zip [Floor .. Ceil] (Foldable.toList loadedTextures)
 
 blocks :: Seq FilePath
-blocks = fromList
+blocks = Seq.fromList
     [ {- Floor -}
       "resources/textures/block/block32.png"
     , {- EndLeft -}

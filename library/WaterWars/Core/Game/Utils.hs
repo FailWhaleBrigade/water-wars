@@ -18,13 +18,18 @@ import           WaterWars.Core.Game.Map
 import           WaterWars.Core.Game.Action
 import           WaterWars.Core.Physics.Constants
 import           WaterWars.Core.Game.Constants
-import Data.Set
-
+import Data.Set (Set)
+import Data.Sequence (Seq(..))
+import qualified Data.Sequence as Seq
+import Data.Function (on)
+import qualified Data.Maybe as Maybe
+import qualified Safe.Foldable as Safe
+import Control.Monad (foldM)
 
 -- TODO: refactor?
 addInGamePlayer :: GameState -> InGamePlayer -> GameState
 addInGamePlayer GameState {..} igp = GameState
-    { inGamePlayers = InGamePlayers (igp `cons` getInGamePlayers inGamePlayers)
+    { inGamePlayers = InGamePlayers (igp :<| getInGamePlayers inGamePlayers)
     , ..
     }
 
@@ -32,14 +37,14 @@ addInGamePlayer GameState {..} igp = GameState
 removePlayer :: GameState -> Player -> GameState
 removePlayer GameState {..} p = GameState
     { inGamePlayers = InGamePlayers
-        (filter ((/= p) . playerDescription) $ getInGamePlayers inGamePlayers)
+        (Seq.filter ((/= p) . playerDescription) $ getInGamePlayers inGamePlayers)
     , ..
     }
 
 removePlayers :: Set Player -> GameState -> GameState
 removePlayers ps gs@GameState {..} = gs
     { inGamePlayers = InGamePlayers
-                          ( filter ((`notElem` ps) . playerDescription)
+                          ( Seq.filter ((`notElem` ps) . playerDescription)
                           $ getInGamePlayers inGamePlayers
                           )
     }
@@ -53,7 +58,7 @@ setPlayerCooldown player = player { playerShootCooldown = shootCooldown }
 
 acceleratePlayer :: VelocityVector -> InGamePlayer -> InGamePlayer
 acceleratePlayer v p@InGamePlayer {..} =
-    setPlayerVelocity (playerVelocity ++ v) p
+    setPlayerVelocity (playerVelocity <> v) p
 
 setPlayerVelocity :: VelocityVector -> InGamePlayer -> InGamePlayer
 setPlayerVelocity v p = p { playerVelocity = v }
@@ -80,7 +85,7 @@ moveProjectile projectile@Projectile {..} = projectile
 
 accelerateProjectile :: VelocityVector -> Projectile -> Projectile
 accelerateProjectile v p@Projectile {..} =
-    setProjectileVelocity (projectileVelocity ++ v) p
+    setProjectileVelocity (projectileVelocity <> v) p
 
 setProjectileVelocity :: VelocityVector -> Projectile -> Projectile
 setProjectileVelocity v p = p { projectileVelocity = v }
@@ -103,13 +108,13 @@ velocityVectorFromPolar (Speed speed) (Angle angle) =
 addProjectile :: State GameState :> e => Projectile -> Eff e ()
 addProjectile projectile = do
     Projectiles projectiles <- State.gets gameProjectiles
-    let newProjectiles = projectile `cons` projectiles
+    let newProjectiles = projectile :<| projectiles
     modify $ \s -> s { gameProjectiles = Projectiles newProjectiles }
 
 removeProjectiles :: State GameState :> e => Set Projectile -> Eff e ()
 removeProjectiles ps = do
     Projectiles projectiles <- State.gets gameProjectiles
-    let newProjectiles = filter (`notElem` ps) projectiles
+    let newProjectiles = Seq.filter (`notElem` ps) projectiles
     modify $ \s -> s { gameProjectiles = Projectiles newProjectiles }
 
 playerHeadLocation :: InGamePlayer -> Location
@@ -126,7 +131,7 @@ newDeadPlayer tick InGamePlayer{..} = DeadPlayer
 addDeadPlayers :: State GameState :> e => [DeadPlayer] -> Eff e ()
 addDeadPlayers ps = do
     DeadPlayers deadPlayers <- State.gets gameDeadPlayers
-    let newDeadPlayers =  deadPlayers ++ fromList ps
+    let newDeadPlayers =  deadPlayers <> Seq.fromList ps
     modify $ \s -> s { gameDeadPlayers = DeadPlayers newDeadPlayers }
 
 angleForRunDirection :: RunDirection -> Angle
@@ -168,15 +173,6 @@ blockRangeX b = (blockLeftX b, blockRightX b)
 blockRangeY :: BlockLocation -> (Float, Float)
 blockRangeY b = (blockBotY b, blockTopY b)
 
-asks :: Reader s :> r => (s -> a) -> Eff r a
-asks f = map f ask
-{-# INLINE asks #-}
-
-gets :: State s :> r => (s -> a) -> Eff r a
-gets f = map f get
-{-# INLINE gets #-}
-
-
 mapMOverPlayers
     :: (State GameState :> e, Reader GameMap :> e)
     => (InGamePlayer -> Eff e InGamePlayer)
@@ -204,6 +200,12 @@ filterMOverProjectiles predicate = do
     newProjectiles          <- filterM predicate projectiles
     modify $ \s -> s { gameProjectiles = Projectiles newProjectiles }
 
+filterM :: Monad m => (a -> m Bool) -> Seq a -> m (Seq a)
+filterM p xs = foldM go Seq.empty xs
+  where
+    go acc x = do
+      keep <- p x
+      pure $ if keep then acc Seq.|> x else acc
 
 -- utility functions for creation
 newInGamePlayer :: Player -> Location -> InGamePlayer
@@ -224,9 +226,9 @@ incrementGameTick s@GameState { gameTicks } = s { gameTicks = gameTicks + 1 }
 
 -- TODO: test
 minimumVector :: [VelocityVector] -> VelocityVector
-minimumVector vs = fromMaybe (VelocityVector 0 0) $ do
-    minX <- minimumByMay (compare `on` abs) . map velocityX $ vs
-    minY <- minimumByMay (compare `on` abs) . map velocityY $ vs
+minimumVector vs = Maybe.fromMaybe (VelocityVector 0 0) $ do
+    minX <- Safe.minimumByMay (compare `on` abs) . map velocityX $ vs
+    minY <- Safe.minimumByMay (compare `on` abs) . map velocityY $ vs
     return $ VelocityVector minX minY
     -- TODO: what should happen if positive and negative vectors are given?
 

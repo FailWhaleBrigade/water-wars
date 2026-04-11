@@ -8,6 +8,10 @@ import           WaterWars.Network.Protocol
 
 import           WaterWars.Server.Events
 import           WaterWars.Server.ConnectionMgnt
+import Data.Text (Text)
+import qualified Data.Text as Text
+import Control.Monad (forever)
+import Control.Concurrent.Async (race_)
 
 clientGameThread
     :: Logger -- ^Logger implemetation
@@ -35,7 +39,7 @@ clientReceive logger conn sendAction =
               case msg of
                   Left msg_ -> do
                       logAttention_ ("Could not read message" :: Text)
-                      logAttention_ ("Could not read message: " ++ tshow msg_)
+                      logAttention_ ("Could not read message: " <> Text.show msg_)
                   Right playerAction -> do
                       --EffLog.logE ("Read a message: " ++ tshow playerAction)
                       sendAction playerAction

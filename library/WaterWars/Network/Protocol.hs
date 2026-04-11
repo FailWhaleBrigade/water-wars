@@ -7,6 +7,10 @@ module WaterWars.Network.Protocol where
 
 import           Data.Serialize
 import           WaterWars.Core.Game
+import GHC.Generics
+import Data.ByteString
+import Data.Text (Text)
+import Data.Text.Encoding
 
 -- |Datatype to login to a game server.
 -- So far, only a reconnect options is supported.

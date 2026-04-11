@@ -1,7 +1,6 @@
 module WaterWars.Client.Render.Animation where
 
 
-import Data.Text
 
 import Graphics.Gloss as Gloss
 
@@ -42,7 +41,7 @@ updatePlayerAnimation (PlayerDeathAnimation anim) =
 
 updateAnimation :: Animation -> Animation
 updateAnimation a@Animation {..}
-    | countDownTilNext == 0 =  a { animationPictures = tailEx animationPictures
+    | countDownTilNext == 0 =  a { animationPictures = tail animationPictures
            , countDownTilNext  = countDownMax
            }
     | otherwise = a { countDownTilNext = countDownTilNext - 1 }

@@ -12,6 +12,9 @@ where
 import qualified Network.WebSockets            as WS
 
 import           WaterWars.Network.Protocol
+import Control.Concurrent.STM.TQueue
+import Data.Text (Text)
+import Control.Monad.IO.Class
 
 data ClientConnection a b = ClientConnection
     { connectionId  :: Text -- ^Session id, uniquely identifies players

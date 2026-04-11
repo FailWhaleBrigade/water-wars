@@ -7,6 +7,7 @@ import           WaterWars.Core.Physics.Collision
 import           WaterWars.Core.Physics.Utils
 import           Effectful.Reader.Static as Reader
 import           Effectful
+import qualified Data.Maybe as Maybe
 
 
 jumpVector :: VelocityVector -> VelocityVector
@@ -39,19 +40,19 @@ verticalDragPlayer onGround player@InGamePlayer {..} =
 isPlayerOnGround :: Reader GameMap :> e => InGamePlayer -> Eff e Bool
 isPlayerOnGround player = do
     terrain <- Reader.asks gameTerrain
-    let blocksBelowFeet = mapMaybe blockBelow $ bottomPointsOfPlayer player
+    let blocksBelowFeet = Maybe.mapMaybe blockBelow $ bottomPointsOfPlayer player
     return $ any (terrain `isSolidAt`) blocksBelowFeet
 
 isPlayerOnRightWall :: Reader GameMap :> e => InGamePlayer -> Eff e Bool
 isPlayerOnRightWall player = do
     terrain <- Reader.asks gameTerrain
-    let blockOnRight = mapMaybe blockRight $ rightPointsOfPlayer player
+    let blockOnRight = Maybe.mapMaybe blockRight $ rightPointsOfPlayer player
     return $ any (terrain `isSolidAt`) blockOnRight
 
 isPlayerOnLeftWall :: Reader GameMap :> e => InGamePlayer -> Eff e Bool
 isPlayerOnLeftWall player = do
     terrain <- Reader.asks gameTerrain
-    let blockOnLeft = mapMaybe blockLeft $ leftPointsOfPlayer player
+    let blockOnLeft = Maybe.mapMaybe blockLeft $ leftPointsOfPlayer player
     return $ any (terrain `isSolidAt`) blockOnLeft
 
 -- TODO: try to refactor?

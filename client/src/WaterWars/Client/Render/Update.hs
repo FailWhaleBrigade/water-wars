@@ -6,6 +6,12 @@ import           WaterWars.Client.Render.State
 import           WaterWars.Client.Render.Animation
 import           WaterWars.Core.Game
 import           WaterWars.Client.Render.Config
+import Data.Sequence (Seq)
+import qualified Data.List as List
+import Control.Concurrent.STM
+import qualified Data.Map.Strict as Map
+import qualified Data.Foldable as Foldable
+import qualified Data.Maybe as Maybe
 
 handleKeys :: Event -> World -> World
 handleKeys (EventKey (Char c) Gloss.Down _ _) world@World {..}
@@ -39,9 +45,9 @@ advanceAnimations :: Float -> World -> World
 advanceAnimations _ World {..} = World
     { renderInfo = renderInfo
         { mantaAnimation = updateBackgroundAnimation (mantaAnimation renderInfo)
-        , playerAnimations = mapFromList $ map
+        , playerAnimations = Map.fromList $ fmap
             (updatePlayerInformation World {..})
-            (toList $ getAllPlayers lastGameUpdate)
+            (Foldable.toList $ getAllPlayers lastGameUpdate)
         , connectingAnimation = updateAnimation (connectingAnimation renderInfo)
         }
     , ..
@@ -60,14 +66,14 @@ updatePlayerInformation World {..} player =
         RenderInfo {..} = renderInfo
         GameState {..}  = gameStateUpdate lastGameUpdate
 
-        livingPlayer    = find ((== player) . playerDescription)
+        livingPlayer    = List.find ((== player) . playerDescription)
                                (getInGamePlayers inGamePlayers)
 
         maybePlayerAnim :: Maybe PlayerAnimation
-        maybePlayerAnim = lookup player playerAnimations
+        maybePlayerAnim = Map.lookup player playerAnimations
 
         playerAnim :: PlayerAnimation
-        playerAnim = fromMaybe defaultPlayerAnimation maybePlayerAnim
+        playerAnim = Maybe.fromMaybe defaultPlayerAnimation maybePlayerAnim
 
         nextAnimationStep
             :: Maybe InGamePlayer -> PlayerAnimation -> PlayerAnimation
@@ -88,7 +94,7 @@ updatePlayerInformation World {..} player =
                     newPlayerDeathAnimation
             in
                 case
-                    find ((player ==) . deadPlayerDescription)
+                    List.find ((player ==) . deadPlayerDescription)
                          (getDeadPlayers gameDeadPlayers)
                 of
                     Nothing              -> deathAnimation
@@ -100,5 +106,5 @@ updatePlayerInformation World {..} player =
 getAllPlayers :: ServerUpdate -> Seq Player
 getAllPlayers serverUpdate =
     let GameState {..} = gameStateUpdate serverUpdate
-    in  map playerDescription (getInGamePlayers inGamePlayers)
-            ++ map deadPlayerDescription (getDeadPlayers gameDeadPlayers)
+    in  fmap playerDescription (getInGamePlayers inGamePlayers)
+            <> fmap deadPlayerDescription (getDeadPlayers gameDeadPlayers)

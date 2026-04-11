@@ -1,6 +1,7 @@
 module OptParse where
 
 import           Options.Applicative
+import Data.Text
 
 data Arguments =
     Arguments
@@ -23,47 +24,47 @@ argumentsParser =
 hostnameParser :: Parser Text
 hostnameParser = strOption
     (  long "hostname"
-    ++ metavar "Hostname"
-    ++ help "Hostname where to run"
-    ++ value "localhost"
+    <> metavar "Hostname"
+    <> help "Hostname where to run"
+    <> value "localhost"
     )
 
 portParser :: Parser Int
 portParser = option
     auto
     (  long "port"
-    ++ short 'p'
-    ++ metavar "Port"
-    ++ help "Port for the Server to listen to"
-    ++ value 1234
+    <> short 'p'
+    <> metavar "Port"
+    <> help "Port for the Server to listen to"
+    <> value 1234
     )
 
 fpsParser :: Parser Float
 fpsParser = option
     auto
     (  long "fps"
-    ++ short 's'
-    ++ metavar "FPS"
-    ++ help "Number of frames per second that the server shall perform"
-    ++ value 60
+    <> short 's'
+    <> metavar "FPS"
+    <> help "Number of frames per second that the server shall perform"
+    <> value 60
     )
 
 performanceMonitorParser :: Parser Int
 performanceMonitorParser = option
     auto
     (  long "monitor"
-    ++ metavar "Port"
-    ++ help "Port for the performance monitor server"
-    ++ value 12001
+    <> metavar "Port"
+    <> help "Port for the performance monitor server"
+    <> value 12001
     )
 
 gameMapParser :: Parser [String]
 gameMapParser = many
     (argument
         str
-        (metavar "Game Map ..." ++ help
+        (metavar "Game Map ..." <> help
             (  "List of play fields that the server should "
-            ++ "serve in a cycle everytime a game has been won"
+            <> "serve in a cycle everytime a game has been won"
             )
         )
     )

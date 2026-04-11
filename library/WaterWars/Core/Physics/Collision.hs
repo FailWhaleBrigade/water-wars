@@ -3,12 +3,15 @@ module WaterWars.Core.Physics.Collision where
 import           WaterWars.Core.Game
 import           WaterWars.Core.Physics.Geometry
 import           Data.List                                ( nub )
+import qualified Data.Maybe as Maybe
+import qualified Data.List as List
+import Data.Function
 
 -- TODO: some assertion that player cannot be inside a block
 moveWithCollision
     :: Terrain -> Location -> VelocityVector -> MovementState
 moveWithCollision terrain startLocation velocity =
-    collisionMiddleware . fromMaybe noCollisionMovement $ do
+    collisionMiddleware . Maybe.fromMaybe noCollisionMovement $ do
         block <- collidingBlock terrain line
         collideWithBlock line block
   where
@@ -52,7 +55,7 @@ moveWithCollision terrain startLocation velocity =
 
 collideWithBlock :: Line -> BlockLocation -> Maybe MovementState
 collideWithBlock line block =
-    headMay . mapMaybe (collideWithBlockBorder line) $ getPossibleCollisionLines
+    Maybe.listToMaybe . Maybe.mapMaybe (collideWithBlockBorder line) $ getPossibleCollisionLines
         line
         block
 
@@ -85,7 +88,7 @@ getTraversedBlocksCandidates Line {..} = nub
 -- traversal
 getTraversedBlocks :: Line -> [BlockLocation]
 getTraversedBlocks line =
-    sortBy (compareTraversedBlocks line)
+    List.sortBy (compareTraversedBlocks line)
         . filter (line `traversesBlock`)
         $ getTraversedBlocksCandidates line
 
@@ -100,12 +103,12 @@ compareTraversedBlocks Line { lineStartLocation = Location (x, y) } =
 -- TODO: test more??
 collidingBlock :: Terrain -> Line -> Maybe BlockLocation
 collidingBlock terrain =
-    headMay . filter (isSolidAt terrain) . getTraversedBlocks
+    Maybe.listToMaybe . filter (isSolidAt terrain) . getTraversedBlocks
 
 
 -- get a list of possible block-borders a line can pass through
 getPossibleCollisionLines :: Line -> BlockLocation -> [Line]
-getPossibleCollisionLines line block = catMaybes
+getPossibleCollisionLines line block = Maybe.catMaybes
     [topLine, botLine, leftLine, rightLine]
   where
     Location (x, y) = lineStartLocation line

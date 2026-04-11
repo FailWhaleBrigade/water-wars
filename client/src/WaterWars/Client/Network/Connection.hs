@@ -8,7 +8,7 @@ where
 
 import Data.Text
 
-import qualified Network.WebSockets            as WS
+-- import qualified Network.WebSockets            as WS
 import           Control.Monad.Logger
 
 import           Control.Concurrent

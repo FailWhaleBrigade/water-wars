@@ -18,6 +18,13 @@ import           WaterWars.Server.Events
 import           WaterWars.Server.Action.Start
 import           WaterWars.Server.Action.Restart
 import           WaterWars.Server.Action.Util
+import Control.Concurrent.STM
+import Data.Text (Text)
+import qualified Data.Map.Strict as Map
+import qualified Data.Set as Set
+import qualified Data.Text as Text
+import qualified Data.Sequence as Seq
+import Control.Monad (foldM, forever)
 
 
 data Command
@@ -44,11 +51,11 @@ runEventLoop
     -> TVar Env
     -> TQueue EventMessage
     -> m ()
-runEventLoop logger envTvar queue = forever $ do
+runEventLoop logger envTvar queue = forever $ liftIO $ do
     env     <- readTVarIO envTvar
     message <- atomically $ readTQueue queue
     let actions = eventLoop message env
-    newEnv <- liftIO $ runEff . runLog "event-loop" logger LogInfo $ handleCmd actions env
+    newEnv <- runEff . runLog "event-loop" logger LogInfo $ handleCmd actions env
     atomically $ modifyTVar' envTvar (const newEnv)
 
 eventLoop :: EventMessage -> Env -> [Command]
@@ -66,7 +73,7 @@ eventLoop (ClientMessageEvent sessionId clientMsg) env = case clientMsg of
         let readyPlayers_ :: Int = length (readyPlayers $ gameEnv env)
             connectedPlayers_ :: Int = length (connectionMap $ networkEnv env)
             gameTick = gameTicks . gameState . gameLoop $ serverEnv env
-            isAlreadyReady = member sessionId (readyPlayers $ gameEnv env)
+            isAlreadyReady = Set.member sessionId (readyPlayers $ gameEnv env)
             cmd = if not isAlreadyReady
                 then if readyPlayers_ + 1 >= connectedPlayers_
                     then
@@ -81,10 +88,9 @@ eventLoop (ClientMessageEvent sessionId clientMsg) env = case clientMsg of
 
 eventLoop (GameLoopMessageEvent gameStateUpdate gameEvents) Env {..} =
     let ServerEnv {..} = serverEnv
-        GameEnv {..}   = gameEnv
         gameTick       = gameTicks gameStateUpdate
         players        = getInGamePlayers $ inGamePlayers gameStateUpdate
-        winner         = playerDescription $ players `indexEx` 0
+        winner         = playerDescription $ players `Seq.index` 0
         gameOverCmd    = case (serverState, length players) of
             (Running, 0) ->
                 [ StopGameCmd
@@ -97,7 +103,7 @@ eventLoop (GameLoopMessageEvent gameStateUpdate gameEvents) Env {..} =
                 , AddFutureCmd (gameTick + 240) ResetGame
                 ]
             _ -> []
-        actionToExecute = case lookup gameTick eventMap of
+        actionToExecute = case Map.lookup gameTick eventMap of
             Nothing        -> []
             Just ResetGame -> [ResetGameCmd, RemoveFutureCmd gameTick]
             Just StartGame -> [StartGameCmd, RemoveFutureCmd gameTick]
@@ -143,7 +149,7 @@ handleCmd_ env@Env {..} cmd = case cmd of
 
     AddPlayerCmdActionCmd sessionId action -> do
         let GameEnv {..} = gameEnv
-        let playerMay    = lookup sessionId playerMap
+        let playerMay    = Map.lookup sessionId playerMap
         case playerMay of
             Nothing -> do
                 logAttention_
@@ -152,8 +158,8 @@ handleCmd_ env@Env {..} cmd = case cmd of
                 return env
             Just InGamePlayer {..} -> do
                 let PlayerActions {..} = playerAction
-                let newActions = PlayerActions $ insertWith
-                        (++)
+                let newActions = PlayerActions $ Map.insertWith
+                        (<>)
                         sessionId
                         (getAction action)
                         getPlayerActions
@@ -161,29 +167,29 @@ handleCmd_ env@Env {..} cmd = case cmd of
 
     AddFutureCmd trigger event -> return env
         { serverEnv =
-            serverEnv { eventMap = insertMap trigger event (eventMap serverEnv)
+            serverEnv { eventMap = Map.insert trigger event (eventMap serverEnv)
                       }
         }
     RemoveFutureCmd trigger -> return env
         { serverEnv = serverEnv
-                          { eventMap = deleteMap trigger (eventMap serverEnv)
+                          { eventMap = Map.delete trigger (eventMap serverEnv)
                           }
         }
     ReadyUpPlayerCmd sessionId -> return env
         { gameEnv =
-            gameEnv { readyPlayers = insertSet sessionId (readyPlayers gameEnv)
+            gameEnv { readyPlayers = Set.insert sessionId (readyPlayers gameEnv)
                     }
         }
     AddPlayerCmd sessionId -> do
         let player   = newInGamePlayer sessionId (Location (0, 0))
-        let connMay  = lookup sessionId (connectionMap networkEnv)
+        let connMay  = Map.lookup sessionId (connectionMap networkEnv)
         let gameMap_ = gameMap $ gameLoop serverEnv
         let addedPlayer =
                 modifyGameState addInGamePlayer (gameLoop serverEnv) player
         case connMay of
             Nothing   -> return env
             Just conn -> do
-                atomically $ do
+                liftIO $ atomically $ do
                     writeTQueue
                         (readChannel conn)
                         (LoginResponseMessage (LoginResponse sessionId player))
@@ -191,7 +197,7 @@ handleCmd_ env@Env {..} cmd = case cmd of
                 return env
                     { gameEnv   =
                         gameEnv
-                            { playerMap = insertMap sessionId
+                            { playerMap = Map.insert sessionId
                                                     player
                                                     (playerMap gameEnv)
                             }
@@ -200,19 +206,19 @@ handleCmd_ env@Env {..} cmd = case cmd of
     ConnectPlayerCmd uuid conn -> return env
         { networkEnv =
             networkEnv
-                { connectionMap = insertMap uuid conn (connectionMap networkEnv)
+                { connectionMap = Map.insert uuid conn (connectionMap networkEnv)
                 }
         }
 
     RemovePlayerCmd sessionId -> return env
         { gameEnv    = gameEnv
-                           { readyPlayers = deleteSet sessionId
+                           { readyPlayers = Set.delete sessionId
                                                       (readyPlayers gameEnv)
-                           , playerMap = deleteMap sessionId (playerMap gameEnv)
+                           , playerMap = Map.delete sessionId (playerMap gameEnv)
                            }
         , networkEnv =
             networkEnv
-                { connectionMap = deleteMap sessionId (connectionMap networkEnv)
+                { connectionMap = Map.delete sessionId (connectionMap networkEnv)
                 }
         , serverEnv  = serverEnv
                            { gameLoop = modifyGameState removePlayer
@@ -221,7 +227,7 @@ handleCmd_ env@Env {..} cmd = case cmd of
                            }
         }
     BroadcastCmd msg -> do
-        logTrace_ $ tshow msg
+        logTrace_ $ Text.show msg
         runReader env (broadcastMessage msg)
         return env
     UpdateGameLoopCmd newgameState -> return env

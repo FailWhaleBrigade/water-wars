@@ -12,7 +12,7 @@ module WaterWars.Client.Render.State
     )
 where
 
-import           Data.Text
+import           Data.Text (Text)
 import           Graphics.Gloss
 import           Data.Array.IArray
 import           Data.Maybe                     ( fromJust )
@@ -31,6 +31,13 @@ import qualified WaterWars.Core.Game           as CoreState
 import           WaterWars.Core.Game
 
 import           WaterWars.Client.Render.Animation
+import Data.Map.Strict (Map)
+import Data.Sequence (Seq)
+import Control.Concurrent.STM.TVar (TVar, newTVarIO)
+import qualified Data.Map.Strict as Map
+import qualified Data.Sequence as Seq
+import qualified Data.Maybe as Maybe
+import Control.Monad (guard)
 
 newtype WorldSTM = WorldSTM (TVar World)
 
@@ -79,7 +86,7 @@ initializeState :: Resources -> IO WorldSTM
 initializeState resources@Resources {..} = WorldSTM <$> newTVarIO World
     { renderInfo     = RenderInfo
         { resources                  = resources
-        , playerAnimations           = mapFromList []
+        , playerAnimations           = Map.empty
         , defaultPlayerAnimation     = PlayerIdleAnimation Animation
             { countDownTilNext  = 30
             , countDownMax      = 30
@@ -116,8 +123,8 @@ initializeState resources@Resources {..} = WorldSTM <$> newTVarIO World
             , updateOperation = mantaUpdateOperation
             , direction       = RightDir
             }
-        , solids                     = empty
-        , decorations                = empty
+        , solids                     = Seq.empty
+        , decorations                = Seq.empty
         , connectingAnimation        = Animation
             { countDownTilNext  = 60
             , countDownMax      = 60
@@ -137,14 +144,14 @@ initializeState resources@Resources {..} = WorldSTM <$> newTVarIO World
         , gameRunning  = False
         , localPlayer  = Nothing
         , winnerPlayer = Nothing
-        , projectiles  = empty
+        , projectiles  = Seq.empty
         }
     , networkInfo    = Nothing
     , lastGameUpdate = ServerUpdate
         { gameStateUpdate = GameState
-            { inGamePlayers   = InGamePlayers empty
-            , gameDeadPlayers = DeadPlayers empty
-            , gameProjectiles = Projectiles empty
+            { inGamePlayers   = InGamePlayers Seq.empty
+            , gameDeadPlayers = DeadPlayers Seq.empty
+            , gameProjectiles = Projectiles Seq.empty
             , gameTicks       = 0
             }
         }
@@ -153,9 +160,9 @@ initializeState resources@Resources {..} = WorldSTM <$> newTVarIO World
 setTerrain :: CoreState.TerrainDecoration -> CoreState.Terrain -> World -> World
 setTerrain decoration terrain World {..} = World
     { renderInfo = renderInfo
-        { solids      = fromList (blockPositions terrainArray blockMap')
+        { solids      = Seq.fromList (blockPositions terrainArray blockMap')
         , decorations =
-            fromList
+            Seq.fromList
                 (decorationPositions (terrainDecorationArray decoration)
                                      decorationMap'
                 )
@@ -169,11 +176,11 @@ setTerrain decoration terrain World {..} = World
 
     blockPositions
         :: Array BlockLocation Block -> Map BlockContent Picture -> [Solid]
-    blockPositions locationMap pictureMap = mapMaybe
+    blockPositions locationMap pictureMap = Maybe.mapMaybe
         (\(loc, block) -> case block of
             NoBlock -> Nothing
             SolidBlock content ->
-                blockLocationToSolid blockSize loc <$> lookup content pictureMap
+                blockLocationToSolid blockSize loc <$> Map.lookup content pictureMap
         )
         (assocs locationMap)
     decorationPositions
@@ -181,8 +188,8 @@ setTerrain decoration terrain World {..} = World
     decorationPositions locationMap pictureMap = concatMap
         (\(loc, deco) -> do
             decorationElement <- deco
-            let picture = lookup decorationElement pictureMap
-            guard (isJust picture)
+            let picture = Map.lookup decorationElement pictureMap
+            guard (Maybe.isJust picture)
             return $ blockLocationToSolid blockSize loc (fromJust picture)
         )
         (assocs locationMap)

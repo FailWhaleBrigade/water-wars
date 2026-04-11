@@ -312,7 +312,7 @@ defaultGameState = GameState
     }
 
 defaultInGamePlayers :: InGamePlayers
-defaultInGamePlayers = InGamePlayers empty
+defaultInGamePlayers = InGamePlayers mempty
 
 {-
 defaultInGamePlayer :: InGamePlayer

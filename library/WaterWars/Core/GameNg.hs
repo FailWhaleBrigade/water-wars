@@ -21,6 +21,15 @@ import           Effectful.Reader.Static as Reader
 import           Effectful.Writer.Dynamic
 import           Effectful
 import           Data.Array.IArray
+import Data.Map (Map)
+import qualified Data.Sequence as Seq
+import Data.Bifunctor
+import Control.Monad (guard, unless, when)
+import qualified Data.Maybe as Maybe
+import Control.Monad.Extra (whenJust)
+import qualified Data.Map.Strict as Map
+import qualified Data.Set as Set
+import qualified Data.Foldable as Foldable
 
 runGameTick
     :: Bool
@@ -29,7 +38,7 @@ runGameTick
     -> Map Player Action
     -> (GameEvents, GameState)
 runGameTick gameRunning gameMap gameState gameAction =
-    first (GameEvents . fromList)
+    first (GameEvents . Seq.fromList)
         . runPureEff
         . runStateLocal gameState
         . execWriterLocal @[GameEvent]
@@ -70,7 +79,7 @@ modifyPlayerByAction player = execStateLocal player $ do
     actionMap :: Map Player Action <- ask
     isOnGround                     <- isPlayerOnGround player
     let action =
-            fromMaybe noAction $ lookup (playerDescription player) actionMap
+            Maybe.fromMaybe noAction $ Map.lookup (playerDescription player) actionMap
     doShootAction action
 
     runsAgainsWall <- doesPlayerRunAgainstWall (runAction action) player
@@ -82,7 +91,7 @@ modifyPlayerByAction player = execStateLocal player $ do
 
 modifyPlayerByJumpAction :: Bool -> Action -> InGamePlayer -> InGamePlayer
 modifyPlayerByJumpAction onGround action player@InGamePlayer {..} =
-    fromMaybe player $ do -- maybe monad
+    Maybe.fromMaybe player $ do -- maybe monad
         unless onGround Nothing
         JumpAction <- jumpAction action
         return $ setPlayerVelocity (jumpVector playerVelocity) player
@@ -90,13 +99,13 @@ modifyPlayerByJumpAction onGround action player@InGamePlayer {..} =
 modifyPlayerByRunAction
     :: Bool -> Bool -> Action -> InGamePlayer -> InGamePlayer
 modifyPlayerByRunAction onGround runsAgainstWall action player@InGamePlayer {..}
-    = fromMaybe player $ do -- maybe monad
+    = Maybe.fromMaybe player $ do -- maybe monad
         guard (not runsAgainstWall)
         RunAction runDirection <- runAction action
         return $ setPlayerVelocity
             (  velocityBoundX runSpeed
             $  runVector onGround runDirection
-            ++ playerVelocity
+            <> playerVelocity
             )
             player { playerLastRunDirection = runDirection }
 
@@ -151,7 +160,7 @@ checkPlayerOutOfMap
     :: (State GameState :> r, Reader GameMap :> r) => Eff r ()
 checkPlayerOutOfMap = do
     players :: [InGamePlayer] <- State.gets
-        (toList . getInGamePlayers . inGamePlayers)
+        (Foldable.toList . getInGamePlayers . inGamePlayers)
     currentTick <- State.gets gameTicks
 
     (BlockLocation (minX, minY), BlockLocation (maxX, maxY)) <- Reader.asks
@@ -169,7 +178,7 @@ checkPlayerOutOfMap = do
 
     modify
         ( removePlayers
-        $ setFromList
+        $ Set.fromList
         . map playerDescription
         $ outOfBoundsPlayers
         )
@@ -185,9 +194,9 @@ checkProjectilePlayerCollision = do
     isGameRunning <- ask
     when isGameRunning $ do
         players :: [InGamePlayer] <- State.gets
-            (toList . getInGamePlayers . inGamePlayers)
+            (Foldable.toList . getInGamePlayers . inGamePlayers)
         projectiles :: [Projectile] <- State.gets
-            (toList . getProjectiles . gameProjectiles)
+            (Foldable.toList . getProjectiles . gameProjectiles)
         currentTick <- State.gets gameTicks
 
         let (hitPlayers, hitProjectiles) = unzip
@@ -198,8 +207,8 @@ checkProjectilePlayerCollision = do
                 , getsHit player projectile
                 ]
         modify
-            (removePlayers $ setFromList . map playerDescription $ hitPlayers)
-        removeProjectiles $ setFromList hitProjectiles
+            (removePlayers $ Set.fromList . map playerDescription $ hitPlayers)
+        removeProjectiles $ Set.fromList hitProjectiles
 
         let deadPlayers = map (newDeadPlayer currentTick) hitPlayers
         addDeadPlayers deadPlayers

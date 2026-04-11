@@ -1,6 +1,8 @@
 module WaterWars.Core.Physics.Geometry where
 
 import           WaterWars.Core.Game
+import Control.Monad (unless)
+import qualified Data.Maybe as Maybe
 
 data Line = Line
     { lineStartLocation :: Location
@@ -33,7 +35,7 @@ traversesBlock line block =
   where
     endPointIsInBlock   = lineEndPoint line `isInsideBlock` block
     startPointIsInBlock = lineStartLocation line `isInsideBlock` block
-    passesThroughBlock  = isJust $ do
+    passesThroughBlock  = Maybe.isJust $ do
         Intersection nearestPoint t _ <- normalIntersection line
             $ blockLocationToLocation block
         unless (nearestPoint `isInsideBlock` block) Nothing

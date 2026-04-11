@@ -3,19 +3,24 @@ module WaterWars.Core.Terrain.Read where
 import           WaterWars.Core.Game.Map
 import           Data.Array.IArray
 import           Data.List                                ( transpose )
+import Control.Monad.IO.Class
+import Data.Text (Text)
+import Control.Monad (when, unless)
+import qualified Data.Text.IO as TextIO
+import qualified Data.Text as Text
 
 readTerrainFromFile :: MonadIO m => FilePath -> m (Maybe Terrain)
-readTerrainFromFile terrainFilePath = do
-    content <- readFileUtf8 terrainFilePath
+readTerrainFromFile terrainFilePath = liftIO $ do
+    content <- TextIO.readFile terrainFilePath
     let extractedTerrain =
-            charMatrixToTerrain . map unpack . filter (not . isPrefixOf "#") . lines $ content
+            charMatrixToTerrain . map Text.unpack . filter (not . Text.isPrefixOf "#") . Text.lines $ content
     case extractedTerrain of
         Left  err -> do
-            putStrLn err
+            TextIO.putStrLn err
             pure Nothing
         Right x   -> do
             let Terrain a = x
-            print $ bounds a
+            TextIO.putStrLn . Text.show $ bounds a
             return $ Just x
 
 
@@ -26,7 +31,7 @@ charMatrixToTerrain x = do
     when (height `mod` 2 == 0) $ Left "height has to be an odd number"
     let widths = map length x
     unless (allEqual widths) $ Left "not all lines have equal length"
-    let width = headEx widths
+    let width = head widths
 
     let maxX  = width `div` 2
     let maxY  = height `div` 2

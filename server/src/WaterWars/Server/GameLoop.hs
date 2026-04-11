@@ -8,9 +8,12 @@ import           WaterWars.Core.GameNg
 
 import           WaterWars.Server.Env
 import           WaterWars.Server.Events
+import Control.Monad.IO.Class
+import Control.Monad (forever)
+import Control.Concurrent.STM
 
 runGameLoop :: MonadIO m => TVar Env -> TQueue EventMessage -> m ()
-runGameLoop tvar queue = forever $ do
+runGameLoop tvar queue = forever $ liftIO $ do
     Env {..} <- readTVarIO tvar
     let ServerEnv {..}     = serverEnv
     let GameEnv {..}       = gameEnv

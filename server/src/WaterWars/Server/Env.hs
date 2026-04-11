@@ -4,6 +4,10 @@ module WaterWars.Server.Env where
 import           WaterWars.Core.Game
 
 import           WaterWars.Server.Events
+import Data.Map.Strict (Map)
+import Data.Set (Set)
+import Data.Sequence (Seq)
+import qualified Data.Sequence as Seq
 
 data Env =
     Env
@@ -74,7 +78,7 @@ advanceGameMaps GameMaps {..} =
     in  GameMaps {currentGameMapIndex = nextGameMapIndex, ..}
 
 currentMap :: GameMaps -> GameMap
-currentMap GameMaps {..} = gameMapsList `indexEx` currentGameMapIndex
+currentMap GameMaps {..} = gameMapsList `Seq.index` currentGameMapIndex
 
 modifyGameState
     :: (GameState -> a -> GameState) -> GameLoopState -> a -> GameLoopState

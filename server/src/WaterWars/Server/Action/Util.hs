@@ -9,6 +9,9 @@ import           WaterWars.Core.Game
 import           WaterWars.Server.Env
 import           WaterWars.Server.Events
 import           WaterWars.Server.ConnectionMgnt
+import Data.Map.Strict (Map)
+import Control.Concurrent.STM
+import Data.Foldable (forM_)
 
 
 broadcastMessage
@@ -18,4 +21,4 @@ broadcastMessage
 broadcastMessage serverMessage = do
     session <- Reader.asks (connectionMap . networkEnv)
     forM_ (session :: Map Player Connection)
-        $ \conn -> atomically $ writeTQueue (readChannel conn) serverMessage
+        $ \conn -> liftIO $ atomically $ writeTQueue (readChannel conn) serverMessage

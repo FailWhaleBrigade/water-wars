@@ -24,34 +24,34 @@ argumentsParser =
 hostnameParser :: Parser Text
 hostnameParser = strOption
     (  long "hostname"
-    ++ metavar "Hostname"
-    ++ help "Hostname of the Server Instance"
-    ++ value "localhost"
+    <> metavar "Hostname"
+    <> help "Hostname of the Server Instance"
+    <> value "localhost"
     )
 
 portParser :: Parser Int
 portParser = option
     auto
     (  long "port"
-    ++ short 'p'
-    ++ metavar "Port"
-    ++ help "Port to connect to"
-    ++ value 1234
+    <> short 'p'
+    <> metavar "Port"
+    <> help "Port to connect to"
+    <> value 1234
     )
 
 quietParser :: Parser Bool
 quietParser =
-    switch (long "quiet" ++ short 'q' ++ help "Silences the music of the game")
+    switch (long "quiet" <> short 'q' <> help "Silences the music of the game")
 
 performanceMonitorParser :: Parser (Maybe Int)
 performanceMonitorParser = optional $ option
     auto
-    (long "monitor" ++ metavar "Port" ++ help
+    (long "monitor" <> metavar "Port" <> help
         "Port for the performance monitor server"
     )
 
 fullScreenParser :: Parser Bool
 fullScreenParser = switch
     (  long "fullscreen"
-    ++ help "Starts the game in fullscreen mode"
+    <> help "Starts the game in fullscreen mode"
     )

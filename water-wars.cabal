@@ -61,13 +61,15 @@ library
     -Wall
 
   build-depends:
+    -- classy-prelude,
     array,
     base,
+    bytestring,
     cereal,
-    effectful-core,
     containers,
-    -- classy-prelude,
-    -- extra
+    effectful-core,
+    extra,
+    safe,
     text,
 
   default-language: Haskell2010
@@ -100,15 +102,15 @@ test-suite water-wars-test-suite
     -with-rtsopts=-N
 
   build-depends:
-    HUnit,
+    -- classy-prelude,
     array,
     base,
-    -- classy-prelude,
     hspec,
+    HUnit,
     tasty,
     tasty-hspec,
     tasty-hunit,
-    water-wars
+    water-wars,
 
   default-language: Haskell2010
 
@@ -136,6 +138,6 @@ benchmark water-wars-benchmarks
   build-depends:
     base,
     criterion,
-    water-wars
+    water-wars,
 
   default-language: Haskell2010

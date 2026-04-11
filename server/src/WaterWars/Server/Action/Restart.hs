@@ -7,6 +7,7 @@ import           WaterWars.Core.Game
 import           WaterWars.Network.Protocol
 import           WaterWars.Server.Env
 import           WaterWars.Server.Action.Util
+import Data.Text (Text)
 
 
 restartGame
@@ -21,8 +22,8 @@ restartGame = do
     let GameState {..}  = gameState gameLoop
     let inGamePlayers' =
             InGamePlayers
-                $  map resetPlayer  (getInGamePlayers inGamePlayers)
-                ++ map revivePlayer (getDeadPlayers gameDeadPlayers)
+                $  fmap resetPlayer  (getInGamePlayers inGamePlayers)
+                <> fmap revivePlayer (getDeadPlayers gameDeadPlayers)
 
 
     logInfo_ ("Restart the game" :: Text)
@@ -35,7 +36,7 @@ restartGame = do
                               GameLoopState
                                   { gameState = GameState
                                       { inGamePlayers   = inGamePlayers'
-                                      , gameDeadPlayers = DeadPlayers empty
+                                      , gameDeadPlayers = DeadPlayers mempty
                                       , ..
                                       }
                                   , gameMap   = current
