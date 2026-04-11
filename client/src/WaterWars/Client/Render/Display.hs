@@ -1,7 +1,5 @@
 module WaterWars.Client.Render.Display where
 
-import           Graphics.Gloss                as Gloss
-
 import           WaterWars.Client.Render.Config
 import           WaterWars.Client.Render.Animation
 import           WaterWars.Client.Render.State
@@ -17,10 +15,10 @@ import Control.Concurrent.STM
 import qualified Data.Map.Strict as Map
 
 -- |Convert a game state into a picture
-renderIO :: WorldSTM -> IO Picture
+renderIO :: WorldSTM -> IO Can
 renderIO (WorldSTM tvar) = render <$> readTVarIO tvar
 
-render :: World -> Picture
+render :: World -> Canvas 
 render World {..} = Gloss.pictures
     (  [backgroundTexture]
     <> [mantaPicture]

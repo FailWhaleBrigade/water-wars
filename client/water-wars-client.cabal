@@ -60,24 +60,24 @@ library
   ghc-options:
     -Wall
 
-  -- build-depends:
-  --   JuicyPixels,
-  --   array,
-  --   base,
-  --   -- classy-prelude,
-  --   monad-logger,
-  --   mtl,
-  --   optparse-applicative,
-  --   stm,
-  --   transformers,
-  --   water-wars,
-  --   -- websockets,
-  --   text,
-  --   bytestring,
-  --   async,
-  --   stm,
-  --   containers,
-  --   miso,
+  build-depends:
+    JuicyPixels,
+    array,
+    base,
+    -- classy-prelude,
+    monad-logger,
+    mtl,
+    optparse-applicative,
+    stm,
+    transformers,
+    water-wars,
+    -- websockets,
+    text,
+    bytestring,
+    async,
+    stm,
+    containers,
+    miso,
 
   default-language: Haskell2010
 
