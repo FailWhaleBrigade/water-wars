@@ -7,30 +7,29 @@ import           WaterWars.Client.Render.Terrain.Solid
 
 import           WaterWars.Core.Game
 import           WaterWars.Core.Game.Constants
-import Data.Sequence (Seq)
 import qualified Data.List as List
 import qualified Data.Maybe as Maybe
 import qualified Data.Foldable as Foldable
-import Control.Concurrent.STM
 import qualified Data.Map.Strict as Map
+import Miso.Canvas
+import WaterWars.Client.Resources.Image (GameImage (image))
+import Miso.CSS.Color
+import Data.Foldable (traverse_)
+import Data.Bifunctor (bimap)
 
--- |Convert a game state into a picture
-renderIO :: WorldSTM -> IO Can
-renderIO (WorldSTM tvar) = render <$> readTVarIO tvar
+render :: World -> Canvas ()
+render World {..} = do
+    -- renderBackground backgroundTexture
+    renderManta
+    -- renderEnvironment
+    -- deadPlayerPictures
+    -- playerPictures
+    -- projectilePictures
+    -- readyPicture
+    -- playerPicture
+    -- serverTextMessage
+    -- shootTargetPicture
 
-render :: World -> Canvas 
-render World {..} = Gloss.pictures
-    (  [backgroundTexture]
-    <> [mantaPicture]
-    <> Foldable.toList solidPictures
-    <> deadPlayerPictures
-    <> playerPictures
-    <> Foldable.toList projectilePictures
-    <> Maybe.maybeToList readyPicture
-    <> Maybe.maybeToList playerPicture
-    <> Maybe.maybeToList serverTextMessage
-    <> Maybe.maybeToList shootTargetPicture
-    )
   where
     RenderInfo {..} = renderInfo
     WorldInfo {..}  = worldInfo
@@ -47,11 +46,11 @@ render World {..} = Gloss.pictures
             (Foldable.toList $ getDeadPlayers gameDeadPlayers)
         )
 
-    playerPictures :: [Picture]
-    playerPictures = map (inGamePlayerToPicture renderInfo) livingPlayers
+    playerPictures :: Canvas ()
+    playerPictures = traverse_ (inGamePlayerToPicture renderInfo) livingPlayers
 
-    deadPlayerPictures :: [Picture]
-    deadPlayerPictures = map (deadPlayerToPicture renderInfo) deadPlayers
+    deadPlayerPictures :: Canvas ()
+    deadPlayerPictures = traverse_ (deadPlayerToPicture renderInfo) deadPlayers
 
     stateOf :: Maybe Player -> PlayerState
     stateOf Nothing = Disconnected
@@ -59,100 +58,115 @@ render World {..} = Gloss.pictures
         | Maybe.isJust $ List.find ((== p) . playerDescription) livingPlayers = Alive
         | otherwise = Dead
 
-    serverTextMessage :: Maybe Picture
+    serverTextMessage :: Canvas ()
     serverTextMessage
-        | state == Disconnected = Just
-            (displayText (displayAnimation connectingAnimation))
-        | state == Dead = Just (displayText youLostTexture)
-        | state == Alive && localPlayer == winnerPlayer = Just
-            (displayText youWinTexture)
-        | otherwise = Nothing
+        | state == Disconnected = do
+            displayText
+            drawImage (image $ displayAnimation connectingAnimation, 0, 0)
+        | state == Dead = do
+            displayText
+            drawImage (image youLostTexture, 0, 0)
+        | state == Alive && localPlayer == winnerPlayer = do
+            displayText
+            drawImage (image youWinTexture, 0, 0)
+        | otherwise = pure ()
         where state = stateOf localPlayer
 
-    playerPicture :: Maybe Picture
+    playerPicture :: Canvas ()
     playerPicture = do
-        p     <- localPlayer
-        alive <- List.find ((== p) . playerDescription)
-                      (getInGamePlayers inGamePlayers)
-        Just (inGamePlayerToPicture renderInfo alive)
+        case localPlayer of
+            Nothing -> pure ()
+            Just p -> do
+                case List.find ((== p) . playerDescription) (getInGamePlayers inGamePlayers) of
+                    Nothing -> pure ()
+                    Just alive -> do
+                        inGamePlayerToPicture renderInfo alive
 
-    projectilePictures :: Seq Picture
-    projectilePictures = fmap (projectileToPicture renderInfo) projectiles
+    projectilePictures :: Canvas ()
+    projectilePictures = traverse_ (projectileToPicture renderInfo) projectiles
 
-    solidPictures :: Seq Picture
-    solidPictures = fmap solidToPicture (solids <> decorations)
+    renderEnvironment :: Canvas ()
+    renderEnvironment = do
+        traverse_ solidToPicture (solids <> decorations)
 
-    mantaPicture :: Picture
-    mantaPicture = backgroundAnimationToPicture renderInfo mantaAnimation
+    renderManta :: Canvas ()
+    renderManta = backgroundAnimationToPicture mantaAnimation
 
-    readyPicture :: Maybe Picture
+    readyPicture :: Canvas ()
     readyPicture = do
-        down <- countdown
-        return $ countdownToPicture renderInfo (down - gameTicks)
+        case countdown of
+            Nothing -> pure ()
+            Just down ->
+                countdownToPicture renderInfo (down - gameTicks)
 
-
-    shootTargetPicture :: Maybe Picture
+    shootTargetPicture :: Canvas ()
     shootTargetPicture = do
-        Location (x, y) <- lastShot
-        return $ translate (blockSize * x) (blockSize * y) $ circle 5
+        case lastShot of
+            Nothing -> pure ()
+            Just (Location (x, y)) -> do
+                translate (realToFrac (blockSize * x), realToFrac (blockSize * y))
+                -- circle_ []
+
+renderBackground :: GameImage -> Canvas ()
+renderBackground img = do
+    drawImage' (image img, 0, 0, 800, 600)
 
 inGamePlayerColor :: Color
 inGamePlayerColor = red
 
-solidToPicture :: Solid -> Picture
-solidToPicture solid =
-    uncurry translate (solidCenter solid)
-        $ scale blockSize           blockSize
-        $ scale (1 / blockImgWidth) (1 / blockImgHeight)
-        $ solidTexture solid
+solidToPicture :: Solid -> Canvas ()
+solidToPicture solid = do
+    scale (realToFrac (1 / blockImgWidth), realToFrac (1 / blockImgHeight))
+    scale (realToFrac blockSize          , realToFrac blockSize)
+    translate (bimap realToFrac realToFrac $ solidCenter solid)
+    drawImage (image $ solidTexture solid, 0, 0)
 
-inGamePlayerToPicture :: RenderInfo -> InGamePlayer -> Picture
-inGamePlayerToPicture RenderInfo {..} InGamePlayer {..} =
+inGamePlayerToPicture :: RenderInfo -> InGamePlayer -> Canvas ()
+inGamePlayerToPicture RenderInfo {..} InGamePlayer {..} = do
     let Resources {..}     = resources
         Location (x, y)    = playerLocation
         directionComponent = case playerLastRunDirection of
             RunLeft  -> -1
             RunRight -> 1
-        maybeAnimation = Map.lookup playerDescription playerAnimations
+        maybeAnimation = lookupPlayerAnimationMap playerDescription playerAnimations
         Animation {..} =
             playerToAnimation $ Maybe.fromMaybe defaultPlayerAnimation maybeAnimation
-    in  translate (blockSize * x) (blockSize * y + blockSize * playerHeight / 2)
-        $ color inGamePlayerColor
-        $ scale blockSize          blockSize
-        $ scale playerWidth        playerHeight
-        $ scale (1 / mermaidWidth) (1 / mermaidHeight)
-        $ scale directionComponent 1 (head animationPictures)
+    scale (directionComponent, 1)
+    scale (realToFrac (1 / mermaidWidth), realToFrac (1 / mermaidHeight))
+    scale (realToFrac playerWidth       , realToFrac playerHeight)
+    scale (realToFrac blockSize         , realToFrac blockSize)
+    -- color inGamePlayerColor
+    translate (realToFrac (blockSize * x), realToFrac (blockSize * y + blockSize * playerHeight / 2))
+    drawImage (image $ head animationPictures, 0, 0)
 
-deadPlayerToPicture :: RenderInfo -> DeadPlayer -> Picture
-deadPlayerToPicture RenderInfo {..} DeadPlayer {..}
-    = let
+deadPlayerToPicture :: RenderInfo -> DeadPlayer -> Canvas ()
+deadPlayerToPicture RenderInfo {..} DeadPlayer {..} = do
+    let
           Resources {..}  = resources
 
-          maybeAnimation  = Map.lookup deadPlayerDescription playerAnimations
+          maybeAnimation  = lookupPlayerAnimationMap deadPlayerDescription playerAnimations
           Location (x, y) = case maybeAnimation of
               Just (PlayerDeathAnimation ba) -> location ba
               _                              -> deadPlayerLocation
           Animation {..} = playerToAnimation
               $ Maybe.fromMaybe defaultPlayerAnimation maybeAnimation
-      in
-          translate (blockSize * x)
-                    (blockSize * y + blockSize * defaultPlayerHeight / 2)
-          $ color inGamePlayerColor
-          $ scale blockSize          blockSize
-          $ scale defaultPlayerWidth defaultPlayerHeight
-          $ scale (1 / mermaidWidth)
-                  (1 / mermaidHeight)
-                  (head animationPictures)
 
-projectileToPicture :: RenderInfo -> Projectile -> Picture
-projectileToPicture RenderInfo {..} p = translate
-    (x * blockSize)
-    (y * blockSize)
-    (projectileTexture resources)
+    scale (realToFrac (1 / mermaidWidth), realToFrac (1 / mermaidHeight))
+    scale (realToFrac blockSize         , realToFrac blockSize)
+    scale (realToFrac defaultPlayerWidth, realToFrac defaultPlayerHeight)
+    translate (realToFrac (blockSize * x), realToFrac (blockSize * y + blockSize * defaultPlayerHeight / 2))
+    drawImage (image $ head animationPictures, 0, 0)
+
+projectileToPicture :: RenderInfo -> Projectile -> Canvas ()
+projectileToPicture RenderInfo {..} p = do
+    translate (realToFrac (x * blockSize), realToFrac (y * blockSize))
+    drawImage (image $ projectileTexture resources, 0, 0)
     where Location (x, y) = projectileLocation p
 
-countdownToPicture :: RenderInfo -> Integer -> Picture
-countdownToPicture RenderInfo {..} tick = displayText pic
+countdownToPicture :: RenderInfo -> Integer -> Canvas ()
+countdownToPicture RenderInfo {..} tick = do
+    displayText
+    drawImage (image pic, 0, 0)
   where
     Resources {..} = resources
     pic | tick >= 180 = countdownTextures !! 0
@@ -161,20 +175,24 @@ countdownToPicture RenderInfo {..} tick = displayText pic
         | otherwise {- tick >= 0 -}
                     = countdownTextures !! 3
 
-backgroundAnimationToPicture :: RenderInfo -> BackgroundAnimation -> Picture
-backgroundAnimationToPicture _ BackgroundAnimation {..} = translate x y
-    $ scale scaleFactor 1 pic
+backgroundAnimationToPicture :: BackgroundAnimation -> Canvas ()
+backgroundAnimationToPicture BackgroundAnimation {..} = do
+  save ()
+  scale scaleFactor
+  translate (realToFrac x, realToFrac y)
+  drawImage' (image pic, 0, 0, 64, 64)
+  restore ()
   where
     scaleFactor = case direction of
-        RightDir -> -1
-        LeftDir  -> 1
+        RightDir -> (-1, 1)
+        LeftDir  -> ( 1, 1)
     pic             = displayAnimation animation
     Location (x, y) = location
 
-displayAnimation :: Animation -> Picture
+displayAnimation :: Animation -> GameImage
 displayAnimation Animation {..} = head animationPictures
 
-displayText :: Picture -> Picture
-displayText = translate 0 100
+displayText :: Canvas ()
+displayText = translate (0, 100)
 
 data PlayerState = Alive | Disconnected | Dead deriving (Eq, Show, Enum, Bounded)

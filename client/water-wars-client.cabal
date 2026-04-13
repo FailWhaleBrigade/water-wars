@@ -39,6 +39,7 @@ library
     WaterWars.Client.Render.Terrain.Solid
     WaterWars.Client.Render.Update
     WaterWars.Client.Resources.Block
+    WaterWars.Client.Resources.Image
     WaterWars.Client.Resources.Resources
 
   other-modules:
@@ -114,7 +115,7 @@ executable water-wars-client
     stm,
     transformers,
     -- water-wars,
-    -- water-wars-client,
+    water-wars-client,
     miso,
 
   default-language: Haskell2010

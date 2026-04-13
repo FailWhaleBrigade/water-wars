@@ -19,6 +19,11 @@ import qualified Miso.Html.Property as CSS
 import qualified Miso.Html.Property as H
 import qualified Miso.Html.Property as P
 import Miso.Lens
+import WaterWars.Client.Render.State (World, newWorld)
+import WaterWars.Client.Render.State (setup)
+import WaterWars.Client.Render.Display (render)
+import WaterWars.Client.Resources.Resources
+import Debug.Trace
 
 ----------------------------------------------------------------------------
 
@@ -34,6 +39,8 @@ data Model
 counter :: Lens Model Int
 counter = lens _counter $ \record field -> record{_counter = field}
 
+time :: Lens Model (Double, Double)
+time = lens _time (\m k -> m{_time = k})
 ----------------------------------------------------------------------------
 
 -- | Sum type for App events
@@ -44,9 +51,6 @@ data Action
   | GetTime
   | SetTime (Double, Double)
   deriving (Show, Eq)
-
------------------------------------------------------------------------------
-time = lens _time (\m k -> m{_time = k})
 
 ----------------------------------------------------------------------------
 
@@ -103,7 +107,7 @@ newTime = liftIO $ do
 
 -- | Constructs a virtual DOM from a model
 viewModel :: Model -> View Model Action
-viewModel x =
+viewModel model =
   H.div_
     [ P.className "main"
     , width_ "100%"
@@ -115,27 +119,35 @@ viewModel x =
         , CSS.style_ [CSS.flexGrow "0", CSS.justifySelf "center"]
         ]
         initCanvas
-        (canvasDraw (800, 600) (x ^. time) 0)
+        (canvasDraw (800, 600) (model ^. time) 0)
     ]
 
 ----------------------------------------------------------------------------
 baseUrl :: MisoString
 baseUrl = ""
 
-initCanvas :: DOMRef -> Canvas (Image, Image, Image)
-initCanvas _ = liftIO $ do
-  sun <- newImage (baseUrl <> "/textures/background/background.png")
-  moon <- newImage (baseUrl <> "/textures/block/block32.png")
-  earth <- newImage (baseUrl <> "/textures/block/blockendleft32.png")
-  pure (sun, moon, earth)
+initCanvas :: DOMRef -> Canvas Resources
+initCanvas _ = do
+  setup baseUrl
 
 canvasDraw ::
   (Double, Double) ->
   (Double, Double) ->
   Int ->
-  (Image, Image, Image) ->
+  Resources ->
   Canvas ()
-canvasDraw (w, h) (millis', secs') n (sun, moon, earth) = do
+canvasDraw (w, h) (millis', secs') n resources = do
+  globalCompositeOperation DestinationOver
+  clearRect (0, 0, w, h)
+  render $ newWorld $ trace "sohw" resources
+  save ()
+
+oldCanvasDraw ::
+  (Double, Double) ->
+  (Double, Double) ->
+  Int ->
+    Canvas ()
+oldCanvasDraw (w, h) (millis', secs') n = do
   let
     secs = secs' + fromIntegral n
     millis = millis' + fromIntegral n
@@ -151,13 +163,13 @@ canvasDraw (w, h) (millis', secs') n (sun, moon, earth) = do
   rotate ((((2 * pi) / 60) * secs) + (((2 * pi) / 60000) * millis))
   translate (105, 0)
   fillRect (0, -12, 50, 24)
-  drawImage (earth, -12, -12)
+  -- drawImage (earth, -12, -12)
   save ()
   rotate ((((2 * pi) / 6) * secs) + (((2 * pi) / 6000) * millis))
   translate (0, 28.5)
-  drawImage (moon, -3.5, -3.5)
+  -- drawImage (moon, -3.5, -3.5)
   replicateM_ 2 (restore ())
   beginPath ()
   arc (midPointX, midPointY, 105, 0, pi * 2)
   stroke ()
-  drawImage' (sun, 0, 0, w, h)
+  -- drawImage' (sun, 0, 0, w, h)

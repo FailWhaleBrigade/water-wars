@@ -1,9 +1,5 @@
-module WaterWars.Client.Resources.Block (module WaterWars.Core.Terrain.Block, BlockMap, placeSingleBlock, blocks, loadBlockMap) where
+module WaterWars.Client.Resources.Block (module WaterWars.Core.Terrain.Block, BlockMap, placeSingleBlock, blocks, lookupBlockMap, loadBlockMap) where
 
-import           Data.Text (Text)
-import Control.Monad.Error.Class
-
-import qualified Graphics.Gloss as Gloss
 import WaterWars.Client.Render.Terrain.Solid
 import WaterWars.Client.Render.Config
 
@@ -16,40 +12,55 @@ import qualified Data.Sequence as Seq
 import qualified Data.Map.Strict as Map
 import qualified Data.Maybe as Maybe
 import qualified Data.Foldable as Foldable
+import WaterWars.Client.Resources.Image (GameImage)
+import qualified Data.Text as Text
+import GHC.Generics
+import Miso.Prelude hiding ((.))
 
-type BlockMap = Map BlockContent Gloss.Picture
+newtype BlockMap = BlockMap { getBlockMap :: Map BlockContent GameImage }
+  deriving (Generic)
+
+instance FromJSVal BlockMap where
+    fromJSVal val = fmap (BlockMap . Map.mapKeys (read . fromMisoString)) <$> fromJSVal val
+
+instance ToJSVal BlockMap where
+    toJSVal val = toJSVal $ Map.mapKeys (toMisoString . Text.show) $ getBlockMap val
+
+
+lookupBlockMap :: BlockContent -> BlockMap -> Maybe GameImage
+lookupBlockMap val bm = Map.lookup val (getBlockMap bm)
 
 placeSingleBlock :: Float -> Float -> BlockContent -> BlockMap -> [Solid]
 placeSingleBlock x y block blockmap =
-    Maybe.maybeToList (Solid blockSize blockSize (x, y) <$> Map.lookup block blockmap)
+    Maybe.maybeToList (Solid blockSize blockSize (x, y) <$> lookupBlockMap block blockmap)
 
-loadBlockMap :: (MonadIO m, MonadError Text m) => m BlockMap
-loadBlockMap = do
-    loadedTextures <- bulkLoad blocks
-    return . Map.fromList $ zip [Floor .. Ceil] (Foldable.toList loadedTextures)
+loadBlockMap :: (MonadIO m) => MisoString -> m BlockMap
+loadBlockMap baseUrl = do
+    loadedTextures <- bulkLoad $ fmap ((baseUrl  <>) . toMisoString) blocks
+    return . BlockMap . Map.fromList $ zip [Floor .. Ceil] (Foldable.toList loadedTextures)
 
 blocks :: Seq FilePath
 blocks = Seq.fromList
     [ {- Floor -}
-      "resources/textures/block/block32.png"
+      "textures/block/block32.png"
     , {- EndLeft -}
-      "resources/textures/block/blockendleft32.png"
+      "textures/block/blockendleft32.png"
     , {- EndRight -}
-      "resources/textures/block/blockendright32.png"
+      "textures/block/blockendright32.png"
     , {- BottomLeftCorner -}
-      "resources/textures/block/bottomleftcornerblock32.png"
+      "textures/block/bottomleftcornerblock32.png"
     , {- BottomRightCorner -}
-      "resources/textures/block/bottomrightcornerblock32.png"
+      "textures/block/bottomrightcornerblock32.png"
     , {- TopRightCorner -}
-      "resources/textures/block/toprightcornerblock32.png"
+      "textures/block/toprightcornerblock32.png"
     , {- TopLeftCorner -}
-      "resources/textures/block/topleftcornerblock32.png"
+      "textures/block/topleftcornerblock32.png"
     , {- LeftWall -}
-      "resources/textures/block/leftwallblock32.png"
+      "textures/block/leftwallblock32.png"
     , {- RightWall -}
-      "resources/textures/block/rightwallblock32.png"
+      "textures/block/rightwallblock32.png"
     , {- Middle -}
-      "resources/textures/block/middleblock32.png"
+      "textures/block/middleblock32.png"
     , {- Ceil -}
-      "resources/textures/block/topblock32.png"
+      "textures/block/topblock32.png"
     ]

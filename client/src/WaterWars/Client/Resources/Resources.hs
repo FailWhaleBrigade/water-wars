@@ -1,77 +1,96 @@
+{-# LANGUAGE NoOverloadedStrings #-}
 module WaterWars.Client.Resources.Resources where
 
-import           Data.Text (Text)
-import Control.Monad.Except
-import Graphics.Gloss.Interface.IO.Game
 
 import WaterWars.Core.Terrain.Decoration
-import WaterWars.Client.Codec.Resource (loadPngAsBmp, bulkLoad)
+import WaterWars.Client.Codec.Resource (loadPng, bulkLoad)
 import WaterWars.Client.Resources.Block (loadBlockMap, BlockMap)
 import Control.Monad.IO.Class
 import Data.Map.Strict (Map)
 import qualified Data.Foldable as Foldable
 import qualified Data.Map.Strict as Map
+import WaterWars.Client.Resources.Image (GameImage)
+import qualified Data.Text as Text
+import Miso.Prelude hiding ((.))
+import GHC.Generics
 
 data Resources =
     Resources
-        { backgroundTexture :: Picture
-        , projectileTexture :: Picture
-        , idlePlayerTexture :: Picture
-        , runningPlayerTextures :: [Picture]
-        , playerDeathTextures :: [Picture]
-        , mantaTextures :: [Picture]
-        , countdownTextures :: [Picture]
+        { backgroundTexture :: GameImage
+        , projectileTexture :: GameImage
+        , idlePlayerTexture :: GameImage
+        , runningPlayerTextures :: [GameImage]
+        , playerDeathTextures :: [GameImage]
+        , mantaTextures :: [GameImage]
+        , countdownTextures :: [GameImage]
         , blockMap :: BlockMap
-        , connectingTextures :: [Picture]
-        , youWinTexture :: Picture
-        , youLostTexture :: Picture
-        , decorationMap :: Map Decoration Picture
+        , connectingTextures :: [GameImage]
+        , youWinTexture :: GameImage
+        , youLostTexture :: GameImage
+        , decorationMap :: DecorationMap
         }
+        deriving (Generic)
+    -- deriving FromJSVal via (Generically Resources)
 
-setup :: (MonadIO m, MonadError Text m) => m Resources
-setup = do
-    bgTex <- loadPngAsBmp "resources/textures/background/background.png"
-    prjTex <- loadPngAsBmp "resources/textures/decoration/bubble.png"
-    playerTex <- loadPngAsBmp "resources/textures/mermaid/idle/mermaid1.png"
+newtype DecorationMap = DecorationMap { getDecorationMap :: Map Decoration GameImage }
+        deriving (Generic)
+
+lookupDecorationMap :: Decoration -> DecorationMap -> Maybe GameImage
+lookupDecorationMap val dm = Map.lookup val (getDecorationMap dm)
+
+instance FromJSVal Resources where
+instance ToJSVal Resources where
+instance FromJSVal DecorationMap where
+    fromJSVal val = fmap (DecorationMap . Map.mapKeys (read . fromMisoString)) <$> fromJSVal val
+
+instance ToJSVal DecorationMap where
+    toJSVal val = toJSVal $ Map.mapKeys (toMisoString . Text.show) $ getDecorationMap val
+
+setup :: (MonadIO m) => MisoString -> m Resources
+setup baseUrl = do
+    bgTex <- loadPng (baseUrl <> toMisoString "textures/background/background.png")
+    prjTex <- loadPng (baseUrl <> toMisoString "textures/decoration/bubble.png")
+    playerTex <- loadPng (baseUrl <> toMisoString "textures/mermaid/idle/mermaid1.png")
     playerRunningTexs <- bulkLoad
-        (getMermaidPaths "resources/textures/mermaid/running/mermaid" 1 15)
+        (getMermaidPaths (baseUrl <> toMisoString "textures/mermaid/running/mermaid") 1 15)
     playerDeathTexs <- bulkLoad
-        (getMermaidPaths "resources/textures/mermaid/death/mermaid_death" 1 9)
+        (getMermaidPaths (baseUrl <> toMisoString "textures/mermaid/death/mermaid_death") 1 9)
     mantaTexs <- bulkLoad
-        [ "resources/textures/manta_animation/manta1.png"
-        , "resources/textures/manta_animation/manta2.png"
-        , "resources/textures/manta_animation/manta3.png"
-        , "resources/textures/manta_animation/manta4.png"
+        [ baseUrl <> toMisoString "textures/manta_animation/manta1.png"
+        , baseUrl <> toMisoString "textures/manta_animation/manta2.png"
+        , baseUrl <> toMisoString "textures/manta_animation/manta3.png"
+        , baseUrl <> toMisoString "textures/manta_animation/manta4.png"
         ]
     countdownTexs <- bulkLoad
-        [ "resources/textures/writing/3.png"
-        , "resources/textures/writing/2.png"
-        , "resources/textures/writing/1.png"
-        , "resources/textures/writing/GO.png"
+        [ baseUrl <> toMisoString "textures/writing/3.png"
+        , baseUrl <> toMisoString "textures/writing/2.png"
+        , baseUrl <> toMisoString "textures/writing/1.png"
+        , baseUrl <> toMisoString "textures/writing/GO.png"
         ]
 
     connectingTex <- bulkLoad
-        [ "resources/textures/writing/connecting0.png"
-        , "resources/textures/writing/connecting1.png"
-        , "resources/textures/writing/connecting2.png"
-        , "resources/textures/writing/connecting3.png"
+        [ baseUrl <> toMisoString "textures/writing/connecting0.png"
+        , baseUrl <> toMisoString "textures/writing/connecting1.png"
+        , baseUrl <> toMisoString "textures/writing/connecting2.png"
+        , baseUrl <> toMisoString "textures/writing/connecting3.png"
         ]
     decorationTexsList <- bulkLoad
-        [ "resources/textures/decoration/algea.png"
-        , "resources/textures/decoration/coral.png"
-        , "resources/textures/decoration/snail.png"
-        , "resources/textures/decoration/umbrella.png"
+        [ baseUrl <> toMisoString "textures/decoration/algea.png"
+        , baseUrl <> toMisoString "textures/decoration/coral.png"
+        , baseUrl <> toMisoString "textures/decoration/snail.png"
+        , baseUrl <> toMisoString "textures/decoration/umbrella.png"
         ]
     let decorationTypeList = [Algea, Coral, Snail, Umbrella]
     let decorationM =
             Map.fromList $ zip decorationTypeList decorationTexsList
 
-    winTex     <- loadPngAsBmp "resources/textures/writing/win.png"
-    lostTex    <- loadPngAsBmp "resources/textures/writing/lost.png"
+    winTex     <- loadPng $ baseUrl <> toMisoString "textures/writing/win.png"
+    lostTex    <- loadPng $ baseUrl <> toMisoString "textures/writing/lost.png"
 
-    blockMap   <- loadBlockMap
+    blockMap   <- loadBlockMap baseUrl
     return $ Resources bgTex
-                       (scale 0.2 0.2 prjTex)
+                       prjTex
+                    --    (scale 0.2 0.2 prjTex)
                        playerTex
                        (Foldable.toList playerRunningTexs)
                        (Foldable.toList playerDeathTexs)
@@ -81,12 +100,12 @@ setup = do
                        (Foldable.toList connectingTex)
                        winTex
                        lostTex
-                       decorationM
+                       (DecorationMap decorationM)
 
-getMermaidPaths :: String -> Int -> Int -> [String]
+getMermaidPaths :: MisoString -> Int -> Int -> [MisoString]
 getMermaidPaths pathStart ind mx
     | ind == mx
     = []
     | otherwise
-    = (pathStart ++ show ind ++ ".png") : getMermaidPaths pathStart (ind + 1) mx
+    = (pathStart <> toMisoString (Text.show ind) <> toMisoString ".png") : getMermaidPaths pathStart (ind + 1) mx
 

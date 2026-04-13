@@ -1,3 +1,6 @@
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE DerivingVia #-}
 module WaterWars.Client.Render.State
     ( Animation(..)
     , World(..)
@@ -5,19 +8,17 @@ module WaterWars.Client.Render.State
     , RenderInfo(..)
     , WorldInfo(..)
     , PlayerAnimation(..)
+    , lookupPlayerAnimationMap
     , ServerUpdate(..)
-    , initializeState
+    , newWorld
     , setTerrain
     , module WaterWars.Client.Resources.Resources
     )
 where
 
-import           Data.Text (Text)
-import           Graphics.Gloss
 import           Data.Array.IArray
 import           Data.Maybe                     ( fromJust )
 
-import           Data.List                      ( cycle )
 
 import           WaterWars.Client.Render.Terrain.Solid
 import           WaterWars.Client.Render.Config
@@ -33,11 +34,14 @@ import           WaterWars.Core.Game
 import           WaterWars.Client.Render.Animation
 import Data.Map.Strict (Map)
 import Data.Sequence (Seq)
-import Control.Concurrent.STM.TVar (TVar, newTVarIO)
+import Control.Concurrent.STM.TVar (TVar)
 import qualified Data.Map.Strict as Map
 import qualified Data.Sequence as Seq
 import qualified Data.Maybe as Maybe
 import Control.Monad (guard)
+import WaterWars.Client.Resources.Image (GameImage)
+import GHC.Generics (Generic, Generically)
+import Miso.Prelude
 
 newtype WorldSTM = WorldSTM (TVar World)
 
@@ -45,8 +49,8 @@ data World = World
     { renderInfo :: RenderInfo
     , worldInfo :: WorldInfo
     , lastGameUpdate :: ServerUpdate
-    , networkInfo :: Maybe NetworkState.NetworkInfo
-    }
+    -- , networkInfo :: Maybe NetworkState.NetworkInfo
+    } deriving (Generic)
 
 data RenderInfo = RenderInfo
     { resources :: Resources
@@ -54,16 +58,29 @@ data RenderInfo = RenderInfo
     , newPlayerIdleAnimation :: PlayerAnimation
     , newPlayerRunnningAnimation :: PlayerAnimation
     , newPlayerDeathAnimation :: PlayerAnimation
-    , playerAnimations :: Map Player PlayerAnimation
+    , playerAnimations :: PlayerAnimationMap
     , connectingAnimation :: Animation
     , mantaAnimation :: BackgroundAnimation
-    , solids :: Seq Solid
-    , decorations :: Seq Solid
+    , solids :: [Solid]
+    , decorations :: [Solid]
     }
+    deriving (Generic)
+
+newtype PlayerAnimationMap = PlayerAnimationMap { getPlayerAnimationMap :: Map Player PlayerAnimation }
+    deriving Generic
+
+lookupPlayerAnimationMap :: Player -> PlayerAnimationMap -> Maybe PlayerAnimation
+lookupPlayerAnimationMap val pm = Map.lookup val (getPlayerAnimationMap pm)
+
+-- instance FromJSVal PlayerAnimationMap where
+--     fromJSVal pm = undefined
+
+-- instance FromJSVal RenderInfo where
+
 
 newtype ServerUpdate = ServerUpdate
     { gameStateUpdate :: CoreState.GameState
-    } deriving (Eq, Show)
+    } deriving (Eq, Show, Generic)
 
 data WorldInfo = WorldInfo
     { jump      :: Bool
@@ -80,13 +97,14 @@ data WorldInfo = WorldInfo
     , localPlayer :: Maybe Player
     , winnerPlayer :: Maybe Player
     , projectiles  :: Seq CoreState.Projectile
-    } deriving Show
+    }
+    deriving (Show, Generic)
 
-initializeState :: Resources -> IO WorldSTM
-initializeState resources@Resources {..} = WorldSTM <$> newTVarIO World
+newWorld :: Resources -> World
+newWorld resources@Resources {..} = World
     { renderInfo     = RenderInfo
         { resources                  = resources
-        , playerAnimations           = Map.empty
+        , playerAnimations           = PlayerAnimationMap Map.empty
         , defaultPlayerAnimation     = PlayerIdleAnimation Animation
             { countDownTilNext  = 30
             , countDownMax      = 30
@@ -123,8 +141,8 @@ initializeState resources@Resources {..} = WorldSTM <$> newTVarIO World
             , updateOperation = mantaUpdateOperation
             , direction       = RightDir
             }
-        , solids                     = Seq.empty
-        , decorations                = Seq.empty
+        , solids                     = []
+        , decorations                = []
         , connectingAnimation        = Animation
             { countDownTilNext  = 60
             , countDownMax      = 60
@@ -146,7 +164,7 @@ initializeState resources@Resources {..} = WorldSTM <$> newTVarIO World
         , winnerPlayer = Nothing
         , projectiles  = Seq.empty
         }
-    , networkInfo    = Nothing
+    -- , networkInfo    = Nothing
     , lastGameUpdate = ServerUpdate
         { gameStateUpdate = GameState
             { inGamePlayers   = InGamePlayers Seq.empty
@@ -160,9 +178,9 @@ initializeState resources@Resources {..} = WorldSTM <$> newTVarIO World
 setTerrain :: CoreState.TerrainDecoration -> CoreState.Terrain -> World -> World
 setTerrain decoration terrain World {..} = World
     { renderInfo = renderInfo
-        { solids      = Seq.fromList (blockPositions terrainArray blockMap')
+        { solids      =  (blockPositions terrainArray blockMap')
         , decorations =
-            Seq.fromList
+
                 (decorationPositions (terrainDecorationArray decoration)
                                      decorationMap'
                 )
@@ -175,26 +193,26 @@ setTerrain decoration terrain World {..} = World
     terrainArray   = CoreState.terrainBlocks terrain
 
     blockPositions
-        :: Array BlockLocation Block -> Map BlockContent Picture -> [Solid]
+        :: Array BlockLocation Block -> BlockMap -> [Solid]
     blockPositions locationMap pictureMap = Maybe.mapMaybe
         (\(loc, block) -> case block of
             NoBlock -> Nothing
             SolidBlock content ->
-                blockLocationToSolid blockSize loc <$> Map.lookup content pictureMap
+                blockLocationToSolid blockSize loc <$> lookupBlockMap content pictureMap
         )
         (assocs locationMap)
     decorationPositions
-        :: Array BlockLocation [Decoration] -> Map Decoration Picture -> [Solid]
+        :: Array BlockLocation [Decoration] -> DecorationMap -> [Solid]
     decorationPositions locationMap pictureMap = concatMap
         (\(loc, deco) -> do
             decorationElement <- deco
-            let picture = Map.lookup decorationElement pictureMap
+            let picture = lookupDecorationMap decorationElement pictureMap
             guard (Maybe.isJust picture)
             return $ blockLocationToSolid blockSize loc (fromJust picture)
         )
         (assocs locationMap)
 
-blockLocationToSolid :: Float -> BlockLocation -> Picture -> Solid
+blockLocationToSolid :: Float -> BlockLocation -> GameImage -> Solid
 blockLocationToSolid size (BlockLocation (x, y)) picture = Solid
     { solidWidth   = size
     , solidHeight  = size

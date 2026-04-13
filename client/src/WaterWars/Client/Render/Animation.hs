@@ -1,30 +1,36 @@
 module WaterWars.Client.Render.Animation where
 
-
-
-import Graphics.Gloss as Gloss
-
 import WaterWars.Core.Game
+import WaterWars.Client.Resources.Image (GameImage)
+import GHC.Generics
+import Miso
 
 data Direction = LeftDir | RightDir deriving (Eq, Show, Read, Ord, Enum, Bounded)
 
 data Animation = Animation
-    { countDownTilNext :: Integer
-    , countDownMax :: Integer
-    , animationPictures :: [Picture]
-    } deriving (Show, Eq)
+    { countDownTilNext :: Int
+    , countDownMax :: Int
+    , animationPictures :: [GameImage]
+    } deriving Generic
 
+instance FromJSVal Animation where
 data PlayerAnimation
     = PlayerIdleAnimation Animation
     | PlayerRunningAnimation Animation
     | PlayerDeathAnimation BackgroundAnimation
+    deriving Generic
+
+-- instance FromJSVal PlayerAnimation where
 
 data BackgroundAnimation = BackgroundAnimation
     { animation :: Animation
     , location :: Location
     , updateOperation :: BackgroundAnimation -> BackgroundAnimation
     , direction :: Direction
-    }
+    } deriving Generic
+
+
+-- instance FromJSVal BackgroundAnimation where
 
 playerToAnimation :: PlayerAnimation -> Animation
 playerToAnimation (PlayerIdleAnimation    anim) = anim
