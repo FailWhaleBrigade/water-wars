@@ -23,7 +23,11 @@ optim:
 	wasm-tools strip -o public/water-wars-client.wasm public/water-wars-client.wasm
 
 watch:
-	ghciwatch --after-startup-ghci :main --after-reload-ghci :main --watch *.hs --debounce 50ms --command 'wasm32-wasi-cabal repl --project-file cabal.wasm.project exe:water-wars-client -finteractive --repl-options="-fghci-browser -fghci-browser-port=8080"'
+	ghciwatch \
+		--after-startup-ghci :main \
+		--after-reload-ghci :main \
+		--watch *.hs --debounce 50ms \
+		--command 'wasm32-wasi-cabal repl --project-file cabal.wasm.project exe:water-wars-client -finteractive --repl-options="-fghci-browser -fghci-browser-port=8080"'
 
 serve:
 	simple-http-server --nocache public --open --index
