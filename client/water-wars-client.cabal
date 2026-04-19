@@ -106,6 +106,7 @@ executable water-wars-client
     -with-rtsopts=-N
 
   build-depends:
+    water-wars ^>=0.0.0,
     base,
     -- classy-prelude,
     -- gloss,

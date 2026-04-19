@@ -19,11 +19,12 @@ import qualified Miso.Html.Property as CSS
 import qualified Miso.Html.Property as H
 import qualified Miso.Html.Property as P
 import Miso.Lens
-import WaterWars.Client.Render.State (World, newWorld)
+import WaterWars.Client.Render.State (World, newWorld, setTerrain)
 import WaterWars.Client.Render.State (setup)
 import WaterWars.Client.Render.Display (render)
 import WaterWars.Client.Resources.Resources
 import Debug.Trace
+import WaterWars.Core.DefaultGame
 
 ----------------------------------------------------------------------------
 
@@ -139,7 +140,7 @@ canvasDraw ::
 canvasDraw (w, h) (millis', secs') n resources = do
   globalCompositeOperation DestinationOver
   clearRect (0, 0, w, h)
-  render $ newWorld $ trace "sohw" resources
+  render $ setTerrain (terrainDecoration defaultGameMap) (gameTerrain defaultGameMap) $ newWorld $ resources
   save ()
 
 oldCanvasDraw ::

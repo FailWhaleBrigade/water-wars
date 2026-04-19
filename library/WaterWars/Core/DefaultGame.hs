@@ -1,4 +1,4 @@
-module WaterWars.Core.DefaultGame where
+module WaterWars.Core.DefaultGame (defaultGameMap, GameMap(..)) where
 
 
 import           WaterWars.Core.Game
