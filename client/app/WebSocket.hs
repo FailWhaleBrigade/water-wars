@@ -21,6 +21,8 @@ import           Miso.WebSocket
 import           Miso.String (ToMisoString)
 import qualified Miso.String as MS
 import qualified WaterWars.Network.Protocol as Protocol
+import Miso.JSON (fromJSON, Result (..), FromJSON (parseJSON))
+import Json ()
 -----------------------------------------------------------------------------
 data Message
   = Message
@@ -41,6 +43,7 @@ instance ToMisoString Origin where
 data Action
   = OnOpen WebSocket
   | OnMessage Protocol.ServerMessage
+  | OnMessageBlob Blob
   | OnClosed Closed
   | OnError MisoString
   | Send
@@ -96,13 +99,13 @@ websocketComponent box = component (emptyModel box) updateModel viewModel
         sendText socket m
       Connect -> do
         io_ $ consoleLog $ "Connecting"
-        connectText
+        connectJSON
           "ws://127.0.0.1:8080"
           OnOpen
           OnClosed
-          (\ msg -> case Protocol.deserialize (fromMisoString msg) of
-             Left err -> OnError (ms err)
-             Right serverMsg -> OnMessage serverMsg)
+          (\ payload -> case fromJSON payload of
+            Error err -> OnError err
+            Success val -> OnMessage val)
           OnError
       OnOpen socket -> do
         websocket .= socket
@@ -116,6 +119,8 @@ websocketComponent box = component (emptyModel box) updateModel viewModel
         pure ()
       OnMessage message ->
         io_ $ consoleLog $ ms (show message)
+      OnMessageBlob blob ->
+        undefined
 
       OnError errorMessage ->
         io_ (consoleError errorMessage)
@@ -131,6 +136,7 @@ websocketComponent box = component (emptyModel box) updateModel viewModel
       Clear -> do
         clearInput .= True
         msg .= ""
+
 -----------------------------------------------------------------------------
 viewModel :: Model -> View Model Action
 viewModel m =

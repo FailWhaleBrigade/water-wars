@@ -50,6 +50,7 @@ library
 
   build-depends:
     array,
+    aeson,
     async,
     base,
     bytestring,

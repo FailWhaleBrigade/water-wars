@@ -64,6 +64,7 @@ library
   build-depends:
     JuicyPixels,
     array,
+    aeson,
     base,
     -- classy-prelude,
     monad-logger,
@@ -88,6 +89,7 @@ executable water-wars-client
   other-modules:
     Paths_water_wars_client
     WebSocket
+    Json
 
   hs-source-dirs:
     app
@@ -109,6 +111,7 @@ executable water-wars-client
   build-depends:
     water-wars ^>=0.0.0,
     base,
+    array,
     -- classy-prelude,
     -- gloss,
     monad-logger,

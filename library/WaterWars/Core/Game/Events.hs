@@ -13,7 +13,7 @@ import Data.Sequence
 import GHC.Generics
 
 newtype GameEvents = GameEvents
-    { getGameEvents :: Seq GameEvent
+    { getGameEvents :: [GameEvent]
     }
     deriving (Read, Show, Eq, Semigroup, Monoid, Generic)
 

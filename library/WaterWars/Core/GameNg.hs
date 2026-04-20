@@ -22,7 +22,6 @@ import           Effectful.Writer.Dynamic
 import           Effectful
 import           Data.Array.IArray
 import Data.Map (Map)
-import qualified Data.Sequence as Seq
 import Data.Bifunctor
 import Control.Monad (guard, unless, when)
 import qualified Data.Maybe as Maybe
@@ -38,7 +37,7 @@ runGameTick
     -> Map Player Action
     -> (GameEvents, GameState)
 runGameTick gameRunning gameMap gameState gameAction =
-    first (GameEvents . Seq.fromList)
+    first GameEvents
         . runPureEff
         . runStateLocal gameState
         . execWriterLocal @[GameEvent]

@@ -8,7 +8,7 @@ module Main where
 
 import Control.Concurrent.Async
 import Control.Concurrent.STM
-import Control.Exception (finally, SomeException (SomeException), Exception (..), catch, IOException)
+import Control.Exception (finally, Exception (..), catch, SomeException)
 import qualified Data.Foldable as Foldable
 import qualified Data.Map.Strict as Map
 import Data.Sequence (Seq)
@@ -16,7 +16,7 @@ import qualified Data.Sequence as Seq
 import qualified Data.Set as Set
 import Data.UUID hiding (null)
 import Data.UUID.V4
-import Effectful (MonadIO (..), MonadUnliftIO)
+import Effectful (MonadIO (..))
 import Effectful.Log
 import Network.WebSockets hiding (newClientConnection)
 import OptParse
@@ -39,8 +39,6 @@ import Network.Wai
 import Data.Function
 import Network.HTTP.Types.Status (notFound404)
 import qualified Network.WebSockets as WS
-import Control.Monad (forever)
-import Control.Concurrent (forkIO, threadDelay)
 
 
 serverStateWithGameMap :: GameMap -> GameLoopState
