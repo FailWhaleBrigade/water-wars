@@ -21,7 +21,7 @@ data GameState = GameState
     } deriving (Show, Read, Eq, Generic)
 
 newtype InGamePlayers = InGamePlayers
-    { getInGamePlayers :: Seq InGamePlayer
+    { getInGamePlayers :: [InGamePlayer]
     }
     deriving (Read, Show, Eq, Semigroup, Monoid, Generic)
 
@@ -44,7 +44,7 @@ newtype Player = Player
     deriving (Show, Read, Eq, Ord, Generic)
 
 newtype DeadPlayers = DeadPlayers
-    { getDeadPlayers :: Seq DeadPlayer
+    { getDeadPlayers :: [DeadPlayer]
     }
     deriving (Read, Show, Eq, Semigroup, Monoid, Generic)
 
@@ -56,7 +56,7 @@ data DeadPlayer = DeadPlayer
     deriving (Show, Read, Eq, Generic)
 
 newtype Projectiles = Projectiles
-    { getProjectiles :: Seq Projectile
+    { getProjectiles :: [Projectile]
     }
     deriving (Show, Eq, Read, Generic)
 

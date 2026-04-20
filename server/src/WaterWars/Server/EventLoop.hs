@@ -23,7 +23,6 @@ import Data.Text (Text)
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 import qualified Data.Text as Text
-import qualified Data.Sequence as Seq
 import Control.Monad (foldM, forever)
 
 
@@ -90,7 +89,7 @@ eventLoop (GameLoopMessageEvent gameStateUpdate gameEvents) Env {..} =
     let ServerEnv {..} = serverEnv
         gameTick       = gameTicks gameStateUpdate
         players        = getInGamePlayers $ inGamePlayers gameStateUpdate
-        winner         = playerDescription $ players `Seq.index` 0
+        winner         = playerDescription $ head players
         gameOverCmd    = case (serverState, length players) of
             (Running, 0) ->
                 [ StopGameCmd

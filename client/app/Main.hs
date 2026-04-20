@@ -25,7 +25,7 @@ import WaterWars.Client.Render.Display (render)
 import WaterWars.Client.Resources.Resources
 import Debug.Trace
 import WaterWars.Core.DefaultGame
-
+import           WebSocket
 ----------------------------------------------------------------------------
 
 -- | Component model state
@@ -121,7 +121,13 @@ viewModel model =
         ]
         initCanvas
         (canvasDraw (800, 600) (model ^. time) 0)
+    , H.div_
+      [ key_ connId ]
+      [ mount_ (websocketComponent 0) ]
     ]
+  where
+    connId :: Int
+    connId = 0
 
 ----------------------------------------------------------------------------
 baseUrl :: MisoString

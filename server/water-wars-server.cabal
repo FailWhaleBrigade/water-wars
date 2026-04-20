@@ -49,21 +49,21 @@ library
     -eventlog
 
   build-depends:
-    async,
     array,
+    async,
     base,
+    bytestring,
+    containers,
     effectful-core,
     log-effectful,
     pretty-simple,
+    stm,
+    text,
     time,
     transformers-base,
     uuid,
     water-wars,
     websockets,
-    containers,
-    text,
-    bytestring,
-    stm,
 
   default-language: Haskell2010
 
@@ -85,31 +85,32 @@ executable water-wars-server
 
   ghc-options:
     -Wall
-    -eventlog
     -rtsopts
     -threaded
-    -O2
-    -with-rtsopts=-N
 
   build-depends:
     array,
+    async,
     base,
-    -- classy-prelude,
+    containers,
     effectful-core,
     log-effectful,
+    mtl,
     optparse-applicative,
+    say,
+    servant-server,
+    stm,
+    text,
     time,
+    transformers,
     transformers-base,
     uuid,
+    wai-websockets,
+    warp,
+    http-types,
+    wai,
     water-wars,
     water-wars-server,
     websockets,
-    text,
-    containers,
-    stm,
-    async,
-    say,
-    transformers,
-    mtl,
 
   default-language: Haskell2010

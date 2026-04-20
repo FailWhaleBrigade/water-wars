@@ -8,6 +8,7 @@ module WaterWars.Client.Render.State
     , RenderInfo(..)
     , WorldInfo(..)
     , PlayerAnimation(..)
+    , PlayerAnimationMap(..)
     , lookupPlayerAnimationMap
     , ServerUpdate(..)
     , newWorld
@@ -96,7 +97,7 @@ data WorldInfo = WorldInfo
     , gameRunning :: Bool
     , localPlayer :: Maybe Player
     , winnerPlayer :: Maybe Player
-    , projectiles  :: Seq CoreState.Projectile
+    , projectiles  :: [CoreState.Projectile]
     }
     deriving (Show, Generic)
 
@@ -162,14 +163,14 @@ newWorld resources@Resources {..} = World
         , gameRunning  = False
         , localPlayer  = Nothing
         , winnerPlayer = Nothing
-        , projectiles  = Seq.empty
+        , projectiles  = []
         }
     -- , networkInfo    = Nothing
     , lastGameUpdate = ServerUpdate
         { gameStateUpdate = GameState
-            { inGamePlayers   = InGamePlayers Seq.empty
-            , gameDeadPlayers = DeadPlayers Seq.empty
-            , gameProjectiles = Projectiles Seq.empty
+            { inGamePlayers   = InGamePlayers []
+            , gameDeadPlayers = DeadPlayers []
+            , gameProjectiles = Projectiles []
             , gameTicks       = 0
             }
         }

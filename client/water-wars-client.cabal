@@ -87,6 +87,7 @@ executable water-wars-client
   main-is: Main.hs
   other-modules:
     Paths_water_wars_client
+    WebSocket
 
   hs-source-dirs:
     app

@@ -1,4 +1,11 @@
-module WaterWars.Core.DefaultGame (defaultGameMap, GameMap(..)) where
+module WaterWars.Core.DefaultGame (
+  defaultGameMap,
+  defaultGameState,
+  defaultDecoration,
+  defaultProjectiles,
+  defaultInGamePlayers,
+  GameMap (..),
+) where
 
 
 import           WaterWars.Core.Game

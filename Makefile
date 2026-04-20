@@ -27,13 +27,13 @@ watch:
 		--after-startup-ghci :main \
 		--after-reload-ghci :main \
 		--watch *.hs --debounce 50ms \
-		--command 'wasm32-wasi-cabal repl --project-file cabal.wasm.project exe:water-wars-client -finteractive --repl-options="-fghci-browser -fghci-browser-port=8080"'
+		--command 'wasm32-wasi-cabal repl --project-file cabal.wasm.project exe:water-wars-client -finteractive --repl-options="-fghci-browser -fghci-browser-port=8000"'
 
 serve:
 	simple-http-server --nocache public --open --index
 
 repl:
-	wasm32-wasi-cabal repl --project-file cabal.wasm.project exe:water-wars-client -finteractive --repl-options='-fghci-browser -fghci-browser-port=8080'
+	wasm32-wasi-cabal repl --project-file cabal.wasm.project exe:water-wars-client -finteractive --repl-options='-fghci-browser -fghci-browser-port=8000'
 
 clean:
 	rm -rf ../dist-newstyle public

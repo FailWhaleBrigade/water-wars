@@ -1,41 +1,47 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE NumericUnderscores #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Main where
 
-import           Effectful                    (MonadUnliftIO, MonadIO (..) )
-import           Effectful.Log
-
-import           Data.UUID               hiding ( null )
-import           Data.UUID.V4
-
-import           Network.WebSockets      hiding ( newClientConnection )
-import           Options.Applicative
-
-import           WaterWars.Core.DefaultGame
-import           WaterWars.Core.Game
-import           WaterWars.Core.Terrain.Read
-
-import           WaterWars.Network.Protocol    as Protocol
-
-import           WaterWars.Server.ConnectionMgnt
-import           WaterWars.Server.GameLoop
-import           WaterWars.Server.ClientConnection
-import           WaterWars.Server.EventLoop
-import           WaterWars.Server.Env
-import           WaterWars.Server.Events
-import           OptParse
-import           System.Exit
+import Control.Concurrent.Async
 import Control.Concurrent.STM
-import Data.Sequence (Seq)
-import Control.Exception (finally)
+import Control.Exception (finally, SomeException (SomeException), Exception (..), catch, IOException)
+import qualified Data.Foldable as Foldable
 import qualified Data.Map.Strict as Map
+import Data.Sequence (Seq)
 import qualified Data.Sequence as Seq
 import qualified Data.Set as Set
-import qualified Data.Foldable as Foldable
-import Control.Concurrent.Async
+import Data.UUID hiding (null)
+import Data.UUID.V4
+import Effectful (MonadIO (..), MonadUnliftIO)
+import Effectful.Log
+import Network.WebSockets hiding (newClientConnection)
+import OptParse
+import Options.Applicative
 import Say
-import qualified Data.Text as Text
+import System.Exit
+import WaterWars.Core.DefaultGame
+import WaterWars.Core.Game
+import WaterWars.Core.Terrain.Read
+import WaterWars.Network.Protocol as Protocol
+import WaterWars.Server.ClientConnection
+import WaterWars.Server.ConnectionMgnt
+import WaterWars.Server.Env
+import WaterWars.Server.EventLoop
+import WaterWars.Server.Events
+import WaterWars.Server.GameLoop
+import Network.Wai.Handler.Warp
+import qualified Network.Wai.Handler.WebSockets as WS
+import Network.Wai
+import Data.Function
+import Network.HTTP.Types.Status (notFound404)
+import qualified Network.WebSockets as WS
+import Control.Monad (forever)
+import Control.Concurrent (forkIO, threadDelay)
+
 
 serverStateWithGameMap :: GameMap -> GameLoopState
 serverStateWithGameMap gameMap =
@@ -43,8 +49,8 @@ serverStateWithGameMap gameMap =
 
 main :: IO ()
 main = do
-    Arguments {..} <- execParser opts
-    runLoop Arguments {..}
+    args <- execParser opts
+    startServer args
   where
     opts = info
         (argumentsParser <**> helper)
@@ -53,8 +59,8 @@ main = do
         <> header "Fail Whale Brigade presents Water Wars."
         )
 
-runLoop :: MonadUnliftIO m => Arguments -> m ()
-runLoop arguments = do
+startServer :: Arguments -> IO ()
+startServer arguments = do
     let -- gameMapFiles_ :: [FilePath]
         gameMapFiles_ = Seq.fromList $ if null (gameMapFiles arguments)
             then ["resources/game1.txt"]
@@ -63,52 +69,62 @@ runLoop arguments = do
     -- TODO: this fails ugly
     terrains_ <- (mapM readTerrainFromFile gameMapFiles_)
     case sequenceA terrains_ of
-        Nothing -> liftIO $ exitWith (ExitFailure 2)
+        Nothing -> exitWith (ExitFailure 2)
         Just terrains -> do
             let loadedGameMaps = fmap (`GameMap` defaultDecoration) terrains
             -- Initialize server state
-            messageQueue <- liftIO newTQueueIO
+            messageQueue <- newTQueueIO
             -- start to accept connections
-            -- TODO: thread leak
-            _            <- liftIO $ async (websocketServer arguments messageQueue)
-            gameServer arguments loadedGameMaps messageQueue
+            _ <- withAsync (websocketServer arguments messageQueue) $ \ wss -> do
+                gameServer arguments loadedGameMaps messageQueue
+                wait wss
+            pure ()
 
-
-websocketServer :: MonadUnliftIO m => Arguments -> TQueue EventMessage -> m ()
-websocketServer Arguments {..} messageQueue =
-    liftIO $ runServer (Text.unpack hostname) port (handleConnection messageQueue)
+websocketServer :: Arguments -> TQueue EventMessage -> IO ()
+websocketServer Arguments {..} messageQueue = do
+    -- WS.runServer "127.0.0.1" 8080 (handleConnection messageQueue)
+    runSettings
+        (defaultSettings
+            -- & setHost (fromString $ Text.unpack hostname)
+            & setPort port)
+        (WS.websocketsOr defaultConnectionOptions (handleConnection messageQueue)
+            (\ _request handler -> handler $ responseLBS notFound404 mempty ""))
 
 handleConnection :: TQueue EventMessage -> PendingConnection -> IO ()
 handleConnection messageQueue websocketConn = do
+    putStrLn "Waiting for connection"
     connHandle <- acceptRequest websocketConn
-    commChan   <- newTQueueIO -- to receive messages
-    sessionId  <- toText <$> nextRandom -- uniquely identify connections
-    let conn = newClientConnection sessionId
-                                   connHandle
-                                   (commChan :: TQueue ServerMessage)
-                                   (messageQueue :: TQueue EventMessage)
-    atomically $ writeTQueue messageQueue (RegisterEvent (Player sessionId) conn)
-    logger <- stdoutDateTextLogger
-    clientGameThread
-            logger
-            conn
-            (liftIO . atomically . writeTQueue messageQueue . ClientMessageEvent
-                (Player sessionId)
-            )
-            (liftIO $ atomically $ readTQueue commChan)
-        `finally` ( atomically
-                  . writeTQueue messageQueue
-                  . ClientMessageEvent (Player sessionId)
-                  $ LogoutMessage Logout
-                  )
-    return ()
+    WS.withPingThread connHandle 30 (pure ()) $ do
+
+        (clientHandler connHandle) `catch` \ e -> putStrLn (displayException @SomeException e)
+    where
+        clientHandler connHandle = do
+            commChan   <- newTQueueIO -- to receive messages
+            sessionId  <- toText <$> nextRandom -- uniquely identify connections
+            let conn = newClientConnection sessionId
+                                        connHandle
+                                        (commChan :: TQueue ServerMessage)
+                                        (messageQueue :: TQueue EventMessage)
+            atomically $ writeTQueue messageQueue (RegisterEvent (Player sessionId) conn)
+            logger <- stdoutDateTextLogger
+            clientGameThread
+                    logger
+                    conn
+                    (liftIO . atomically . writeTQueue messageQueue . ClientMessageEvent
+                        (Player sessionId)
+                    )
+                    (liftIO $ atomically $ readTQueue commChan)
+                `finally` ( atomically
+                        . writeTQueue messageQueue
+                        . ClientMessageEvent (Player sessionId)
+                        $ LogoutMessage Logout
+                        )
 
 gameServer
-    :: MonadUnliftIO m
-    => Arguments
+    :: Arguments
     -> Seq GameMap
     -> TQueue EventMessage
-    -> m ()
+    -> IO ()
 gameServer arguments loadedGameMaps messageQueue = do
     let gameLoopState = serverStateWithGameMap (head $ Foldable.toList loadedGameMaps)
     let playerAction  = PlayerActions Map.empty
@@ -134,9 +150,7 @@ gameServer arguments loadedGameMaps messageQueue = do
     envTvar :: TVar Env <- liftIO $ newTVarIO env
     logger <- liftIO stdoutDateTextLogger
     liftIO $ race_ (runEventLoop logger envTvar messageQueue)
-                        (runGameLoop envTvar messageQueue)
-
-    -- $logInfo "Start game loop"
+                    (runGameLoop envTvar messageQueue)
     return ()
 
 stdoutDateTextLogger :: IO Logger
