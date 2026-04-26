@@ -18,12 +18,13 @@ import Miso.Canvas
 import WaterWars.Client.Resources.Image (GameImage (image))
 import WaterWars.Core.Game
 import WaterWars.Core.Game.Constants
+import WaterWars.Client.Resources.Block (lookupBlockMap, BlockMap)
 
-render :: World -> Canvas ()
-render World{..} = do
+render :: Resources -> RenderInfo -> World -> Canvas ()
+render resources renderInfo World{..} = do
+  renderBackground backgroundTexture
   renderEnvironment
   renderManta
-  renderBackground backgroundTexture
  where
   -- deadPlayerPictures
   -- playerPictures
@@ -49,10 +50,10 @@ render World{..} = do
     )
 
   playerPictures :: Canvas ()
-  playerPictures = traverse_ (inGamePlayerToPicture renderInfo) livingPlayers
+  playerPictures = traverse_ (inGamePlayerToPicture resources renderInfo) livingPlayers
 
   deadPlayerPictures :: Canvas ()
-  deadPlayerPictures = traverse_ (deadPlayerToPicture renderInfo) deadPlayers
+  deadPlayerPictures = traverse_ (deadPlayerToPicture resources renderInfo) deadPlayers
 
   stateOf :: Maybe Player -> PlayerState
   stateOf Nothing = Disconnected
@@ -83,14 +84,15 @@ render World{..} = do
         case List.find ((== p) . playerDescription) (getInGamePlayers inGamePlayers) of
           Nothing -> pure ()
           Just alive -> do
-            inGamePlayerToPicture renderInfo alive
+            inGamePlayerToPicture resources renderInfo alive
 
   projectilePictures :: Canvas ()
-  projectilePictures = traverse_ (projectileToPicture renderInfo) projectiles
+  projectilePictures = traverse_ (projectileToPicture resources renderInfo) projectiles
 
   renderEnvironment :: Canvas ()
   renderEnvironment = do
-    traverse_ solidToPicture (solids <> decorations)
+    traverse_ (solidToPicture (flip lookupBlockMap blockMap)) solids
+    traverse_ (solidToPicture (flip lookupDecorationMap decorationMap)) decorations
 
   renderManta :: Canvas ()
   renderManta = backgroundAnimationToPicture mantaAnimation
@@ -100,7 +102,7 @@ render World{..} = do
     case countdown of
       Nothing -> pure ()
       Just down ->
-        countdownToPicture renderInfo (down - gameTicks)
+        countdownToPicture resources renderInfo (down - gameTicks)
 
   shootTargetPicture :: Canvas ()
   shootTargetPicture = do
@@ -108,6 +110,7 @@ render World{..} = do
       Nothing -> pure ()
       Just (Location (x, y)) -> do
         translate (toDouble (blockSize * x), toDouble (blockSize * y))
+
 
 -- circle_ []
 
@@ -120,18 +123,17 @@ renderBackground img = do
 inGamePlayerColor :: Color
 inGamePlayerColor = red
 
-solidToPicture :: Solid -> Canvas ()
-solidToPicture solid = do
+solidToPicture :: (a -> GameImage) -> Solid a -> Canvas ()
+solidToPicture getImage solid = do
   save ()
   translate (bimap toDouble toDouble $ solidCenter solid)
   translate (350, 250)
-  drawImage (image $ solidTexture solid, toDouble blockSize, toDouble blockSize)
+  drawImage (image $ getImage (solidContent solid), toDouble blockSize, toDouble blockSize)
   restore ()
 
-inGamePlayerToPicture :: RenderInfo -> InGamePlayer -> Canvas ()
-inGamePlayerToPicture RenderInfo{..} InGamePlayer{..} = do
+inGamePlayerToPicture :: Resources -> RenderInfo -> InGamePlayer -> Canvas ()
+inGamePlayerToPicture Resources{..} RenderInfo{..} InGamePlayer{..} = do
   let
-    Resources{..} = resources
     Location (x, y) = playerLocation
     directionComponent = case playerLastRunDirection of
       RunLeft -> -1
@@ -147,11 +149,9 @@ inGamePlayerToPicture RenderInfo{..} InGamePlayer{..} = do
   translate (toDouble (blockSize * x), toDouble (blockSize * y + blockSize * playerHeight / 2))
   drawImage (image $ head animationPictures, 0, 0)
 
-deadPlayerToPicture :: RenderInfo -> DeadPlayer -> Canvas ()
-deadPlayerToPicture RenderInfo{..} DeadPlayer{..} = do
+deadPlayerToPicture :: Resources -> RenderInfo -> DeadPlayer -> Canvas ()
+deadPlayerToPicture Resources{..} RenderInfo{..} DeadPlayer{..} = do
   let
-    Resources{..} = resources
-
     maybeAnimation = lookupPlayerAnimationMap deadPlayerDescription playerAnimations
     Location (x, y) = case maybeAnimation of
       Just (PlayerDeathAnimation ba) -> location ba
@@ -166,19 +166,18 @@ deadPlayerToPicture RenderInfo{..} DeadPlayer{..} = do
   translate (toDouble (blockSize * x), toDouble (blockSize * y + blockSize * defaultPlayerHeight / 2))
   drawImage (image $ head animationPictures, 0, 0)
 
-projectileToPicture :: RenderInfo -> Projectile -> Canvas ()
-projectileToPicture RenderInfo{..} p = do
+projectileToPicture :: Resources -> RenderInfo -> Projectile -> Canvas ()
+projectileToPicture Resources{..} RenderInfo{..} p = do
   translate (toDouble (x * blockSize), toDouble (y * blockSize))
-  drawImage (image $ projectileTexture resources, 0, 0)
+  drawImage (image projectileTexture, 0, 0)
  where
   Location (x, y) = projectileLocation p
 
-countdownToPicture :: RenderInfo -> Integer -> Canvas ()
-countdownToPicture RenderInfo{..} tick = do
+countdownToPicture :: Resources ->  RenderInfo -> Integer -> Canvas ()
+countdownToPicture Resources{..} RenderInfo{..} tick = do
   displayText
   drawImage (image pic, 0, 0)
  where
-  Resources{..} = resources
   pic
     | tick >= 180 = countdownTextures !! 0
     | tick >= 120 = countdownTextures !! 1

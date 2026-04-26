@@ -4,8 +4,6 @@ module WaterWars.Client.Resources.Resources where
 
 import Control.Monad.IO.Class
 import qualified Data.Foldable as Foldable
-import Data.Map.Strict (Map)
-import qualified Data.Map.Strict as Map
 import qualified Data.Text as Text
 import GHC.Generics
 import Miso.Prelude hiding ((.))
@@ -13,6 +11,8 @@ import WaterWars.Client.Codec.Resource (bulkLoad, loadPng)
 import WaterWars.Client.Resources.Block (BlockMap, loadBlockMap)
 import WaterWars.Client.Resources.Image (GameImage)
 import WaterWars.Core.Terrain.Decoration
+import Data.Vector (Vector)
+import qualified Data.Vector as Vector
 
 data Resources
   = Resources
@@ -29,23 +29,21 @@ data Resources
   , youLostTexture :: GameImage
   , decorationMap :: DecorationMap
   }
-  deriving (Generic)
+  deriving (Generic, Eq)
 
--- deriving FromJSVal via (Generically Resources)
+newtype DecorationMap = DecorationMap {getDecorationMap :: Vector GameImage}
+  deriving (Generic, Eq)
 
-newtype DecorationMap = DecorationMap {getDecorationMap :: Map Decoration GameImage}
-  deriving (Generic)
-
-lookupDecorationMap :: Decoration -> DecorationMap -> Maybe GameImage
-lookupDecorationMap val dm = Map.lookup val (getDecorationMap dm)
+lookupDecorationMap :: Decoration -> DecorationMap -> GameImage
+lookupDecorationMap val dm = getDecorationMap dm Vector.! fromEnum val
 
 instance FromJSVal Resources
 instance ToJSVal Resources
 instance FromJSVal DecorationMap where
-  fromJSVal val = fmap (DecorationMap . Map.mapKeys (read . fromMisoString)) <$> fromJSVal val
+  fromJSVal val = fmap (DecorationMap . Vector.fromList) <$> fromJSVal val
 
 instance ToJSVal DecorationMap where
-  toJSVal val = toJSVal $ Map.mapKeys (toMisoString . Text.show) $ getDecorationMap val
+  toJSVal val = toJSVal $ Vector.toList $ getDecorationMap val
 
 setup :: (MonadIO m) => MisoString -> m Resources
 setup baseUrl = do
@@ -87,11 +85,11 @@ setup baseUrl = do
       , baseUrl <> toMisoString "textures/decoration/snail.png"
       , baseUrl <> toMisoString "textures/decoration/umbrella.png"
       ]
-  let
-    decorationTypeList = [Algea, Coral, Snail, Umbrella]
+  -- let
+  --   decorationTypeList = [Algea, Coral, Snail, Umbrella]
   let
     decorationM =
-      Map.fromList $ zip decorationTypeList decorationTexsList
+      Vector.fromList decorationTexsList
 
   winTex <- loadPng $ baseUrl <> toMisoString "textures/writing/win.png"
   lostTex <- loadPng $ baseUrl <> toMisoString "textures/writing/lost.png"

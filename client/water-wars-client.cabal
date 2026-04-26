@@ -19,6 +19,7 @@ common options
       -no-hs-main
       -optl-mexec-model=reactor
       "-optl-Wl,--export=hs_start"
+
     cpp-options:
       -DWASM
 
@@ -62,24 +63,24 @@ library
     -Wall
 
   build-depends:
-    JuicyPixels,
-    array,
-    aeson,
-    base,
     -- classy-prelude,
+    -- websockets,
+    aeson,
+    array,
+    async,
+    base,
+    bytestring,
+    containers,
+    JuicyPixels,
+    miso,
     monad-logger,
     mtl,
     optparse-applicative,
     stm,
-    transformers,
-    water-wars,
-    -- websockets,
     text,
-    bytestring,
-    async,
-    stm,
-    containers,
-    miso,
+    transformers,
+    vector,
+    water-wars,
 
   default-language: Haskell2010
 
@@ -87,9 +88,8 @@ executable water-wars-client
   import: options
   main-is: Main.hs
   other-modules:
-    Paths_water_wars_client
-    WebSocket
     Json
+    Paths_water_wars_client
 
   hs-source-dirs:
     app
@@ -97,7 +97,6 @@ executable water-wars-client
   default-extensions:
     FlexibleContexts
     NamedFieldPuns
-
     OverloadedStrings
     RecordWildCards
     ScopedTypeVariables
@@ -109,18 +108,19 @@ executable water-wars-client
     -with-rtsopts=-N
 
   build-depends:
-    water-wars ^>=0.0.0,
-    base,
-    array,
     -- classy-prelude,
     -- gloss,
+    -- water-wars,
+    array,
+    base,
+    miso,
     monad-logger,
     mtl,
     optparse-applicative,
     stm,
     transformers,
-    -- water-wars,
+    vector,
+    water-wars ^>=0.0.0,
     water-wars-client,
-    miso,
 
   default-language: Haskell2010

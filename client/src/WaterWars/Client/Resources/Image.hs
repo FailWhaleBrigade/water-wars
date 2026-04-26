@@ -10,7 +10,11 @@ data GameImage = GameImage
     }
     deriving (Generic)
 
-    -- deriving FromJSVal via (Generically GameImage)
+instance Eq GameImage where
+    a == b = imageSource a == imageSource b
+
+instance Ord GameImage where
+    compare a b = compare (imageSource a) (imageSource b)
 
 instance FromJSVal GameImage where
 instance ToJSVal GameImage where

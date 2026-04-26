@@ -1,15 +1,14 @@
 module WaterWars.Client.Render.Terrain.Solid where
 
-import WaterWars.Client.Resources.Image (GameImage)
 import GHC.Generics
 import Miso (FromJSVal)
 
-data Solid =
+data Solid a =
     Solid
         { solidWidth :: Float
         , solidHeight :: Float
         , solidCenter :: (Float, Float)
-        , solidTexture :: GameImage
-        } deriving Generic
+        , solidContent :: a
+        } deriving (Generic, Eq)
 
-instance FromJSVal Solid where
+instance FromJSVal a => FromJSVal (Solid a) where

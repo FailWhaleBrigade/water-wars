@@ -1,25 +1,25 @@
 {-# LANGUAGE TemplateHaskell #-}
 
-module WaterWars.Client.Network.Connection
-    ( module WaterWars.Client.Network.State
-    , module WaterWars.Client.Network.Connection
-    )
+module WaterWars.Client.Network.Connection (
+  module WaterWars.Client.Network.State,
+  module WaterWars.Client.Network.Connection,
+)
 where
 
 import Data.Text (Text)
 
 -- import qualified Network.WebSockets            as WS
-import           Control.Monad.Logger
+import Control.Monad.Logger
 
-import           Control.Concurrent
+import Control.Concurrent
 
-import           WaterWars.Client.Render.State
-import           WaterWars.Client.Network.State
+import WaterWars.Client.Network.State
+import WaterWars.Client.Render.State
 
-import           WaterWars.Network.Protocol    as Protocol
+import WaterWars.Network.Protocol as Protocol
 
-import           WaterWars.Core.Game           as CoreState
 import qualified Data.Map.Strict as Map
+import WaterWars.Core.Game as CoreState
 
 -- connectionThread
 --     :: MonadIO m => Maybe NetworkInfo -> NetworkConfig -> WorldSTM -> m ()
@@ -51,8 +51,6 @@ import qualified Data.Map.Strict as Map
 --     --            "Altoough weird, the connection was a success, whatever that means"
 --     say "Connection failed, retry in some time"
 --     liftIO $ threadDelay (1000000 * 5)
-
-
 
 -- receiveUpdates :: MonadIO m => WorldSTM -> Connection -> m ()
 -- receiveUpdates (WorldSTM tvar) conn =
@@ -109,86 +107,101 @@ import qualified Data.Map.Strict as Map
 --               liftIO $ threadDelay (1000000 `div` 80)
 --               return ()
 
+updateWorld :: Protocol.ServerMessage -> RenderInfo -> World -> (World, RenderInfo, Maybe GameEvents)
+updateWorld serverMsg renderInfo world@World{..} = case serverMsg of
+  GameMapMessage gameMap ->
+    ( world
+    , setTerrain (terrainDecoration gameMap) (gameTerrain gameMap) renderInfo
+    , Nothing
+    )
+  GameStateMessage gameState@GameState{..} gameEvents ->
+    let
+      WorldInfo{..} = worldInfo
 
-updateWorld :: Protocol.ServerMessage -> World -> (World, Maybe GameEvents)
-updateWorld serverMsg world@World {..} = case serverMsg of
-    GameMapMessage gameMap ->
-        ( setTerrain (terrainDecoration gameMap) (gameTerrain gameMap) world
-        , Nothing
-        )
-    GameStateMessage gameState@GameState {..} gameEvents ->
-        let
-            WorldInfo {..} = worldInfo
+      newProjectiles :: [Projectile]
+      newProjectiles = getProjectiles gameProjectiles
 
-            newProjectiles :: [Projectile]
-            newProjectiles = getProjectiles gameProjectiles
-
-            worldInfo_     = WorldInfo {projectiles = newProjectiles, ..}
-            maybeEvents    = if null $ getGameEvents gameEvents
-                then Nothing
-                else Just gameEvents
-        in
-            ( World
-                { worldInfo      = worldInfo_
-                , lastGameUpdate = ServerUpdate gameState
-                , ..
-                }
-            , maybeEvents
-            )
-
-    GameSetupResponseMessage _ -> (world, Nothing)
-
-    LoginResponseMessage loginResponse ->
-        let WorldInfo {..} = worldInfo
-            newPlayer = Just (playerDescription $ successPlayer loginResponse)
-            worldInfo_ = WorldInfo {localPlayer = newPlayer, ..}
-        in  (World {worldInfo = worldInfo_, ..}, Nothing)
-
-    GameWillStartMessage (GameStart n) ->
-        (world { worldInfo = worldInfo { countdown = Just n } }, Nothing)
-
-    GameStartMessage ->
-        ( world
-            { worldInfo = worldInfo { countdown = Nothing, gameRunning = True }
-            }
-        , Nothing
-        )
-    ResetGameMessage ->
-        -- TODO: this is kind of hacky, we just forget the last game update to avoid the race condition
-        -- between deleting all animation and the next gloss update which generates new animation as needed
-        ( world
-            { renderInfo     = renderInfo { playerAnimations = PlayerAnimationMap Map.empty }
-            , worldInfo      = worldInfo { winnerPlayer = Nothing }
-            , lastGameUpdate = ServerUpdate
-                                   { gameStateUpdate = GameState
-                                       { inGamePlayers   = InGamePlayers []
-                                       , gameDeadPlayers = DeadPlayers []
-                                       , gameProjectiles = Projectiles []
-                                       , gameTicks       = 0
-                                       }
-                                   }
-            }
-        , Nothing
-        )
-    StopGame ->
-        ( world
-            { worldInfo = worldInfo { countdown    = Nothing
-                                    , gameRunning  = False
-                                    , winnerPlayer = Nothing
-                                    }
-            }
-        , Nothing
-        )
-    StopGameWithWinner winner ->
-        ( world
-            { worldInfo = worldInfo { countdown    = Nothing
-                                    , gameRunning  = False
-                                    , winnerPlayer = Just winner
-                                    }
-            }
-        , Nothing
-        )
-
+      worldInfo_ = WorldInfo{projectiles = newProjectiles, ..}
+      maybeEvents =
+        if null $ getGameEvents gameEvents
+          then Nothing
+          else Just gameEvents
+    in
+      ( World
+          { worldInfo = worldInfo_
+          , lastGameUpdate = ServerUpdate gameState
+          , ..
+          }
+      , renderInfo
+      , maybeEvents
+      )
+  GameSetupResponseMessage _ -> (world, renderInfo, Nothing)
+  LoginResponseMessage loginResponse ->
+    let
+      WorldInfo{..} = worldInfo
+      newPlayer = Just (playerDescription $ successPlayer loginResponse)
+      worldInfo_ = WorldInfo{localPlayer = newPlayer, ..}
+    in
+      ( World{worldInfo = worldInfo_, ..}
+      , renderInfo
+      , Nothing
+      )
+  GameWillStartMessage (GameStart n) ->
+    ( world{worldInfo = worldInfo{countdown = Just n}}
+    , renderInfo
+    , Nothing
+    )
+  GameStartMessage ->
+    ( world
+        { worldInfo = worldInfo{countdown = Nothing, gameRunning = True}
+        }
+    , renderInfo
+    , Nothing
+    )
+  ResetGameMessage ->
+    -- TODO: this is kind of hacky, we just forget the last game update to avoid the race condition
+    -- between deleting all animation and the next gloss update which generates new animation as needed
+    ( world
+        { -- renderInfo     = renderInfo { playerAnimations = PlayerAnimationMap Map.empty }
+          worldInfo = worldInfo{winnerPlayer = Nothing}
+        , lastGameUpdate =
+            ServerUpdate
+              { gameStateUpdate =
+                  GameState
+                    { inGamePlayers = InGamePlayers []
+                    , gameDeadPlayers = DeadPlayers []
+                    , gameProjectiles = Projectiles []
+                    , gameTicks = 0
+                    }
+              }
+        }
+    , renderInfo
+    , Nothing
+    )
+  StopGame ->
+    ( world
+        { worldInfo =
+            worldInfo
+              { countdown = Nothing
+              , gameRunning = False
+              , winnerPlayer = Nothing
+              }
+        }
+    , renderInfo
+    , Nothing
+    )
+  StopGameWithWinner winner ->
+    ( world
+        { worldInfo =
+            worldInfo
+              { countdown = Nothing
+              , gameRunning = False
+              , winnerPlayer = Just winner
+              }
+        }
+    , renderInfo
+    , Nothing
+    )
 
 -- extractGameAction :: TVar World -> STM Protocol.PlayerAction
 -- extractGameAction worldTvar = do
@@ -216,7 +229,6 @@ updateWorld serverMsg world@World {..} = case serverMsg of
 --             , shootAction = shootCmd
 --             }
 --     return PlayerAction {getAction = playerAction}
-
 
 -- calculateAngle :: Location -> Location -> Angle
 -- calculateAngle (Location (x1, y1)) (Location (x2, y2)) =

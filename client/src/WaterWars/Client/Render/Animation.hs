@@ -11,23 +11,22 @@ data Animation = Animation
     { countDownTilNext :: Int
     , countDownMax :: Int
     , animationPictures :: [GameImage]
-    } deriving Generic
+    } deriving (Generic, Eq)
 
 instance FromJSVal Animation where
 data PlayerAnimation
     = PlayerIdleAnimation Animation
     | PlayerRunningAnimation Animation
     | PlayerDeathAnimation BackgroundAnimation
-    deriving Generic
+    deriving (Generic, Eq)
 
 -- instance FromJSVal PlayerAnimation where
 
 data BackgroundAnimation = BackgroundAnimation
     { animation :: Animation
     , location :: Location
-    , updateOperation :: BackgroundAnimation -> BackgroundAnimation
     , direction :: Direction
-    } deriving Generic
+    } deriving (Generic, Eq)
 
 
 -- instance FromJSVal BackgroundAnimation where
@@ -43,7 +42,7 @@ updatePlayerAnimation (PlayerIdleAnimation anim) =
 updatePlayerAnimation (PlayerRunningAnimation anim) =
     PlayerRunningAnimation $ updateAnimation anim
 updatePlayerAnimation (PlayerDeathAnimation anim) =
-    PlayerDeathAnimation $ updateBackgroundAnimation anim
+    PlayerDeathAnimation $ updatePlayerBackgroundAnimation anim
 
 updateAnimation :: Animation -> Animation
 updateAnimation a@Animation {..}
@@ -52,8 +51,18 @@ updateAnimation a@Animation {..}
            }
     | otherwise = a { countDownTilNext = countDownTilNext - 1 }
 
-updateBackgroundAnimation :: BackgroundAnimation -> BackgroundAnimation
-updateBackgroundAnimation a = b { animation = newAnimation }
+updatePlayerBackgroundAnimation :: BackgroundAnimation -> BackgroundAnimation
+updatePlayerBackgroundAnimation a = b { animation = newAnimation }
   where
     newAnimation = updateAnimation (animation a)
-    b            = (updateOperation a) a
+    b            = deadPlayerUpdateOperation a
+
+deadPlayerUpdateOperation :: BackgroundAnimation -> BackgroundAnimation
+deadPlayerUpdateOperation BackgroundAnimation{..} =
+  BackgroundAnimation
+    { location = Location (x, newY)
+    , ..
+    }
+ where
+  Location (x, y) = location
+  newY = y + 0.05

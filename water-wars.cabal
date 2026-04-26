@@ -63,6 +63,7 @@ library
   build-depends:
     -- classy-prelude,
     array,
+    aeson,
     base,
     bytestring,
     cereal,
