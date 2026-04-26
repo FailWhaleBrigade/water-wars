@@ -107,11 +107,11 @@ import WaterWars.Core.Game as CoreState
 --               liftIO $ threadDelay (1000000 `div` 80)
 --               return ()
 
-updateWorld :: Protocol.ServerMessage -> RenderInfo -> World -> (World, RenderInfo, Maybe GameEvents)
-updateWorld serverMsg renderInfo world@World{..} = case serverMsg of
+updateWorld :: Protocol.ServerMessage -> AnimationState -> World -> (World, AnimationState, Maybe GameEvents)
+updateWorld serverMsg animationState world@World{..} = case serverMsg of
   GameMapMessage gameMap ->
     ( world
-    , setTerrain (terrainDecoration gameMap) (gameTerrain gameMap) renderInfo
+    , setTerrain (terrainDecoration gameMap) (gameTerrain gameMap) animationState
     , Nothing
     )
   GameStateMessage gameState@GameState{..} gameEvents ->
@@ -132,10 +132,10 @@ updateWorld serverMsg renderInfo world@World{..} = case serverMsg of
           , lastGameUpdate = ServerUpdate gameState
           , ..
           }
-      , renderInfo
+      , animationState
       , maybeEvents
       )
-  GameSetupResponseMessage _ -> (world, renderInfo, Nothing)
+  GameSetupResponseMessage _ -> (world, animationState, Nothing)
   LoginResponseMessage loginResponse ->
     let
       WorldInfo{..} = worldInfo
@@ -143,26 +143,26 @@ updateWorld serverMsg renderInfo world@World{..} = case serverMsg of
       worldInfo_ = WorldInfo{localPlayer = newPlayer, ..}
     in
       ( World{worldInfo = worldInfo_, ..}
-      , renderInfo
+      , animationState
       , Nothing
       )
   GameWillStartMessage (GameStart n) ->
     ( world{worldInfo = worldInfo{countdown = Just n}}
-    , renderInfo
+    , animationState
     , Nothing
     )
   GameStartMessage ->
     ( world
         { worldInfo = worldInfo{countdown = Nothing, gameRunning = True}
         }
-    , renderInfo
+    , animationState
     , Nothing
     )
   ResetGameMessage ->
     -- TODO: this is kind of hacky, we just forget the last game update to avoid the race condition
     -- between deleting all animation and the next gloss update which generates new animation as needed
     ( world
-        { -- renderInfo     = renderInfo { playerAnimations = PlayerAnimationMap Map.empty }
+        { -- AnimationState     = AnimationState { playerAnimations = PlayerAnimationMap Map.empty }
           worldInfo = worldInfo{winnerPlayer = Nothing}
         , lastGameUpdate =
             ServerUpdate
@@ -175,7 +175,7 @@ updateWorld serverMsg renderInfo world@World{..} = case serverMsg of
                     }
               }
         }
-    , renderInfo
+    , animationState
     , Nothing
     )
   StopGame ->
@@ -187,7 +187,7 @@ updateWorld serverMsg renderInfo world@World{..} = case serverMsg of
               , winnerPlayer = Nothing
               }
         }
-    , renderInfo
+    , animationState
     , Nothing
     )
   StopGameWithWinner winner ->
@@ -199,7 +199,7 @@ updateWorld serverMsg renderInfo world@World{..} = case serverMsg of
               , winnerPlayer = Just winner
               }
         }
-    , renderInfo
+    , animationState
     , Nothing
     )
 

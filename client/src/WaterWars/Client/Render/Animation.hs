@@ -14,22 +14,18 @@ data Animation = Animation
     } deriving (Generic, Eq)
 
 instance FromJSVal Animation where
+
 data PlayerAnimation
     = PlayerIdleAnimation Animation
     | PlayerRunningAnimation Animation
     | PlayerDeathAnimation BackgroundAnimation
     deriving (Generic, Eq)
 
--- instance FromJSVal PlayerAnimation where
-
 data BackgroundAnimation = BackgroundAnimation
     { animation :: Animation
     , location :: Location
     , direction :: Direction
     } deriving (Generic, Eq)
-
-
--- instance FromJSVal BackgroundAnimation where
 
 playerToAnimation :: PlayerAnimation -> Animation
 playerToAnimation (PlayerIdleAnimation    anim) = anim

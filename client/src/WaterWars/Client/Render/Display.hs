@@ -20,8 +20,8 @@ import WaterWars.Core.Game
 import WaterWars.Core.Game.Constants
 import WaterWars.Client.Resources.Block (lookupBlockMap, BlockMap)
 
-render :: Resources -> RenderInfo -> World -> Canvas ()
-render resources renderInfo World{..} = do
+render :: Resources -> AnimationState -> World -> Canvas ()
+render resources animationState World{..} = do
   renderBackground backgroundTexture
   renderEnvironment
   renderManta
@@ -34,7 +34,7 @@ render resources renderInfo World{..} = do
   -- serverTextMessage
   -- shootTargetPicture
 
-  RenderInfo{..} = renderInfo
+  AnimationState{..} = animationState
   WorldInfo{..} = worldInfo
   GameState{..} = gameStateUpdate lastGameUpdate
   Resources{..} = resources
@@ -50,10 +50,10 @@ render resources renderInfo World{..} = do
     )
 
   playerPictures :: Canvas ()
-  playerPictures = traverse_ (inGamePlayerToPicture resources renderInfo) livingPlayers
+  playerPictures = traverse_ (inGamePlayerToPicture resources animationState) livingPlayers
 
   deadPlayerPictures :: Canvas ()
-  deadPlayerPictures = traverse_ (deadPlayerToPicture resources renderInfo) deadPlayers
+  deadPlayerPictures = traverse_ (deadPlayerToPicture resources animationState) deadPlayers
 
   stateOf :: Maybe Player -> PlayerState
   stateOf Nothing = Disconnected
@@ -84,10 +84,10 @@ render resources renderInfo World{..} = do
         case List.find ((== p) . playerDescription) (getInGamePlayers inGamePlayers) of
           Nothing -> pure ()
           Just alive -> do
-            inGamePlayerToPicture resources renderInfo alive
+            inGamePlayerToPicture resources animationState alive
 
   projectilePictures :: Canvas ()
-  projectilePictures = traverse_ (projectileToPicture resources renderInfo) projectiles
+  projectilePictures = traverse_ (projectileToPicture resources animationState) projectiles
 
   renderEnvironment :: Canvas ()
   renderEnvironment = do
@@ -102,7 +102,7 @@ render resources renderInfo World{..} = do
     case countdown of
       Nothing -> pure ()
       Just down ->
-        countdownToPicture resources renderInfo (down - gameTicks)
+        countdownToPicture resources animationState (down - gameTicks)
 
   shootTargetPicture :: Canvas ()
   shootTargetPicture = do
@@ -131,8 +131,8 @@ solidToPicture getImage solid = do
   drawImage (image $ getImage (solidContent solid), toDouble blockSize, toDouble blockSize)
   restore ()
 
-inGamePlayerToPicture :: Resources -> RenderInfo -> InGamePlayer -> Canvas ()
-inGamePlayerToPicture Resources{..} RenderInfo{..} InGamePlayer{..} = do
+inGamePlayerToPicture :: Resources -> AnimationState -> InGamePlayer -> Canvas ()
+inGamePlayerToPicture Resources{..} AnimationState{..} InGamePlayer{..} = do
   let
     Location (x, y) = playerLocation
     directionComponent = case playerLastRunDirection of
@@ -149,8 +149,8 @@ inGamePlayerToPicture Resources{..} RenderInfo{..} InGamePlayer{..} = do
   translate (toDouble (blockSize * x), toDouble (blockSize * y + blockSize * playerHeight / 2))
   drawImage (image $ head animationPictures, 0, 0)
 
-deadPlayerToPicture :: Resources -> RenderInfo -> DeadPlayer -> Canvas ()
-deadPlayerToPicture Resources{..} RenderInfo{..} DeadPlayer{..} = do
+deadPlayerToPicture :: Resources -> AnimationState -> DeadPlayer -> Canvas ()
+deadPlayerToPicture Resources{..} AnimationState{..} DeadPlayer{..} = do
   let
     maybeAnimation = lookupPlayerAnimationMap deadPlayerDescription playerAnimations
     Location (x, y) = case maybeAnimation of
@@ -166,15 +166,15 @@ deadPlayerToPicture Resources{..} RenderInfo{..} DeadPlayer{..} = do
   translate (toDouble (blockSize * x), toDouble (blockSize * y + blockSize * defaultPlayerHeight / 2))
   drawImage (image $ head animationPictures, 0, 0)
 
-projectileToPicture :: Resources -> RenderInfo -> Projectile -> Canvas ()
-projectileToPicture Resources{..} RenderInfo{..} p = do
+projectileToPicture :: Resources -> AnimationState -> Projectile -> Canvas ()
+projectileToPicture Resources{..} AnimationState{..} p = do
   translate (toDouble (x * blockSize), toDouble (y * blockSize))
   drawImage (image projectileTexture, 0, 0)
  where
   Location (x, y) = projectileLocation p
 
-countdownToPicture :: Resources ->  RenderInfo -> Integer -> Canvas ()
-countdownToPicture Resources{..} RenderInfo{..} tick = do
+countdownToPicture :: Resources ->  AnimationState -> Integer -> Canvas ()
+countdownToPicture Resources{..} AnimationState{..} tick = do
   displayText
   drawImage (image pic, 0, 0)
  where

@@ -6,14 +6,14 @@ module WaterWars.Client.Render.State (
   Animation (..),
   World (..),
   WorldSTM (..),
-  RenderInfo (..),
+  AnimationState (..),
   WorldInfo (..),
   PlayerAnimation (..),
   PlayerAnimationMap (..),
   lookupPlayerAnimationMap,
   ServerUpdate (..),
   emptyWorld,
-  newRenderInfo,
+  newAnimationState,
   setTerrain,
   module WaterWars.Client.Resources.Resources,
 )
@@ -44,7 +44,7 @@ data World = World
   }
   deriving (Generic, Eq)
 
-data RenderInfo = RenderInfo
+data AnimationState = AnimationState
   { defaultPlayerAnimation :: PlayerAnimation
   , newPlayerIdleAnimation :: PlayerAnimation
   , newPlayerRunnningAnimation :: PlayerAnimation
@@ -86,9 +86,10 @@ data WorldInfo = WorldInfo
   }
   deriving (Show, Generic, Eq)
 
-newRenderInfo :: Resources -> RenderInfo
-newRenderInfo Resources{..} =
-  RenderInfo
+newAnimationState :: Resources -> AnimationState
+newAnimationState Resources {idlePlayerTexture, runningPlayerTextures,
+           playerDeathTextures, mantaTextures, connectingTextures} =
+  AnimationState
     { playerAnimations = PlayerAnimationMap Map.empty
     , defaultPlayerAnimation =
         PlayerIdleAnimation
@@ -180,9 +181,9 @@ emptyWorld =
           }
     }
 
-setTerrain :: CoreState.TerrainDecoration -> CoreState.Terrain -> RenderInfo -> RenderInfo
-setTerrain decoration terrain renderInfo =
-  renderInfo
+setTerrain :: CoreState.TerrainDecoration -> CoreState.Terrain -> AnimationState -> AnimationState
+setTerrain decoration terrain animationState =
+  animationState
     { solids = blockPositions terrainArray
     , decorations =
         decorationPositions

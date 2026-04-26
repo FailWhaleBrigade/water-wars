@@ -41,12 +41,12 @@ import qualified Data.Maybe as Maybe
 
 -- advanceAnimations :: Float -> World -> World
 -- advanceAnimations _ World {..} = World
---     { renderInfo = renderInfo
---         { mantaAnimation = updateBackgroundAnimation (mantaAnimation renderInfo)
+--     { AnimationState = AnimationState
+--         { mantaAnimation = updateBackgroundAnimation (mantaAnimation AnimationState)
 --         , playerAnimations = Map.fromList $ fmap
 --             (updatePlayerInformation World {..})
 --             (Foldable.toList $ getAllPlayers lastGameUpdate)
---         , connectingAnimation = updateAnimation (connectingAnimation renderInfo)
+--         , connectingAnimation = updateAnimation (connectingAnimation AnimationState)
 --         }
 --     , ..
 --     }
@@ -61,7 +61,7 @@ import qualified Data.Maybe as Maybe
 -- updatePlayerInformation :: World -> Player -> (Player, PlayerAnimation)
 -- updatePlayerInformation World {..} player =
 --     let
---         RenderInfo {..} = renderInfo
+--         AnimationState {..} = AnimationState
 --         GameState {..}  = gameStateUpdate lastGameUpdate
 
 --         livingPlayer    = List.find ((== player) . playerDescription)
