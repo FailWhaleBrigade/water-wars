@@ -19,6 +19,8 @@ import WaterWars.Client.Resources.Image (GameImage (image))
 import WaterWars.Core.Game
 import WaterWars.Core.Game.Constants
 import WaterWars.Client.Resources.Block (lookupBlockMap, BlockMap)
+import Data.Vector (Vector)
+import qualified Data.Vector as Vector
 
 render :: Resources -> AnimationState -> World -> Canvas ()
 render resources animationState World{..} = do
@@ -65,7 +67,7 @@ render resources animationState World{..} = do
   serverTextMessage
     | state == Disconnected = do
         displayText
-        drawImage (image $ displayAnimation connectingAnimation, 0, 0)
+        drawImage (image $ getAnimationFrame connectingTextures connectingAnimation, 0, 0)
     | state == Dead = do
         displayText
         drawImage (image youLostTexture, 0, 0)
@@ -95,7 +97,7 @@ render resources animationState World{..} = do
     traverse_ (solidToPicture (flip lookupDecorationMap decorationMap)) decorations
 
   renderManta :: Canvas ()
-  renderManta = backgroundAnimationToPicture mantaAnimation
+  renderManta = backgroundAnimationToPicture mantaTextures mantaAnimation
 
   readyPicture :: Canvas ()
   readyPicture = do
@@ -139,7 +141,7 @@ inGamePlayerToPicture Resources{..} AnimationState{..} InGamePlayer{..} = do
       RunLeft -> -1
       RunRight -> 1
     maybeAnimation = lookupPlayerAnimationMap playerDescription playerAnimations
-    Animation{..} =
+    animation =
       playerToAnimation $ Maybe.fromMaybe defaultPlayerAnimation maybeAnimation
   scale (directionComponent, 1)
   scale (toDouble (1 / mermaidWidth), toDouble (1 / mermaidHeight))
@@ -147,7 +149,7 @@ inGamePlayerToPicture Resources{..} AnimationState{..} InGamePlayer{..} = do
   scale (toDouble blockSize, toDouble blockSize)
   -- color inGamePlayerColor
   translate (toDouble (blockSize * x), toDouble (blockSize * y + blockSize * playerHeight / 2))
-  drawImage (image $ head animationPictures, 0, 0)
+  drawImage (image $ getAnimationFrame runningPlayerTextures animation, 0, 0)
 
 deadPlayerToPicture :: Resources -> AnimationState -> DeadPlayer -> Canvas ()
 deadPlayerToPicture Resources{..} AnimationState{..} DeadPlayer{..} = do
@@ -156,7 +158,7 @@ deadPlayerToPicture Resources{..} AnimationState{..} DeadPlayer{..} = do
     Location (x, y) = case maybeAnimation of
       Just (PlayerDeathAnimation ba) -> location ba
       _ -> deadPlayerLocation
-    Animation{..} =
+    a =
       playerToAnimation $
         Maybe.fromMaybe defaultPlayerAnimation maybeAnimation
 
@@ -164,7 +166,9 @@ deadPlayerToPicture Resources{..} AnimationState{..} DeadPlayer{..} = do
   scale (toDouble blockSize, toDouble blockSize)
   scale (toDouble defaultPlayerWidth, toDouble defaultPlayerHeight)
   translate (toDouble (blockSize * x), toDouble (blockSize * y + blockSize * defaultPlayerHeight / 2))
-  drawImage (image $ head animationPictures, 0, 0)
+  drawImage (image $ getAnimationFrame playerDeathTextures a, 0, 0)
+
+
 
 projectileToPicture :: Resources -> AnimationState -> Projectile -> Canvas ()
 projectileToPicture Resources{..} AnimationState{..} p = do
@@ -179,14 +183,14 @@ countdownToPicture Resources{..} AnimationState{..} tick = do
   drawImage (image pic, 0, 0)
  where
   pic
-    | tick >= 180 = countdownTextures !! 0
-    | tick >= 120 = countdownTextures !! 1
-    | tick >= 60 = countdownTextures !! 2
+    | tick >= 180 = countdownTextures Vector.! 0
+    | tick >= 120 = countdownTextures Vector.! 1
+    | tick >= 60 = countdownTextures Vector.! 2
     | otherwise {- tick >= 0 -} =
-        countdownTextures !! 3
+        countdownTextures Vector.! 3
 
-backgroundAnimationToPicture :: BackgroundAnimation -> Canvas ()
-backgroundAnimationToPicture BackgroundAnimation{..} = do
+backgroundAnimationToPicture :: Vector GameImage -> BackgroundAnimation -> Canvas ()
+backgroundAnimationToPicture texs BackgroundAnimation{..} = do
   save ()
   translate (64, 0)
   scale scaleFactor
@@ -197,14 +201,15 @@ backgroundAnimationToPicture BackgroundAnimation{..} = do
   scaleFactor = case direction of
     RightDir -> (-1, 1)
     LeftDir -> (1, 1)
-  pic = displayAnimation animation
+  pic = getAnimationFrame texs animation
   Location (x, y) = location
 
 toDouble :: (Real a) => a -> Double
 toDouble = realToFrac @_ @Double
 
-displayAnimation :: Animation -> GameImage
-displayAnimation Animation{..} = head animationPictures
+getAnimationFrame :: Vector GameImage -> Animation -> GameImage
+getAnimationFrame imgs a =
+  imgs Vector.! (animationPictures a `rem` Vector.length imgs)
 
 displayText :: Canvas ()
 displayText = translate (0, 100)

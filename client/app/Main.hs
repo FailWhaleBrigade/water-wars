@@ -9,8 +9,7 @@ module Main where
 ----------------------------------------------------------------------------
 
 import Control.Monad (replicateM_)
-import GHC.Generics (Generic)
-import Json ()
+import WaterWars.Network.WasmJson ()
 import Miso
 import qualified Miso.CSS as CSS
 import Miso.Canvas
@@ -34,7 +33,7 @@ data Model
   = Model
   { _time :: (Double, Double)
   , _world :: World
-  , _animationState :: Maybe AnimationState
+  , _animationState :: AnimationState
   , _resources :: Maybe Resources
   , _websocket :: WebSocket
   , _connected :: Bool
@@ -55,7 +54,7 @@ connected = lens _connected $ \r x -> r{_connected = x}
 world :: Lens Model World
 world = lens _world $ \r x -> r{_world = x}
 
-animationState :: Lens Model (Maybe AnimationState)
+animationState :: Lens Model AnimationState
 animationState = lens _animationState $ \r x -> r{_animationState = x}
 
 resources :: Lens Model (Maybe Resources)
@@ -112,7 +111,7 @@ emptyModel =
   Model
     { _time = (0, 0)
     , _world = emptyWorld
-    , _animationState = Nothing
+    , _animationState = newAnimationState
     , _resources = Nothing
     , _websocket = WS.emptyWebSocket
     , _connected = False
@@ -134,9 +133,8 @@ updateModel = \case
       r <- setup baseUrl
       pure $ FinishedResourceLoading r
   FinishedResourceLoading r -> do
-    io_ $ consoleLog $ "Finished resource Loading"
     resources .= Just r
-    animationState .= Just (newAnimationState r)
+    animationState .= newAnimationState
     issue GetTime
   Connect -> do
     io_ $ consoleLog $ "Connecting"
@@ -162,15 +160,12 @@ updateModel = \case
     pure ()
   OnMessage message -> do
     io_ $ consoleLog $ ms (show message)
-    mAnim <- use animationState
+    anim <- use animationState
     w <- use world
-    case mAnim of
-      Nothing -> pure ()
-      Just anim -> do
-        let
-          (newWorld, animState, _mEvents) = Client.updateWorld message anim w
-        world .= newWorld
-        animationState .= Just animState
+    let
+      (newWorld, animState, _mEvents) = Client.updateWorld message anim w
+    world .= newWorld
+    animationState .= animState
   OnError errorMessage ->
     io_ (consoleError errorMessage)
   Disconnect ->
@@ -224,17 +219,17 @@ canvasDraw ::
   (Double, Double) ->
   (Double, Double) ->
   Maybe Resources ->
-  Maybe AnimationState ->
+  AnimationState ->
   World ->
   () ->
   Canvas ()
-canvasDraw (w, h) (millis', secs') mResources mAnimationState world_ () = do
+canvasDraw (w, h) (millis', secs') mResources animState world_ () = do
   globalCompositeOperation SourceOver
   clearRect (0, 0, w, h)
 
-  case liftA2 (,) mResources mAnimationState of
+  case mResources of
     Nothing -> pure ()
-    Just (res, animState) -> do
+    Just res -> do
       render res animState world_
 
   save ()

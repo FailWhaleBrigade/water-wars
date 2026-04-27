@@ -3,47 +3,47 @@
 module WaterWars.Client.Resources.Resources where
 
 import Control.Monad.IO.Class
-import qualified Data.Foldable as Foldable
 import qualified Data.Text as Text
+import Data.Vector (Vector)
+import qualified Data.Vector as Vector
 import GHC.Generics
 import Miso.Prelude hiding ((.))
 import WaterWars.Client.Codec.Resource (bulkLoad, loadPng)
 import WaterWars.Client.Resources.Block (BlockMap, loadBlockMap)
 import WaterWars.Client.Resources.Image (GameImage)
 import WaterWars.Core.Terrain.Decoration
-import Data.Vector (Vector)
-import qualified Data.Vector as Vector
 
 data Resources
   = Resources
   { backgroundTexture :: GameImage
   , projectileTexture :: GameImage
   , idlePlayerTexture :: GameImage
-  , runningPlayerTextures :: [GameImage]
-  , playerDeathTextures :: [GameImage]
-  , mantaTextures :: [GameImage]
-  , countdownTextures :: [GameImage]
+  , runningPlayerTextures :: Vector GameImage
+  , playerDeathTextures :: Vector GameImage
+  , mantaTextures :: Vector GameImage
+  , countdownTextures :: Vector GameImage
   , blockMap :: BlockMap
-  , connectingTextures :: [GameImage]
+  , connectingTextures :: Vector GameImage
   , youWinTexture :: GameImage
   , youLostTexture :: GameImage
   , decorationMap :: DecorationMap
   }
-  deriving (Generic, Eq)
-
-newtype DecorationMap = DecorationMap {getDecorationMap :: Vector GameImage}
-  deriving (Generic, Eq)
-
-lookupDecorationMap :: Decoration -> DecorationMap -> GameImage
-lookupDecorationMap val dm = getDecorationMap dm Vector.! fromEnum val
+  deriving (Generic, Eq, Show)
 
 instance FromJSVal Resources
 instance ToJSVal Resources
+
+newtype DecorationMap = DecorationMap {getDecorationMap :: Vector GameImage}
+  deriving (Generic, Eq, Show)
+
 instance FromJSVal DecorationMap where
   fromJSVal val = fmap (DecorationMap . Vector.fromList) <$> fromJSVal val
 
 instance ToJSVal DecorationMap where
   toJSVal val = toJSVal $ Vector.toList $ getDecorationMap val
+
+lookupDecorationMap :: Decoration -> DecorationMap -> GameImage
+lookupDecorationMap val dm = getDecorationMap dm Vector.! fromEnum val
 
 setup :: (MonadIO m) => MisoString -> m Resources
 setup baseUrl = do
@@ -100,15 +100,15 @@ setup baseUrl = do
       { backgroundTexture = bgTex
       , projectileTexture = prjTex
       , idlePlayerTexture = playerTex
-      , runningPlayerTextures = Foldable.toList playerRunningTexs
-      , playerDeathTextures = Foldable.toList playerDeathTexs
-      , mantaTextures = Foldable.toList mantaTexs
-      , countdownTextures = Foldable.toList countdownTexs
+      , runningPlayerTextures = Vector.fromList playerRunningTexs
+      , playerDeathTextures = Vector.fromList playerDeathTexs
+      , mantaTextures = Vector.fromList mantaTexs
+      , countdownTextures = Vector.fromList countdownTexs
       , blockMap = blockMap
-      , connectingTextures = Foldable.toList connectingTex
+      , connectingTextures = Vector.fromList connectingTex
       , youWinTexture = winTex
       , youLostTexture = lostTex
-      , decorationMap = (DecorationMap decorationM)
+      , decorationMap = DecorationMap decorationM
       }
 
 getMermaidPaths :: MisoString -> Int -> Int -> [MisoString]

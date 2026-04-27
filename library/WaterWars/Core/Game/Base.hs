@@ -29,9 +29,11 @@ instance Monoid VelocityVector where
     mappend = (<>)
 
 newtype Angle = Angle Float
-    deriving (Show, Read, Num, Eq, Floating, Fractional, Generic)
+    deriving (Show, Read, Eq, Generic)
+    deriving newtype (Num, Floating, Fractional)
 
 newtype Speed = Speed Float
-    deriving (Show, Read, Num, Eq, Floating, Fractional, Generic)
+    deriving (Show, Read, Eq, Generic)
+    deriving newtype (Num, Floating, Fractional)
 
 type MovementState = (Location, VelocityVector)

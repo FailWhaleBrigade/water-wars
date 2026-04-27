@@ -1,57 +1,60 @@
 module WaterWars.Client.Render.Animation where
 
-import WaterWars.Core.Game
-import WaterWars.Client.Resources.Image (GameImage)
 import GHC.Generics
 import Miso
+import WaterWars.Core.Game
 
 data Direction = LeftDir | RightDir deriving (Eq, Show, Read, Ord, Enum, Bounded)
 
 data Animation = Animation
-    { countDownTilNext :: Int
-    , countDownMax :: Int
-    , animationPictures :: [GameImage]
-    } deriving (Generic, Eq)
+  { countDownTilNext :: Int
+  , countDownMax :: Int
+  , animationPictures :: Int
+  }
+  deriving (Generic, Eq)
 
-instance FromJSVal Animation where
+instance FromJSVal Animation
 
 data PlayerAnimation
-    = PlayerIdleAnimation Animation
-    | PlayerRunningAnimation Animation
-    | PlayerDeathAnimation BackgroundAnimation
-    deriving (Generic, Eq)
+  = PlayerIdleAnimation Animation
+  | PlayerRunningAnimation Animation
+  | PlayerDeathAnimation BackgroundAnimation
+  deriving (Generic, Eq)
 
 data BackgroundAnimation = BackgroundAnimation
-    { animation :: Animation
-    , location :: Location
-    , direction :: Direction
-    } deriving (Generic, Eq)
+  { animation :: Animation
+  , location :: Location
+  , direction :: Direction
+  }
+  deriving (Generic, Eq)
 
 playerToAnimation :: PlayerAnimation -> Animation
-playerToAnimation (PlayerIdleAnimation    anim) = anim
+playerToAnimation (PlayerIdleAnimation anim) = anim
 playerToAnimation (PlayerRunningAnimation anim) = anim
-playerToAnimation (PlayerDeathAnimation   backgroundAnimation) = animation backgroundAnimation
+playerToAnimation (PlayerDeathAnimation backgroundAnimation) = animation backgroundAnimation
 
 updatePlayerAnimation :: PlayerAnimation -> PlayerAnimation
 updatePlayerAnimation (PlayerIdleAnimation anim) =
-    PlayerIdleAnimation $ updateAnimation anim
+  PlayerIdleAnimation $ updateAnimation anim
 updatePlayerAnimation (PlayerRunningAnimation anim) =
-    PlayerRunningAnimation $ updateAnimation anim
+  PlayerRunningAnimation $ updateAnimation anim
 updatePlayerAnimation (PlayerDeathAnimation anim) =
-    PlayerDeathAnimation $ updatePlayerBackgroundAnimation anim
+  PlayerDeathAnimation $ updatePlayerBackgroundAnimation anim
 
 updateAnimation :: Animation -> Animation
-updateAnimation a@Animation {..}
-    | countDownTilNext == 0 =  a { animationPictures = tail animationPictures
-           , countDownTilNext  = countDownMax
-           }
-    | otherwise = a { countDownTilNext = countDownTilNext - 1 }
+updateAnimation a@Animation{..}
+  | countDownTilNext == 0 =
+      a
+        { animationPictures = animationPictures + 1
+        , countDownTilNext = countDownMax
+        }
+  | otherwise = a{countDownTilNext = countDownTilNext - 1}
 
 updatePlayerBackgroundAnimation :: BackgroundAnimation -> BackgroundAnimation
-updatePlayerBackgroundAnimation a = b { animation = newAnimation }
-  where
-    newAnimation = updateAnimation (animation a)
-    b            = deadPlayerUpdateOperation a
+updatePlayerBackgroundAnimation a = b{animation = newAnimation}
+ where
+  newAnimation = updateAnimation (animation a)
+  b = deadPlayerUpdateOperation a
 
 deadPlayerUpdateOperation :: BackgroundAnimation -> BackgroundAnimation
 deadPlayerUpdateOperation BackgroundAnimation{..} =

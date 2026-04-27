@@ -15,7 +15,7 @@ import           WaterWars.Network.Protocol
 import Control.Concurrent.STM.TQueue
 import Data.Text (Text)
 import Control.Monad.IO.Class
-import qualified Data.Aeson as Aeson
+import WaterWars.Network.Json (JSON(..))
 
 data ClientConnection a b = ClientConnection
     { connectionId  :: Text -- ^Session id, uniquely identifies players
@@ -35,13 +35,13 @@ instance Show (ClientConnection a b)  where
 
 send :: MonadIO m => ClientConnection a b -> ServerMessage -> m ()
 send conn toSend = do
-    let msg = Aeson.encode toSend
+    let msg = serialize JSON toSend
     liftIO $ WS.sendTextData (connection conn) msg
 
 receive :: MonadIO m => ClientConnection a b -> m (Either String ClientMessage)
 receive conn = do
     msg <- liftIO $ WS.receiveData (connection conn)
-    return $ deserialize msg
+    return $ deserialize JSON msg
 
 newClientConnection
     :: Text -> WS.Connection -> TQueue a -> TQueue b -> ClientConnection a b

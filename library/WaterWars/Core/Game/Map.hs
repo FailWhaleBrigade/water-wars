@@ -1,47 +1,47 @@
 {-# LANGUAGE DeriveGeneric #-}
 
-module WaterWars.Core.Game.Map
-    ( module WaterWars.Core.Game.Map
-    , module WaterWars.Core.Terrain.Block
-    , module WaterWars.Core.Terrain.Decoration
-    )
+module WaterWars.Core.Game.Map (
+  module WaterWars.Core.Game.Map,
+  module WaterWars.Core.Terrain.Block,
+  module WaterWars.Core.Terrain.Decoration,
+)
 where
 
-import           WaterWars.Core.Terrain.Block
-import           Data.Array.IArray
-import           WaterWars.Core.Terrain.Decoration
+import Data.Array.IArray
 import GHC.Generics
+import WaterWars.Core.Terrain.Block
+import WaterWars.Core.Terrain.Decoration
 
 data GameMap = GameMap
-    { gameTerrain :: Terrain
-    , terrainDecoration :: TerrainDecoration
-    }
-    deriving (Show, Read, Eq, Generic)
+  { gameTerrain :: Terrain
+  , terrainDecoration :: TerrainDecoration
+  }
+  deriving (Show, Read, Eq, Generic)
 
--- |Terrain description of theBlockId
+-- | Terrain description of theBlockId
 newtype Terrain = Terrain
-    { terrainBlocks :: Array BlockLocation Block
-    }
-    deriving (Show, Read, Eq, Generic)
+  { terrainBlocks :: Array BlockLocation Block
+  }
+  deriving (Show, Read, Eq, Generic)
 
 newtype TerrainDecoration = TerrainDecoration
-    { terrainDecorationArray :: Array BlockLocation [Decoration]
-    }
-    deriving (Eq, Read, Show, Generic)
+  { terrainDecorationArray :: Array BlockLocation [Decoration]
+  }
+  deriving (Eq, Read, Show, Generic)
 
 terrainBounds :: Terrain -> (BlockLocation, BlockLocation)
-terrainBounds Terrain {..} = bounds terrainBlocks
+terrainBounds Terrain{..} = bounds terrainBlocks
 
 blockAt :: Terrain -> BlockLocation -> Block
-blockAt Terrain {..} l = terrainBlocks ! l
+blockAt Terrain{..} l = terrainBlocks ! l
 
 instance Semigroup Terrain where
-    Terrain blocks1 <> Terrain blocks2 =
-        Terrain (accum useSolidBlock blocks1 $ assocs blocks2)
-        where
-            useSolidBlock :: Block -> Block -> Block
-            useSolidBlock (SolidBlock x) _ = SolidBlock x
-            useSolidBlock _ y = y
+  Terrain blocks1 <> Terrain blocks2 =
+    Terrain (accum useSolidBlock blocks1 $ assocs blocks2)
+   where
+    useSolidBlock :: Block -> Block -> Block
+    useSolidBlock (SolidBlock x) _ = SolidBlock x
+    useSolidBlock _ y = y
 
 newtype BlockLocation = BlockLocation (Int, Int)
   deriving (Read, Show, Eq, Ord, Ix, Generic)

@@ -1,6 +1,3 @@
-{-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE DerivingVia #-}
-{-# LANGUAGE StandaloneDeriving #-}
 
 module WaterWars.Client.Render.State (
   Animation (..),
@@ -86,9 +83,8 @@ data WorldInfo = WorldInfo
   }
   deriving (Show, Generic, Eq)
 
-newAnimationState :: Resources -> AnimationState
-newAnimationState Resources {idlePlayerTexture, runningPlayerTextures,
-           playerDeathTextures, mantaTextures, connectingTextures} =
+newAnimationState :: AnimationState
+newAnimationState =
   AnimationState
     { playerAnimations = PlayerAnimationMap Map.empty
     , defaultPlayerAnimation =
@@ -96,21 +92,24 @@ newAnimationState Resources {idlePlayerTexture, runningPlayerTextures,
           Animation
             { countDownTilNext = 30
             , countDownMax = 30
-            , animationPictures = repeat idlePlayerTexture
+            , animationPictures = 0
+            -- , animationPictures = [idlePlayerTexture]
             }
     , newPlayerIdleAnimation =
         PlayerIdleAnimation
           Animation
             { countDownTilNext = 30
             , countDownMax = 30
-            , animationPictures = repeat idlePlayerTexture
+            , animationPictures = 0
+            -- , animationPictures = [idlePlayerTexture]
             }
     , newPlayerRunnningAnimation =
         PlayerIdleAnimation
           Animation
             { countDownTilNext = 5
             , countDownMax = 5
-            , animationPictures = cycle runningPlayerTextures
+            , animationPictures = 0
+            -- , animationPictures = runningPlayerTextures
             }
     , newPlayerDeathAnimation =
         PlayerDeathAnimation
@@ -119,9 +118,10 @@ newAnimationState Resources {idlePlayerTexture, runningPlayerTextures,
                 Animation
                   { countDownTilNext = 9
                   , countDownMax = 9
-                  , animationPictures =
-                      (take 2 playerDeathTextures)
-                        ++ (cycle (drop 2 playerDeathTextures))
+                  , animationPictures = 0
+                  -- , animationPictures =
+                  --     (take 2 playerDeathTextures)
+                  --       ++ (drop 2 playerDeathTextures)
                   }
             , location = Location (0, 0) -- default location
             -- , updateOperation = deadPlayerUpdateOperation
@@ -133,7 +133,8 @@ newAnimationState Resources {idlePlayerTexture, runningPlayerTextures,
               Animation
                 { countDownTilNext = 30
                 , countDownMax = 30
-                , animationPictures = cycle mantaTextures
+                , animationPictures = 0
+                -- , animationPictures = mantaTextures
                 }
           , location = Location (0, 0)
           -- , updateOperation = mantaUpdateOperation
@@ -145,7 +146,8 @@ newAnimationState Resources {idlePlayerTexture, runningPlayerTextures,
         Animation
           { countDownTilNext = 60
           , countDownMax = 60
-          , animationPictures = cycle connectingTextures
+          , animationPictures = 0
+          -- , animationPictures = connectingTextures
           }
     }
 

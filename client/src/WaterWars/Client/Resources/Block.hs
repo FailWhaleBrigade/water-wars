@@ -19,7 +19,7 @@ import Data.Vector (Vector)
 import qualified Data.Vector as Vector
 
 newtype BlockMap = BlockMap {getBlockMap :: Vector GameImage}
-  deriving (Generic, Eq)
+  deriving (Generic, Eq, Show)
 
 instance FromJSVal BlockMap where
   fromJSVal val = fmap (BlockMap . Vector.fromList) <$> fromJSVal val

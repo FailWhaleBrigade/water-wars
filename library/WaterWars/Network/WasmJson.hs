@@ -1,16 +1,18 @@
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE BangPatterns #-}
 
-module Json where
+module WaterWars.Network.WasmJson where
 
+import Control.Applicative ((<|>))
 import qualified Data.Array as Arr
 import Miso (MisoString)
 import Miso.JSON
 import WaterWars.Core.Game
-import WaterWars.Network.Protocol hiding (blockArrayParseJSON, blockArrayToJSON)
+import WaterWars.Network.Protocol
 
 instance ToJSON Login
 instance FromJSON Login
@@ -25,22 +27,24 @@ instance ToJSON GameSetup
 instance FromJSON GameSetup
 
 instance ToJSON GameSetupResponse where
-    toJSON (GameSetupResponse e) = object ["getSetupResponse" .= toJSON e]
+  toJSON (GameSetupResponse e) = object ["getSetupResponse" .= toJSON e]
 instance FromJSON GameSetupResponse where
-    parseJSON = withObject "GameSetupResponse" $ \o ->
-        GameSetupResponse <$> o .: "getSetupResponse"
+  parseJSON = withObject "GameSetupResponse" $ \o ->
+    GameSetupResponse <$> o .: "getSetupResponse"
 
-instance ToJSON a => ToJSON (Either SetupError a) where
-    toJSON (Left e)  = object ["tag" .= String "Left",  "contents" .= toJSON e]
-    toJSON (Right a) = object ["tag" .= String "Right", "contents" .= toJSON a]
-instance FromJSON a => FromJSON (Either SetupError a) where
-    parseJSON = withObject "Either" $ \o -> do
-        tag :: MisoString <- o .: "tag"
-        case tag of
-            "Left"  -> Left  <$> o .: "contents"
-            "Right" -> Right <$> o .: "contents"
-            other   -> fail $ "Unknown Either tag: " ++ show other
-
+instance (ToJSON a) => ToJSON (Either SetupError a) where
+  toJSON (Left e) = object ["Left" .= toJSON e]
+  toJSON (Right a) = object ["Right" .= toJSON a]
+instance (FromJSON a) => FromJSON (Either SetupError a) where
+  parseJSON = withObject "Either" $ \o -> do
+    ( do
+        err <- o .: "Left"
+        pure $ Left err
+      )
+      <|> ( do
+              a <- o .: "Right"
+              pure $ Right a
+          )
 instance ToJSON SetupError where
   toJSON InvalidAmountOfPlayers = String "InvalidAmountOfPlayers"
   toJSON UnknownMap = String "UnknownMap"
@@ -50,14 +54,24 @@ instance FromJSON SetupError where
     "UnknownMap" -> pure UnknownMap
     other -> fail $ "Unknown SetupError: " ++ show other
 
-instance ToJSON Logout
-instance FromJSON Logout
+instance ToJSON Logout where
+  toJSON Logout = Array []
+instance FromJSON Logout where
+  parseJSON = withArray "Logout" $ \ arr -> do
+    let ![] = arr
+    pure Logout
 
-instance ToJSON ClientReady
-instance FromJSON ClientReady
+instance ToJSON ClientReady where
+  toJSON ClientReady = Array []
+instance FromJSON ClientReady where
+  parseJSON = withArray "ClientReady" $ \ arr -> do
+    let ![] = arr
+    pure ClientReady
 
-instance ToJSON GameStart
-instance FromJSON GameStart
+instance ToJSON GameStart where
+  toJSON (GameStart s) = toJSON s
+instance FromJSON GameStart where
+  parseJSON o = GameStart <$> parseJSON o
 
 instance ToJSON ServerMessage where
   toJSON (GameSetupResponseMessage r) = object ["tag" .= String "GameSetupResponseMessage", "contents" .= toJSON r]
@@ -116,8 +130,17 @@ instance FromJSON RunDirection where
     "RunRight" -> pure RunRight
     other -> fail $ "Unknown RunDirection: " ++ show other
 
-instance ToJSON Location
-instance FromJSON Location
+instance ToJSON Location where
+  toJSON (Location (x, y)) = Array [toJSON x, toJSON y]
+
+instance FromJSON Location where
+  parseJSON = withArray "Location" $ \arr -> do
+    let
+      [x', y'] = arr
+    x <- parseJSON x'
+    y <- parseJSON y'
+    pure $ Location (x, y)
+
 
 instance ToJSON GameMap
 instance FromJSON GameMap
@@ -145,8 +168,16 @@ instance FromJSON Decoration where
     "Umbrella" -> pure Umbrella
     other -> fail $ "Unknown Decoration: " ++ show other
 
-instance ToJSON BlockLocation
-instance FromJSON BlockLocation
+instance ToJSON BlockLocation where
+  toJSON (BlockLocation (x, y)) = Array [toJSON x, toJSON y]
+
+instance FromJSON BlockLocation where
+  parseJSON = withArray "BlockLocation" $ \arr -> do
+    let
+      [x', y'] = arr
+    x <- parseJSON x'
+    y <- parseJSON y'
+    pure $ BlockLocation (x, y)
 
 instance ToJSON Block where
   toJSON (SolidBlock content) = object ["tag" .= String "SolidBlock", "contents" .= toJSON content]
@@ -210,23 +241,41 @@ instance FromJSON DeadPlayer
 instance ToJSON GameEvents
 instance FromJSON GameEvents
 
-instance ToJSON GameEvent
-instance FromJSON GameEvent
+instance ToJSON GameEvent where
+  toJSON = \ case
+    ShotProjectile p -> toJSON p
+
+instance FromJSON GameEvent where
+  parseJSON o =
+    ShotProjectile <$> parseJSON o
 
 instance ToJSON Action
 instance FromJSON Action
 
-instance ToJSON RunAction
-instance FromJSON RunAction
+instance ToJSON RunAction where
+  toJSON = \ case
+    RunAction p -> toJSON p
+instance FromJSON RunAction where
+  parseJSON o =
+    RunAction <$> parseJSON o
 
-instance ToJSON JumpAction
-instance FromJSON JumpAction
+instance ToJSON JumpAction where
+  toJSON JumpAction = Array []
 
-instance ToJSON ShootAction
-instance FromJSON ShootAction
+instance FromJSON JumpAction where
+  parseJSON = withArray "JumpAction" $ \ arr -> do
+    let ![] = arr
+    pure JumpAction
 
-instance ToJSON Angle
-instance FromJSON Angle
+instance ToJSON ShootAction where
+  toJSON (ShootAction angle) = toJSON angle
+instance FromJSON ShootAction where
+  parseJSON o = ShootAction <$> parseJSON o
+
+instance ToJSON Angle where
+  toJSON (Angle angle) = toJSON angle
+instance FromJSON Angle where
+  parseJSON o = Angle <$> parseJSON o
 
 blockArrayToJSON :: (ToJSON a) => Arr.Array BlockLocation a -> Value
 blockArrayToJSON arr =
