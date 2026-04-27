@@ -1,22 +1,22 @@
 module WaterWars.Client.Render.Config where
 
 -- TODO: make this configurable with a file
-fieldWidth :: Float
+fieldWidth :: Double
 fieldWidth = 256
 
-fieldHeight :: Float
+fieldHeight :: Double
 fieldHeight = 256
 
-blockSize :: Float
+blockSize :: Double
 blockSize = 32
 
-mermaidHeight :: Float
+mermaidHeight :: Double
 mermaidHeight = 125
-mermaidWidth :: Float
+mermaidWidth :: Double
 mermaidWidth = 78
 
-blockImgHeight :: Float
+blockImgHeight :: Double
 blockImgHeight = 32
 
-blockImgWidth :: Float
+blockImgWidth :: Double
 blockImgWidth = 32

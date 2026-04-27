@@ -21,10 +21,10 @@ import Miso.JSON (Result (..), fromJSON)
 import Miso.Lens
 import Miso.WebSocket (WebSocket)
 import qualified Miso.WebSocket as WS
-import qualified WaterWars.Client.Network.Connection as Client
 import WaterWars.Client.Render.Display (render)
 import WaterWars.Client.Render.State
 import qualified WaterWars.Network.Protocol as Protocol
+import WaterWars.Client.World
 
 ----------------------------------------------------------------------------
 
@@ -163,7 +163,7 @@ updateModel = \case
     anim <- use animationState
     w <- use world
     let
-      (newWorld, animState, _mEvents) = Client.updateWorld message anim w
+      (newWorld, animState, _mEvents) = updateWorld message anim w
     world .= newWorld
     animationState .= animState
   OnError errorMessage ->
@@ -187,13 +187,13 @@ viewModel model =
     , CSS.style_ [CSS.display "flex", CSS.margin "0", CSS.justifyContent "center"]
     ]
     [ Canvas.canvas
-        [ width_ "800"
-        , height_ "600"
+        [ width_  (ms canvasWidth)
+        , height_ (ms canvasHeight)
         , CSS.style_ [CSS.flexGrow "0", CSS.justifySelf "center"]
         ]
         initCanvas
         ( canvasDraw
-            (800, 600)
+            (canvasWidth, canvasHeight)
             (model ^. time)
             (model ^. resources)
             (model ^. animationState)
@@ -204,6 +204,10 @@ viewModel model =
         [websocketView model]
     ]
  where
+  canvasWidth :: Double
+  canvasWidth = 1400
+  canvasHeight :: Double
+  canvasHeight = 800
   connId :: Int
   connId = 0
 
@@ -230,7 +234,7 @@ canvasDraw (w, h) (millis', secs') mResources animState world_ () = do
   case mResources of
     Nothing -> pure ()
     Just res -> do
-      render res animState world_
+      render (w, h) res animState world_
 
   save ()
 

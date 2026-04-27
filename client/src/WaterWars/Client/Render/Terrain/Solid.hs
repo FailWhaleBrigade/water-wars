@@ -5,9 +5,9 @@ import Miso (FromJSVal)
 
 data Solid a =
     Solid
-        { solidWidth :: Float
-        , solidHeight :: Float
-        , solidCenter :: (Float, Float)
+        { solidWidth :: Double
+        , solidHeight :: Double
+        , solidCenter :: (Double, Double)
         , solidContent :: a
         } deriving (Generic, Eq)
 

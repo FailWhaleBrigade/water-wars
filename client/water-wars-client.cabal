@@ -32,6 +32,7 @@ library
     WaterWars.Client.Codec.Resource
     WaterWars.Client.Network.Connection
     WaterWars.Client.Network.State
+    WaterWars.Client.World
     WaterWars.Client.OptParse
     WaterWars.Client.Render.Animation
     WaterWars.Client.Render.Config
@@ -39,6 +40,7 @@ library
     WaterWars.Client.Render.State
     WaterWars.Client.Render.Terrain.Solid
     WaterWars.Client.Render.Update
+    WaterWars.Client.Render.Utils
     WaterWars.Client.Resources.Block
     WaterWars.Client.Resources.Image
     WaterWars.Client.Resources.Resources

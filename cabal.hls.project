@@ -20,3 +20,5 @@ if arch(wasm32)
   -- Required for TemplateHaskell. When using wasm32-wasi-cabal from
   -- ghc-wasm-meta, this is superseded by the global cabal.config.
   shared: True
+
+tests: True

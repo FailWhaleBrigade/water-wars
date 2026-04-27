@@ -1,15 +1,11 @@
 
 module WaterWars.Client.Render.State (
   Animation (..),
-  World (..),
-  WorldSTM (..),
   AnimationState (..),
-  WorldInfo (..),
   PlayerAnimation (..),
   PlayerAnimationMap (..),
   lookupPlayerAnimationMap,
   ServerUpdate (..),
-  emptyWorld,
   newAnimationState,
   setTerrain,
   module WaterWars.Client.Resources.Resources,
@@ -26,20 +22,13 @@ import WaterWars.Client.Resources.Resources
 import WaterWars.Core.Game
 import qualified WaterWars.Core.Game as CoreState
 
-import Control.Concurrent.STM.TVar (TVar)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import qualified Data.Maybe as Maybe
 import GHC.Generics (Generic)
 import WaterWars.Client.Render.Animation
+import WaterWars.Client.Render.Utils
 
-newtype WorldSTM = WorldSTM (TVar World)
-
-data World = World
-  { worldInfo :: WorldInfo
-  , lastGameUpdate :: ServerUpdate
-  }
-  deriving (Generic, Eq)
 
 data AnimationState = AnimationState
   { defaultPlayerAnimation :: PlayerAnimation
@@ -64,24 +53,6 @@ newtype ServerUpdate = ServerUpdate
   { gameStateUpdate :: CoreState.GameState
   }
   deriving (Eq, Show, Generic)
-
-data WorldInfo = WorldInfo
-  { jump :: Bool
-  , walkLeft :: Bool
-  , walkRight :: Bool
-  , shoot :: Maybe Location
-  , lastShot :: Maybe Location
-  , duck :: Bool
-  , exitGame :: Bool
-  , readyUp :: Bool
-  , -- TODO: Everything beneath should be refactored into another datatype
-    countdown :: Maybe Integer
-  , gameRunning :: Bool
-  , localPlayer :: Maybe Player
-  , winnerPlayer :: Maybe Player
-  , projectiles :: [CoreState.Projectile]
-  }
-  deriving (Show, Generic, Eq)
 
 newAnimationState :: AnimationState
 newAnimationState =
@@ -151,37 +122,6 @@ newAnimationState =
           }
     }
 
-emptyWorld :: World
-emptyWorld =
-  World
-    { worldInfo =
-        WorldInfo
-          { jump = False
-          , walkLeft = False
-          , walkRight = False
-          , duck = False
-          , shoot = Nothing
-          , lastShot = Nothing
-          , exitGame = False
-          , readyUp = False
-          , countdown = Nothing
-          , gameRunning = False
-          , localPlayer = Nothing
-          , winnerPlayer = Nothing
-          , projectiles = []
-          }
-    , -- , networkInfo    = Nothing
-      lastGameUpdate =
-        ServerUpdate
-          { gameStateUpdate =
-              GameState
-                { inGamePlayers = InGamePlayers []
-                , gameDeadPlayers = DeadPlayers []
-                , gameProjectiles = Projectiles []
-                , gameTicks = 0
-                }
-          }
-    }
 
 setTerrain :: CoreState.TerrainDecoration -> CoreState.Terrain -> AnimationState -> AnimationState
 setTerrain decoration terrain animationState =
@@ -214,7 +154,7 @@ setTerrain decoration terrain animationState =
       )
       (assocs locationMap)
 
-blockLocationToSolid :: Float -> BlockLocation -> a -> Solid a
+blockLocationToSolid :: Double -> BlockLocation -> a -> Solid a
 blockLocationToSolid size (BlockLocation (x, y)) a =
   Solid
     { solidWidth = size
@@ -226,11 +166,12 @@ blockLocationToSolid size (BlockLocation (x, y)) a =
 mantaUpdateOperation :: BackgroundAnimation -> BackgroundAnimation
 mantaUpdateOperation ba@BackgroundAnimation{..} =
   ba
-    { location = Location (newX, newY)
+    { location = Location (toFloat newX, toFloat newY)
     , direction = dir
     }
  where
-  Location (x, _) = location
+  Location (x', _) = location
+  x = toDouble x'
   dir
     | (direction == RightDir) && (x >= fieldWidth + 60) = LeftDir
     | (direction == LeftDir) && (x <= -fieldWidth - 60) = RightDir
