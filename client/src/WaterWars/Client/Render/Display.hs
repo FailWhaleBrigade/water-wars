@@ -167,7 +167,7 @@ inGamePlayerToPicture (w, h) Resources{..} AnimationState{..} InGamePlayer{..} =
         & bimap (* blockSize) (* blockSize)
         & bimap (+ (w / 2)) (+ ((h / 2) + (ph / (3 / 2) + (blockSize / 2))))
         & invertHeight' h
-  liftIO $ Miso.consoleLog (Miso.ms $ "player " ++ show (x, y) ++ ", " ++ show playerLocation)
+
   Canvas.drawImage' (image $ getAnimationFrame runningPlayerTextures animation, x, y, pw, ph)
   Canvas.restore ()
 

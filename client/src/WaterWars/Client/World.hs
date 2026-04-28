@@ -4,9 +4,10 @@ import WaterWars.Core.Game
 import qualified WaterWars.Core.Game as CoreState
 
 import Control.Concurrent.STM.TVar (TVar)
+import qualified Data.List as List
 import GHC.Generics (Generic)
 import WaterWars.Client.Render.State
-import WaterWars.Network.Protocol (GameStart (..), LoginResponse (..), ServerMessage (..))
+import WaterWars.Network.Protocol (GameStart (..), LoginResponse (..), PlayerAction (..), ServerMessage (..))
 import qualified WaterWars.Network.Protocol as Protocol
 
 newtype WorldSTM = WorldSTM (TVar World)
@@ -161,3 +162,51 @@ updateWorld serverMsg animationState world@World{..} = case serverMsg of
     , animationState
     , Nothing
     )
+
+extractGameAction :: World -> (Protocol.PlayerAction, World)
+extractGameAction world =
+  let
+    WorldInfo{..} = worldInfo world
+    GameState{..} = gameStateUpdate $ lastGameUpdate world
+    runCmd
+      | walkLeft = Just (RunAction RunLeft)
+      | walkRight = Just (RunAction RunRight)
+      | otherwise = Nothing
+    jmpCmd = if jump then Just JumpAction else Nothing
+    shootCmd = do
+      -- Maybe Shoot
+      shootTarget <- shoot
+      player <- localPlayer
+      inGamePlayer <-
+        List.find
+          ((== player) . playerDescription)
+          (getInGamePlayers inGamePlayers)
+      let
+        shootLocation = playerHeadLocation inGamePlayer
+      return $ calculateAngle shootLocation shootTarget
+
+    playerAction =
+      Action
+        { runAction = runCmd
+        , jumpAction = jmpCmd
+        , shootAction = shootCmd
+        }
+
+    newWorld =
+      case shoot of
+        Just target ->
+          world
+            { worldInfo =
+                (worldInfo world)
+                  { shoot = Nothing
+                  , lastShot = Just target
+                  }
+            }
+        Nothing -> world
+
+  in
+    (PlayerAction{getAction = playerAction}, newWorld)
+
+calculateAngle :: Location -> Location -> Angle
+calculateAngle (Location (x1, y1)) (Location (x2, y2)) =
+  Angle (atan2 (y2 - y1) (x2 - x1))

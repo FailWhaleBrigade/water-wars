@@ -2,13 +2,14 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NumericUnderscores #-}
 
 ----------------------------------------------------------------------------
-module Main where
+module Main (main) where
 
 ----------------------------------------------------------------------------
 
-import Control.Monad (replicateM_)
+import Control.Monad (replicateM_, void, forever)
 import WaterWars.Network.WasmJson ()
 import Miso
 import qualified Miso.CSS as CSS
@@ -25,6 +26,8 @@ import WaterWars.Client.Render.Display (render)
 import WaterWars.Client.Render.State
 import qualified WaterWars.Network.Protocol as Protocol
 import WaterWars.Client.World
+import qualified Data.Maybe as Maybe
+import Control.Concurrent (forkIO, threadDelay)
 
 ----------------------------------------------------------------------------
 
@@ -33,6 +36,7 @@ data Model
   = Model
   { _time :: (Double, Double)
   , _world :: World
+  , _gameView :: Maybe GameView
   , _animationState :: AnimationState
   , _resources :: Maybe Resources
   , _websocket :: WebSocket
@@ -60,6 +64,9 @@ animationState = lens _animationState $ \r x -> r{_animationState = x}
 resources :: Lens Model (Maybe Resources)
 resources = lens _resources $ \r x -> r{_resources = x}
 
+gameView :: Lens Model (Maybe GameView)
+gameView = lens _gameView $ \r x -> r{_gameView = x}
+
 ----------------------------------------------------------------------------
 
 -- | Sum type for App events
@@ -68,7 +75,7 @@ data Action
     GetTime
   | SetTime (Double, Double)
   | Startup
-  | FinishedResourceLoading Resources
+  | FinishedResourceLoading Resources GameView
   | -- WebSockets
     OnOpen WebSocket
   | OnMessage Protocol.ServerMessage
@@ -76,6 +83,26 @@ data Action
   | OnError MisoString
   | Connect
   | Disconnect
+  -- WebSocket send operations
+  | SendUpdate
+  -- Client interaction
+  | DoAction GameAction
+  | StopAction GameAction
+  | Noop
+  | Shoot PointerEvent
+  | Shoot'
+
+data GameAction
+  = JumpAction
+  | LeftAction
+  | RightAction
+  | DuckAction
+  deriving (Show)
+
+data GameView = GameView
+  { canvas :: JSVal
+  }
+  deriving (Eq)
 
 ----------------------------------------------------------------------------
 
@@ -101,7 +128,13 @@ app :: App Model Action
 app =
   (component emptyModel updateModel viewModel)
     { mount = Just Startup
+    , subs = [ timerSub ]
     }
+
+timerSub :: (Action -> IO ()) -> IO ()
+timerSub sink = void $ forever $ do
+  threadDelay 20_000  -- 20ms in microseconds
+  sink SendUpdate
 
 ----------------------------------------------------------------------------
 
@@ -115,6 +148,7 @@ emptyModel =
     , _resources = Nothing
     , _websocket = WS.emptyWebSocket
     , _connected = False
+    , _gameView = Nothing
     }
 
 ----------------------------------------------------------------------------
@@ -128,16 +162,20 @@ updateModel = \case
     time .= m
     issue GetTime
   Startup -> do
-    io_ $ consoleLog $ "Starting up"
+    startSub ("keys" :: MisoString) keysSub
     io $ do
       r <- setup baseUrl
-      pure $ FinishedResourceLoading r
-  FinishedResourceLoading r -> do
+      val <- getElementById canvasId
+      -- set up event listeners
+      focus canvasId
+      pure $ FinishedResourceLoading r (GameView val)
+
+  FinishedResourceLoading r gView -> do
     resources .= Just r
     animationState .= newAnimationState
+    gameView .= Just gView
     issue GetTime
   Connect -> do
-    io_ $ consoleLog $ "Connecting"
     WS.connectJSON
       "ws://127.0.0.1:8080"
       OnOpen
@@ -148,18 +186,12 @@ updateModel = \case
       )
       OnError
   OnOpen socket -> do
-    io_ $ consoleLog $ "Opening Socket"
     websocket .= socket
     connected .= True
-    io_ $ consoleLog $ "Send login message"
     WS.sendJSON socket (Protocol.LoginMessage (Protocol.Login Nothing))
-    io_ $ consoleLog $ "Sent login message"
   OnClosed closed -> do
     connected .= False
-    io_ $ consoleLog $ ms (show closed)
-    pure ()
   OnMessage message -> do
-    io_ $ consoleLog $ ms (show message)
     anim <- use animationState
     w <- use world
     let
@@ -170,13 +202,73 @@ updateModel = \case
     io_ (consoleError errorMessage)
   Disconnect ->
     WS.close =<< use websocket
+  SendUpdate -> do
+    isConnected <- use connected
+    if isConnected
+      then do
+        socket <- use websocket
+        w <- use world
+        let (playerAction, newWorld) = extractGameAction w
+        WS.sendJSON socket (Protocol.PlayerActionMessage playerAction)
+        world .= newWorld
+      else do
+        pure ()
+
+
+  DoAction ev ->do
+    world %= doGameAction ev
+
+  StopAction ev ->do
+    world %= stopGameAction ev
+
+  Noop ->
+    pure ()
+
+  Shoot _ev -> do
+    pure ()
+  Shoot' -> do
+    pure ()
+
+doGameAction :: GameAction -> World -> World
+doGameAction gameAction w@World {worldInfo} = case gameAction of
+  JumpAction -> w { worldInfo = worldInfo { jump = True } }
+  LeftAction -> w { worldInfo = worldInfo { walkLeft = True } }
+  RightAction -> w { worldInfo = worldInfo { walkRight = True } }
+  DuckAction -> w { worldInfo = worldInfo { duck = True } }
+
+stopGameAction :: GameAction -> World -> World
+stopGameAction gameAction w@World {worldInfo} = case gameAction of
+  JumpAction -> w { worldInfo = worldInfo { jump = False } }
+  LeftAction -> w { worldInfo = worldInfo { walkLeft = False } }
+  RightAction -> w { worldInfo = worldInfo { walkRight = False } }
+  DuckAction -> w { worldInfo = worldInfo { duck = False } }
 
 newTime :: IO (Double, Double)
 newTime = liftIO $ do
   date <- newDate
   (,) <$> getMilliseconds date <*> getSeconds date
 
+keysSub :: Sub Action
+keysSub sink = do
+  canvas <- getElementById canvasId
+  _ <- addEventListener canvas "keydown" $ \e -> do
+    key <- fromJSVal =<< getProp "keyCode" e
+    case key of
+      Nothing -> pure ()
+      Just code ->
+        sink (keyboardEvent DoAction $ KeyCode code)
+  _ <- addEventListener canvas "keyup" $ \e -> do
+    key <- fromJSVal =<< getProp "keyCode" e
+    case key of
+      Nothing -> pure ()
+      Just code ->
+        sink (keyboardEvent StopAction $ KeyCode code)
+  pure ()
+
 ----------------------------------------------------------------------------
+
+canvasId :: MisoString
+canvasId = "game"
 
 -- | Constructs a virtual DOM from a model
 viewModel :: Model -> View Model Action
@@ -189,7 +281,10 @@ viewModel model =
     [ Canvas.canvas
         [ width_  (ms canvasWidth)
         , height_ (ms canvasHeight)
+        , P.id_ canvasId
         , CSS.style_ [CSS.flexGrow "0", CSS.justifySelf "center"]
+        , H.onClickPrevent Shoot'
+        , P.tabindex_ "1"
         ]
         initCanvas
         ( canvasDraw
@@ -210,6 +305,18 @@ viewModel model =
   canvasHeight = 800
   connId :: Int
   connId = 0
+
+keyboardEvent :: (GameAction -> Action) -> KeyCode -> Action
+keyboardEvent onMsg = Maybe.maybe Noop onMsg . keycodeToGameAction
+
+keycodeToGameAction :: KeyCode -> Maybe GameAction
+keycodeToGameAction (KeyCode val) = case val of
+  -- https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/keyCode#Browser_compatibility
+  0x41 {- A -} -> Just LeftAction
+  0x53 {- S -} -> Just DuckAction
+  0x44 {- D -} -> Just RightAction
+  0x57 {- W -} -> Just JumpAction
+  _ -> Nothing
 
 ----------------------------------------------------------------------------
 baseUrl :: MisoString
