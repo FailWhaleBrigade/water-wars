@@ -36,8 +36,8 @@ render dims@(w, h) resources animationState World{..} = do
   renderEnvironment
   renderManta
   playerPicture
+  playerPictures
  where
-  -- playerPictures
 
   -- deadPlayerPictures
   -- projectilePictures
