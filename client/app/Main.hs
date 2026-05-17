@@ -1,33 +1,39 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NumericUnderscores #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 ----------------------------------------------------------------------------
 module Main (main) where
 
 ----------------------------------------------------------------------------
 
-import Control.Monad (replicateM_, void, forever)
-import WaterWars.Network.WasmJson ()
+import Control.Concurrent (forkIO, threadDelay)
+import Control.Monad (forever, replicateM_, void)
+import Data.Bifunctor
+import qualified Data.Maybe as Maybe
 import Miso
 import qualified Miso.CSS as CSS
 import Miso.Canvas
 import qualified Miso.Canvas as Canvas
+import qualified Miso.FFI as FFI
 import qualified Miso.Html as H
 import Miso.Html.Property
 import qualified Miso.Html.Property as P
-import Miso.JSON (Result (..), fromJSON)
+import Miso.JSON (Result (..), fromJSON, parseEither, withObject, (.:))
 import Miso.Lens
 import Miso.WebSocket (WebSocket)
 import qualified Miso.WebSocket as WS
 import WaterWars.Client.Render.Display (render)
 import WaterWars.Client.Render.State
-import qualified WaterWars.Network.Protocol as Protocol
+import WaterWars.Client.Render.Utils
 import WaterWars.Client.World
-import qualified Data.Maybe as Maybe
-import Control.Concurrent (forkIO, threadDelay)
+import WaterWars.Core.Game.Base (Location (..))
+import qualified WaterWars.Network.Protocol as Protocol
+import WaterWars.Network.WasmJson ()
+import DOMRect (DomRect)
+import qualified DOMRect as DomRect
 
 ----------------------------------------------------------------------------
 
@@ -83,14 +89,14 @@ data Action
   | OnError MisoString
   | Connect
   | Disconnect
-  -- WebSocket send operations
-  | SendUpdate
-  -- Client interaction
-  | DoAction GameAction
+  | -- WebSocket send operations
+    SendUpdate
+  | -- Client interaction
+    DoAction GameAction
+  | DoShootAction RealLocation
   | StopAction GameAction
   | Noop
   | Shoot PointerEvent
-  | Shoot'
 
 data GameAction
   = JumpAction
@@ -100,7 +106,7 @@ data GameAction
   deriving (Show)
 
 data GameView = GameView
-  { canvas :: JSVal
+  { _canvasGameView :: JSVal
   }
   deriving (Eq)
 
@@ -111,7 +117,7 @@ main :: IO ()
 #ifdef INTERACTIVE
 main = reload (startApp defaultEvents app)
 #else
-main = startApp defaultEvents app
+main = startApp (defaultEvents <> keyboardEvents <> mouseEvents) app
 #endif
 ----------------------------------------------------------------------------
 
@@ -128,12 +134,18 @@ app :: App Model Action
 app =
   (component emptyModel updateModel viewModel)
     { mount = Just Startup
-    , subs = [ timerSub ]
+    , subs =
+        [ timerSub
+        , mouseClickSub Shoot
+        ]
     }
+
+mouseClickSub :: (PointerEvent -> action) -> Sub action
+mouseClickSub = windowSub "click" pointerDecoder
 
 timerSub :: (Action -> IO ()) -> IO ()
 timerSub sink = void $ forever $ do
-  threadDelay 20_000  -- 20ms in microseconds
+  threadDelay 20_000 -- 20ms in microseconds
   sink SendUpdate
 
 ----------------------------------------------------------------------------
@@ -162,14 +174,12 @@ updateModel = \case
     time .= m
     issue GetTime
   Startup -> do
-    startSub ("keys" :: MisoString) keysSub
     io $ do
       r <- setup baseUrl
       val <- getElementById canvasId
       -- set up event listeners
       focus canvasId
       pure $ FinishedResourceLoading r (GameView val)
-
   FinishedResourceLoading r gView -> do
     resources .= Just r
     animationState .= newAnimationState
@@ -208,62 +218,82 @@ updateModel = \case
       then do
         socket <- use websocket
         w <- use world
-        let (playerAction, newWorld) = extractGameAction w
+        let
+          (playerAction, newWorld) = extractGameAction (canvasWidth, canvasHeight) w
         WS.sendJSON socket (Protocol.PlayerActionMessage playerAction)
         world .= newWorld
       else do
         pure ()
-
-
-  DoAction ev ->do
+  DoShootAction loc -> do
+    world %= doShootAction loc
+  DoAction ev -> do
     world %= doGameAction ev
-
-  StopAction ev ->do
+  StopAction ev -> do
     world %= stopGameAction ev
-
   Noop ->
     pure ()
+  Shoot ptrEv -> do
+    g <- use gameView
 
-  Shoot _ev -> do
-    pure ()
-  Shoot' -> do
-    pure ()
+    case g of
+      Nothing -> do
+        pure ()
+      Just game -> io $ do
+        boundingRect <- (_canvasGameView game) # "getBoundingClientRect" $ ()
+        domRectM <- DomRect.getBoundingRectProps boundingRect
+        FFI.consoleLog $ ms $ show ptrEv
+        case domRectM of
+          Nothing -> do
+            FFI.consoleError ("water-wars: Parse error on DomRect.")
+            pure Noop
+          Just domRect -> do
+            consoleLog $ ms $ show domRect
+            inBounds domRect (client ptrEv) >>= \ case
+              Nothing -> pure Noop
+              Just loc -> do
+                consoleLog $ ms $ "Shooting at: " <> show loc
+                pure $ DoShootAction loc
+
+inBounds :: DomRect -> (Double, Double) -> IO (Maybe RealLocation)
+inBounds coll2D (x, y) = do
+  let
+    (targetX, targetY) = (x - DomRect.left coll2D, y - DomRect.top coll2D)
+  consoleLog $ Miso.ms $ "inBounds: " <> show (targetX, targetY)
+  if and
+    [ 0 <= targetX
+    , targetX <= DomRect.width coll2D
+    , 0 <= targetY
+    , targetY <= DomRect.height coll2D
+    ]
+    then
+      pure $
+        Just $
+          RealLocation ( targetX, targetY)
+    else
+      pure Nothing
+
+doShootAction :: RealLocation -> World -> World
+doShootAction loc w@World{worldInfo} =
+  w{worldInfo = worldInfo{shoot = Just loc}}
 
 doGameAction :: GameAction -> World -> World
-doGameAction gameAction w@World {worldInfo} = case gameAction of
-  JumpAction -> w { worldInfo = worldInfo { jump = True } }
-  LeftAction -> w { worldInfo = worldInfo { walkLeft = True } }
-  RightAction -> w { worldInfo = worldInfo { walkRight = True } }
-  DuckAction -> w { worldInfo = worldInfo { duck = True } }
+doGameAction gameAction w@World{worldInfo} = case gameAction of
+  JumpAction -> w{worldInfo = worldInfo{jump = True}}
+  LeftAction -> w{worldInfo = worldInfo{walkLeft = True}}
+  RightAction -> w{worldInfo = worldInfo{walkRight = True}}
+  DuckAction -> w{worldInfo = worldInfo{duck = True}}
 
 stopGameAction :: GameAction -> World -> World
-stopGameAction gameAction w@World {worldInfo} = case gameAction of
-  JumpAction -> w { worldInfo = worldInfo { jump = False } }
-  LeftAction -> w { worldInfo = worldInfo { walkLeft = False } }
-  RightAction -> w { worldInfo = worldInfo { walkRight = False } }
-  DuckAction -> w { worldInfo = worldInfo { duck = False } }
+stopGameAction gameAction w@World{worldInfo} = case gameAction of
+  JumpAction -> w{worldInfo = worldInfo{jump = False}}
+  LeftAction -> w{worldInfo = worldInfo{walkLeft = False}}
+  RightAction -> w{worldInfo = worldInfo{walkRight = False}}
+  DuckAction -> w{worldInfo = worldInfo{duck = False}}
 
 newTime :: IO (Double, Double)
 newTime = liftIO $ do
   date <- newDate
   (,) <$> getMilliseconds date <*> getSeconds date
-
-keysSub :: Sub Action
-keysSub sink = do
-  canvas <- getElementById canvasId
-  _ <- addEventListener canvas "keydown" $ \e -> do
-    key <- fromJSVal =<< getProp "keyCode" e
-    case key of
-      Nothing -> pure ()
-      Just code ->
-        sink (keyboardEvent DoAction $ KeyCode code)
-  _ <- addEventListener canvas "keyup" $ \e -> do
-    key <- fromJSVal =<< getProp "keyCode" e
-    case key of
-      Nothing -> pure ()
-      Just code ->
-        sink (keyboardEvent StopAction $ KeyCode code)
-  pure ()
 
 ----------------------------------------------------------------------------
 
@@ -279,11 +309,12 @@ viewModel model =
     , CSS.style_ [CSS.display "flex", CSS.margin "0", CSS.justifyContent "center"]
     ]
     [ Canvas.canvas
-        [ width_  (ms canvasWidth)
+        [ width_ (ms canvasWidth)
         , height_ (ms canvasHeight)
         , P.id_ canvasId
         , CSS.style_ [CSS.flexGrow "0", CSS.justifySelf "center"]
-        , H.onClickPrevent Shoot'
+        , H.onKeyDown (keyboardEvent DoAction)
+        , H.onKeyUp (keyboardEvent StopAction)
         , P.tabindex_ "1"
         ]
         initCanvas
@@ -295,16 +326,15 @@ viewModel model =
             (model ^. world)
         )
     , H.div_
-        [key_ connId]
+        []
         [websocketView model]
     ]
- where
-  canvasWidth :: Double
-  canvasWidth = 1400
-  canvasHeight :: Double
-  canvasHeight = 800
-  connId :: Int
-  connId = 0
+
+canvasWidth :: Double
+canvasWidth = 1400
+
+canvasHeight :: Double
+canvasHeight = 800
 
 keyboardEvent :: (GameAction -> Action) -> KeyCode -> Action
 keyboardEvent onMsg = Maybe.maybe Noop onMsg . keycodeToGameAction

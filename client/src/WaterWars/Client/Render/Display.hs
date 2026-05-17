@@ -11,8 +11,8 @@ import WaterWars.Client.Resources.Image (GameImage (image))
 import WaterWars.Core.Game
 import WaterWars.Core.Game.Constants
 
-import Control.Monad.IO.Class
-import Data.Bifunctor (bimap, Bifunctor (..))
+import Control.Monad.IO.Class (MonadIO (..))
+import Data.Bifunctor (Bifunctor (..), bimap)
 import Data.Foldable (traverse_)
 import qualified Data.Foldable as Foldable
 import Data.Function
@@ -27,23 +27,19 @@ import qualified Miso.Canvas as Canvas
 import WaterWars.Client.Render.Utils
 import WaterWars.Client.World
 
-type Size = (Double, Double)
-type Center = (Double, Double)
-
 render :: Size -> Resources -> AnimationState -> World -> Canvas ()
-render dims@(w, h) resources animationState World{..} = do
+render dims resources animationState World{..} = do
   renderBackground dims backgroundTexture
   renderEnvironment
   renderManta
   playerPicture
-  playerPictures
+  -- playerPictures
+  projectilePictures
+  shootTargetPicture
  where
-
   -- deadPlayerPictures
-  -- projectilePictures
   -- readyPicture
   -- serverTextMessage
-  -- shootTargetPicture
 
   AnimationState{..} = animationState
   WorldInfo{..} = worldInfo
@@ -100,12 +96,12 @@ render dims@(w, h) resources animationState World{..} = do
             inGamePlayerToPicture dims resources animationState alive
 
   projectilePictures :: Canvas ()
-  projectilePictures = traverse_ (projectileToPicture resources animationState) projectiles
+  projectilePictures = traverse_ (projectileToPicture dims resources) projectiles
 
   renderEnvironment :: Canvas ()
   renderEnvironment = do
-    traverse_ (solidToPicture dims (flip lookupBlockMap blockMap)) solids
-    traverse_ (solidToPicture dims (flip lookupDecorationMap decorationMap)) decorations
+    traverse_ (solidToPicture dims (`lookupBlockMap` blockMap)) solids
+    traverse_ (solidToPicture dims (`lookupDecorationMap` decorationMap)) decorations
 
   renderManta :: Canvas ()
   renderManta = backgroundAnimationToPicture mantaTextures mantaAnimation
@@ -115,18 +111,16 @@ render dims@(w, h) resources animationState World{..} = do
     case countdown of
       Nothing -> pure ()
       Just down -> do
-        countdownToPicture resources animationState (down - gameTicks)
+        countdownToPicture resources (down - gameTicks)
 
   shootTargetPicture :: Canvas ()
   shootTargetPicture = do
-    case fmap l2d lastShot of
+    case lastShot of
       Nothing -> pure ()
-      Just (x, y) -> do
+      Just (RealLocation (x, y)) -> do
         Canvas.save ()
         Canvas.translate (toDouble (blockSize * x), (blockSize * y))
         Canvas.restore ()
-
--- circle_ []
 
 renderBackground :: Size -> GameImage -> Canvas ()
 renderBackground (w, h) img = do
@@ -138,19 +132,19 @@ inGamePlayerColor :: CSS.Color
 inGamePlayerColor = CSS.red
 
 solidToPicture :: Size -> (a -> GameImage) -> Solid a -> Canvas ()
-solidToPicture (w, h) getImage solid = do
+solidToPicture dims getImage solid = do
   Canvas.save ()
   let
-    (x, y) =
+    RealLocation (x, y) =
       solidCenter solid
-        & bimap (+ (w / 2)) (+ (h / 2))
-        & invertHeight' h
+        & ll2rl
+        & toRealLoc' dims
 
-  Canvas.drawImage' (image $ getImage (solidContent solid), x, y, toDouble blockSize, toDouble blockSize)
+  Canvas.drawImage' (image $ getImage (solidContent solid), x, y, solidWidth solid, solidHeight solid)
   Canvas.restore ()
 
 inGamePlayerToPicture :: Size -> Resources -> AnimationState -> InGamePlayer -> Canvas ()
-inGamePlayerToPicture (w, h) Resources{..} AnimationState{..} InGamePlayer{..} = do
+inGamePlayerToPicture dims Resources{..} AnimationState{..} InGamePlayer{..} = do
   let
     directionComponent = case playerLastRunDirection of
       RunLeft -> -1
@@ -162,12 +156,14 @@ inGamePlayerToPicture (w, h) Resources{..} AnimationState{..} InGamePlayer{..} =
   Canvas.save ()
 
   let
-    (pw, ph) = (toDouble playerWidth *  blockSize, toDouble playerHeight *  blockSize)
-    (x, y) = l2d playerLocation
-        & bimap (* blockSize) (* blockSize)
-        & bimap (+ (w / 2)) (+ ((h / 2) + (ph / (3 / 2) + (blockSize / 2))))
-        & invertHeight' h
-
+    (pw, ph) =
+      ( toDouble playerWidth * blockSize
+      , toDouble playerHeight * blockSize
+      )
+    RealLocation (x, y) =
+      toRealLoc  dims playerLocation
+        & resetCanvasOrigin (pw, ph)
+  liftIO $ Miso.consoleLog $ Miso.ms $ "Player: " <> show (x, y) <> ", " <> show (pw, ph) <> ", " <> show playerLocation
   Canvas.drawImage' (image $ getAnimationFrame runningPlayerTextures animation, x, y, pw, ph)
   Canvas.restore ()
 
@@ -175,7 +171,7 @@ deadPlayerToPicture :: Resources -> AnimationState -> DeadPlayer -> Canvas ()
 deadPlayerToPicture Resources{..} AnimationState{..} DeadPlayer{..} = do
   let
     maybeAnimation = lookupPlayerAnimationMap deadPlayerDescription playerAnimations
-    (x, y) = l2d $ case maybeAnimation of
+    RealLocation (x, y) = l2rl $ case maybeAnimation of
       Just (PlayerDeathAnimation ba) -> location ba
       _ -> deadPlayerLocation
     a =
@@ -190,17 +186,22 @@ deadPlayerToPicture Resources{..} AnimationState{..} DeadPlayer{..} = do
   Canvas.drawImage (image $ getAnimationFrame playerDeathTextures a, 0, 0)
   Canvas.restore ()
 
-projectileToPicture :: Resources -> AnimationState -> Projectile -> Canvas ()
-projectileToPicture Resources{..} AnimationState{..} p = do
+projectileToPicture :: Size -> Resources -> Projectile -> Canvas ()
+projectileToPicture dims Resources{..} p = do
   Canvas.save ()
-  Canvas.translate ((x * blockSize), (y * blockSize))
-  Canvas.drawImage (image projectileTexture, 0, 0)
-  Canvas.restore ()
- where
-  (x, y) = l2d $ projectileLocation p
+  let
+    (pw, ph) = (16, 16)
+  let
+    RealLocation (x, y) =
+      toRealLoc dims (projectileLocation p)
+        & resetCanvasOrigin (pw, ph)
 
-countdownToPicture :: Resources -> AnimationState -> Integer -> Canvas ()
-countdownToPicture Resources{..} AnimationState{..} tick = do
+  -- liftIO $ Miso.consoleLog (Miso.ms $ "Shot at " <> show x <> ", " <> show y)
+  Canvas.drawImage' (image projectileTexture, x, y, pw, ph)
+  Canvas.restore ()
+
+countdownToPicture :: Resources -> Integer -> Canvas ()
+countdownToPicture Resources{..} tick = do
   Canvas.save ()
   displayText
   Canvas.drawImage (image pic, 0, 0)
@@ -224,7 +225,7 @@ backgroundAnimationToPicture texs BackgroundAnimation{..} = do
     RightDir -> (-1, 1)
     LeftDir -> (1, 1)
   pic = getAnimationFrame texs animation
-  (x, y) = l2d location
+  RealLocation (x, y) = l2rl location
 
 getAnimationFrame :: Vector GameImage -> Animation -> GameImage
 getAnimationFrame imgs a =

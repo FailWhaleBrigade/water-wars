@@ -91,6 +91,7 @@ executable water-wars-client
   main-is: Main.hs
   other-modules:
     Paths_water_wars_client
+    DOMRect
 
   hs-source-dirs:
     app

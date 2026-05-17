@@ -159,7 +159,7 @@ blockLocationToSolid size (BlockLocation (x, y)) a =
   Solid
     { solidWidth = size
     , solidHeight = size
-    , solidCenter = (fromIntegral x * size, fromIntegral y * size)
+    , solidCenter = LogicalLocation (x, y)
     , solidContent = a
     }
 

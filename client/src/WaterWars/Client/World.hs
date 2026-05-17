@@ -9,6 +9,7 @@ import GHC.Generics (Generic)
 import WaterWars.Client.Render.State
 import WaterWars.Network.Protocol (GameStart (..), LoginResponse (..), PlayerAction (..), ServerMessage (..))
 import qualified WaterWars.Network.Protocol as Protocol
+import WaterWars.Client.Render.Utils
 
 newtype WorldSTM = WorldSTM (TVar World)
 
@@ -22,8 +23,8 @@ data WorldInfo = WorldInfo
   { jump :: Bool
   , walkLeft :: Bool
   , walkRight :: Bool
-  , shoot :: Maybe Location
-  , lastShot :: Maybe Location
+  , shoot :: Maybe RealLocation
+  , lastShot :: Maybe RealLocation
   , duck :: Bool
   , exitGame :: Bool
   , readyUp :: Bool
@@ -163,8 +164,8 @@ updateWorld serverMsg animationState world@World{..} = case serverMsg of
     , Nothing
     )
 
-extractGameAction :: World -> (Protocol.PlayerAction, World)
-extractGameAction world =
+extractGameAction :: Size -> World -> (Protocol.PlayerAction, World)
+extractGameAction dims world =
   let
     WorldInfo{..} = worldInfo world
     GameState{..} = gameStateUpdate $ lastGameUpdate world
@@ -183,7 +184,7 @@ extractGameAction world =
           (getInGamePlayers inGamePlayers)
       let
         shootLocation = playerHeadLocation inGamePlayer
-      return $ calculateAngle shootLocation shootTarget
+      return $ calculateAngle shootLocation $ fromRealLoc dims shootTarget
 
     playerAction =
       Action

@@ -12,6 +12,7 @@ blockSize = 32
 
 mermaidHeight :: Double
 mermaidHeight = 125
+
 mermaidWidth :: Double
 mermaidWidth = 78
 
