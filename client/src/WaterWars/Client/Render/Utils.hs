@@ -35,10 +35,6 @@ toRealLoc' (w, h) loc =
     & bimap (+ (w / 2)) (+ (h / 2))
     & invertHeight' h
 
-resetCanvasOrigin :: Size -> RealLocation -> RealLocation
-resetCanvasOrigin (w, h) loc =
-  loc
-    & bimap (subtract (w/ 2)) (id)
 
 fromRealLoc :: Size -> RealLocation -> Location
 fromRealLoc (w, h) loc =

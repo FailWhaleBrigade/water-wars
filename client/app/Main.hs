@@ -317,7 +317,7 @@ viewModel model =
         , H.onKeyUp (keyboardEvent StopAction)
         , P.tabindex_ "1"
         ]
-        initCanvas
+        (initCanvas (canvasWidth, canvasHeight))
         ( canvasDraw
             (canvasWidth, canvasHeight)
             (model ^. time)
@@ -352,9 +352,11 @@ keycodeToGameAction (KeyCode val) = case val of
 baseUrl :: MisoString
 baseUrl = ""
 
-initCanvas :: DOMRef -> Canvas ()
-initCanvas _ = do
-  pure ()
+initCanvas :: (Double, Double) -> DOMRef -> Canvas ()
+initCanvas (w, h) _ = do
+  translate (1200, 1200)
+  -- scale (1, -1)
+  save ()
 
 canvasDraw ::
   (Double, Double) ->
@@ -372,8 +374,6 @@ canvasDraw (w, h) (millis', secs') mResources animState world_ () = do
     Nothing -> pure ()
     Just res -> do
       render (w, h) res animState world_
-
-  save ()
 
 oldCanvasDraw ::
   (Double, Double) ->

@@ -33,7 +33,7 @@ render dims resources animationState World{..} = do
   renderEnvironment
   renderManta
   playerPicture
-  -- playerPictures
+  playerPictures
   projectilePictures
   shootTargetPicture
  where
@@ -138,17 +138,22 @@ solidToPicture dims getImage solid = do
     RealLocation (x, y) =
       solidCenter solid
         & ll2rl
+        & bimap (+ 0.5) (+ 0.5)
         & toRealLoc' dims
 
   Canvas.drawImage' (image $ getImage (solidContent solid), x, y, solidWidth solid, solidHeight solid)
   Canvas.restore ()
 
+flipImage :: Double -> RunDirection -> Canvas ()
+flipImage imageWidth = \ case
+  RunRight -> pure ()
+  RunLeft -> do
+    Canvas.translate (imageWidth, 0)
+    Canvas.scale (-1, 1)
+
 inGamePlayerToPicture :: Size -> Resources -> AnimationState -> InGamePlayer -> Canvas ()
 inGamePlayerToPicture dims Resources{..} AnimationState{..} InGamePlayer{..} = do
   let
-    directionComponent = case playerLastRunDirection of
-      RunLeft -> -1
-      RunRight -> 1
     maybeAnimation = lookupPlayerAnimationMap playerDescription playerAnimations
     animation =
       playerToAnimation $ Maybe.fromMaybe defaultPlayerAnimation maybeAnimation
@@ -161,10 +166,11 @@ inGamePlayerToPicture dims Resources{..} AnimationState{..} InGamePlayer{..} = d
       , toDouble playerHeight * blockSize
       )
     RealLocation (x, y) =
-      toRealLoc  dims playerLocation
-        & resetCanvasOrigin (pw, ph)
-  liftIO $ Miso.consoleLog $ Miso.ms $ "Player: " <> show (x, y) <> ", " <> show (pw, ph) <> ", " <> show playerLocation
-  Canvas.drawImage' (image $ getAnimationFrame runningPlayerTextures animation, x, y, pw, ph)
+      toRealLoc dims playerLocation
+        & bimap id (subtract ph)
+  Canvas.translate (x, y)
+  flipImage pw playerLastRunDirection
+  Canvas.drawImage' (image $ getAnimationFrame runningPlayerTextures animation, 0, 0, pw, ph)
   Canvas.restore ()
 
 deadPlayerToPicture :: Resources -> AnimationState -> DeadPlayer -> Canvas ()
@@ -194,7 +200,7 @@ projectileToPicture dims Resources{..} p = do
   let
     RealLocation (x, y) =
       toRealLoc dims (projectileLocation p)
-        & resetCanvasOrigin (pw, ph)
+        -- & resetCanvasOrigin (pw, ph)
 
   -- liftIO $ Miso.consoleLog (Miso.ms $ "Shot at " <> show x <> ", " <> show y)
   Canvas.drawImage' (image projectileTexture, x, y, pw, ph)
