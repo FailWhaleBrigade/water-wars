@@ -87,13 +87,10 @@ render dims resources animationState World{..} = do
 
   playerPicture :: Canvas ()
   playerPicture = do
-    case localPlayer of
+    case currentPlayerLocation inGamePlayers localPlayer of
       Nothing -> pure ()
-      Just p -> do
-        case List.find ((== p) . playerDescription) (getInGamePlayers inGamePlayers) of
-          Nothing -> pure ()
-          Just alive -> do
-            inGamePlayerToPicture dims resources animationState alive
+      Just alive -> do
+        inGamePlayerToPicture dims resources animationState alive
 
   projectilePictures :: Canvas ()
   projectilePictures = traverse_ (projectileToPicture dims resources) projectiles
@@ -135,6 +132,7 @@ solidToPicture :: Size -> (a -> GameImage) -> Solid a -> Canvas ()
 solidToPicture dims getImage solid = do
   Canvas.save ()
   let
+    -- Origin is centre-centre
     RealLocation (x, y) =
       solidCenter solid
         & ll2rl
@@ -145,7 +143,7 @@ solidToPicture dims getImage solid = do
   Canvas.restore ()
 
 flipImage :: Double -> RunDirection -> Canvas ()
-flipImage imageWidth = \ case
+flipImage imageWidth = \case
   RunRight -> pure ()
   RunLeft -> do
     Canvas.translate (imageWidth, 0)
@@ -166,6 +164,8 @@ inGamePlayerToPicture dims Resources{..} AnimationState{..} InGamePlayer{..} = d
       , toDouble playerHeight * blockSize
       )
     RealLocation (x, y) =
+      -- TODO: the player origin is bottom left
+      -- That's insane, but it is what it is
       toRealLoc dims playerLocation
         & bimap id (subtract ph)
   Canvas.translate (x, y)
@@ -200,7 +200,7 @@ projectileToPicture dims Resources{..} p = do
   let
     RealLocation (x, y) =
       toRealLoc dims (projectileLocation p)
-        -- & resetCanvasOrigin (pw, ph)
+  -- & resetCanvasOrigin (pw, ph)
 
   -- liftIO $ Miso.consoleLog (Miso.ms $ "Shot at " <> show x <> ", " <> show y)
   Canvas.drawImage' (image projectileTexture, x, y, pw, ph)

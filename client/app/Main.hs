@@ -9,9 +9,8 @@ module Main (main) where
 
 ----------------------------------------------------------------------------
 
-import Control.Concurrent (forkIO, threadDelay)
+import Control.Concurrent (threadDelay)
 import Control.Monad (forever, replicateM_, void)
-import Data.Bifunctor
 import qualified Data.Maybe as Maybe
 import Miso
 import qualified Miso.CSS as CSS
@@ -21,7 +20,7 @@ import qualified Miso.FFI as FFI
 import qualified Miso.Html as H
 import Miso.Html.Property
 import qualified Miso.Html.Property as P
-import Miso.JSON (Result (..), fromJSON, parseEither, withObject, (.:))
+import Miso.JSON (Result (..), fromJSON)
 import Miso.Lens
 import Miso.WebSocket (WebSocket)
 import qualified Miso.WebSocket as WS
@@ -29,11 +28,13 @@ import WaterWars.Client.Render.Display (render)
 import WaterWars.Client.Render.State
 import WaterWars.Client.Render.Utils
 import WaterWars.Client.World
-import WaterWars.Core.Game.Base (Location (..))
 import qualified WaterWars.Network.Protocol as Protocol
 import WaterWars.Network.WasmJson ()
 import DOMRect (DomRect)
 import qualified DOMRect as DomRect
+import WaterWars.Core.Game.State (GameState(..))
+import WaterWars.Core.Game.State (InGamePlayer(..))
+import Data.Coerce
 
 ----------------------------------------------------------------------------
 
@@ -46,6 +47,7 @@ data Model
   , _animationState :: AnimationState
   , _resources :: Maybe Resources
   , _websocket :: WebSocket
+  , _targetLocation :: Maybe RealLocation
   , _connected :: Bool
   }
   deriving (Eq)
@@ -73,6 +75,10 @@ resources = lens _resources $ \r x -> r{_resources = x}
 gameView :: Lens Model (Maybe GameView)
 gameView = lens _gameView $ \r x -> r{_gameView = x}
 
+targetLocation :: Lens Model (Maybe RealLocation)
+targetLocation = lens _targetLocation $ \r x -> r{_targetLocation = x}
+
+
 ----------------------------------------------------------------------------
 
 -- | Sum type for App events
@@ -97,6 +103,8 @@ data Action
   | StopAction GameAction
   | Noop
   | Shoot PointerEvent
+  | DoAim PointerEvent
+  | SetAim RealLocation
 
 data GameAction
   = JumpAction
@@ -137,6 +145,7 @@ app =
     , subs =
         [ timerSub
         , mouseClickSub Shoot
+        , mouseSub DoAim
         ]
     }
 
@@ -161,6 +170,7 @@ emptyModel =
     , _websocket = WS.emptyWebSocket
     , _connected = False
     , _gameView = Nothing
+    , _targetLocation = Nothing
     }
 
 ----------------------------------------------------------------------------
@@ -234,31 +244,57 @@ updateModel = \case
     pure ()
   Shoot ptrEv -> do
     g <- use gameView
-
     case g of
       Nothing -> do
         pure ()
       Just game -> io $ do
-        boundingRect <- (_canvasGameView game) # "getBoundingClientRect" $ ()
-        domRectM <- DomRect.getBoundingRectProps boundingRect
-        FFI.consoleLog $ ms $ show ptrEv
-        case domRectM of
+        domRectOf (_canvasGameView game) >>= \ case
           Nothing -> do
             FFI.consoleError ("water-wars: Parse error on DomRect.")
             pure Noop
           Just domRect -> do
-            consoleLog $ ms $ show domRect
-            inBounds domRect (client ptrEv) >>= \ case
+            case relativeClientCoords domRect (client ptrEv) of
               Nothing -> pure Noop
               Just loc -> do
-                consoleLog $ ms $ "Shooting at: " <> show loc
-                pure $ DoShootAction loc
+                pure $ DoShootAction $ RealLocation loc
+  DoAim ptrEv -> do
+    g <- use gameView
+    case g of
+      Nothing -> do
+        pure ()
+      Just game -> io $ do
+        domRectOf (_canvasGameView game) >>= \ case
+          Nothing -> do
+            FFI.consoleError ("water-wars: Parse error on DomRect.")
+            pure Noop
+          Just domRect -> do
+            case relativeClientCoords domRect (client ptrEv) of
+              Nothing -> pure Noop
+              Just loc -> do
+                pure $ SetAim $ RealLocation loc
+  SetAim loc -> do
+    targetLocation .= Just loc
 
-inBounds :: DomRect -> (Double, Double) -> IO (Maybe RealLocation)
+domRectOf :: ToObject object => object -> IO (Maybe DomRect)
+domRectOf el = do
+  boundingRect <- el # "getBoundingClientRect" $ ()
+  domRectM <- DomRect.getBoundingRectProps boundingRect
+  case domRectM of
+    Nothing -> do
+      FFI.consoleError ("water-wars: Parse error on DomRect.")
+      pure Nothing
+    Just domRect -> pure $ Just domRect
+
+relativeClientCoords :: DomRect -> (Double, Double) -> Maybe (Double, Double)
+relativeClientCoords domRect coords =
+  case inBounds domRect coords of
+    Nothing -> Nothing
+    Just localCoords -> pure localCoords
+
+inBounds :: DomRect -> (Double, Double) -> Maybe (Double, Double)
 inBounds coll2D (x, y) = do
   let
     (targetX, targetY) = (x - DomRect.left coll2D, y - DomRect.top coll2D)
-  consoleLog $ Miso.ms $ "inBounds: " <> show (targetX, targetY)
   if and
     [ 0 <= targetX
     , targetX <= DomRect.width coll2D
@@ -266,11 +302,9 @@ inBounds coll2D (x, y) = do
     , targetY <= DomRect.height coll2D
     ]
     then
-      pure $
-        Just $
-          RealLocation ( targetX, targetY)
+      Just (targetX, targetY)
     else
-      pure Nothing
+      Nothing
 
 doShootAction :: RealLocation -> World -> World
 doShootAction loc w@World{worldInfo} =
@@ -324,6 +358,7 @@ viewModel model =
             (model ^. resources)
             (model ^. animationState)
             (model ^. world)
+            (model ^. targetLocation)
         )
     , H.div_
         []
@@ -364,9 +399,10 @@ canvasDraw ::
   Maybe Resources ->
   AnimationState ->
   World ->
+  Maybe RealLocation ->
   () ->
   Canvas ()
-canvasDraw (w, h) (millis', secs') mResources animState world_ () = do
+canvasDraw (w, h) (millis', secs') mResources animState world_ target_ () = do
   globalCompositeOperation SourceOver
   clearRect (0, 0, w, h)
 
@@ -375,38 +411,19 @@ canvasDraw (w, h) (millis', secs') mResources animState world_ () = do
     Just res -> do
       render (w, h) res animState world_
 
-oldCanvasDraw ::
-  (Double, Double) ->
-  (Double, Double) ->
-  Int ->
-  Canvas ()
-oldCanvasDraw (w, h) (millis', secs') n = do
-  let
-    secs = secs' + fromIntegral n
-    millis = millis' + fromIntegral n
-  globalCompositeOperation DestinationOver
-  clearRect (0, 0, w, h)
-  let
-    midPointX = w / 2
-    midPointY = h / 2
-  fillStyle $ Canvas.color (CSS.rgba 0 0 0 0.6)
-  strokeStyle $ Canvas.color (CSS.rgba 0 153 255 0.4)
   save ()
-  translate (midPointX, midPointY)
-  rotate ((((2 * pi) / 60) * secs) + (((2 * pi) / 60000) * millis))
-  translate (105, 0)
-  fillRect (0, -12, 50, 24)
-  -- drawImage (earth, -12, -12)
-  save ()
-  rotate ((((2 * pi) / 6) * secs) + (((2 * pi) / 6000) * millis))
-  translate (0, 28.5)
-  -- drawImage (moon, -3.5, -3.5)
-  replicateM_ 2 (restore ())
-  beginPath ()
-  arc (midPointX, midPointY, 105, 0, pi * 2)
-  stroke ()
-
--- drawImage' (sun, 0, 0, w, h)
+  case target_ of
+    Nothing -> pure ()
+    Just (RealLocation (x, y)) -> do
+      fillStyle $ Canvas.color $ CSS.rgb 255 0 0
+      fillRect (x-5, y-5, 10, 10)
+      case currentPlayerLocation (inGamePlayers $ gameStateUpdate $  lastGameUpdate world_) (localPlayer $ worldInfo world_) of
+        Nothing -> pure ()
+        Just pl -> do
+          let RealLocation (px, py) = l2rl (playerLocation pl)
+          moveTo (px, py)
+          lineTo (x - 5, y - 5)
+  restore ()
 
 websocketView :: Model -> View Model Action
 websocketView m =

@@ -35,13 +35,12 @@ toRealLoc' (w, h) loc =
     & bimap (+ (w / 2)) (+ (h / 2))
     & invertHeight' h
 
-
 fromRealLoc :: Size -> RealLocation -> Location
 fromRealLoc (w, h) loc =
-  -- TODO: double check
   loc
-    & bimap (subtract (w / 2)) (subtract (h / 2))
     & invertHeight' h
+    & bimap (subtract (w / 2)) (subtract (h / 2))
+    & bimap (/ blockSize) (/ blockSize)
     & rl2l
 
 toDouble :: (Real a) => a -> Double

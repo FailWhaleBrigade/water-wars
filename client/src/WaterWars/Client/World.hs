@@ -10,6 +10,7 @@ import WaterWars.Client.Render.State
 import WaterWars.Network.Protocol (GameStart (..), LoginResponse (..), PlayerAction (..), ServerMessage (..))
 import qualified WaterWars.Network.Protocol as Protocol
 import WaterWars.Client.Render.Utils
+import Debug.Trace
 
 newtype WorldSTM = WorldSTM (TVar World)
 
@@ -174,17 +175,7 @@ extractGameAction dims world =
       | walkRight = Just (RunAction RunRight)
       | otherwise = Nothing
     jmpCmd = if jump then Just JumpAction else Nothing
-    shootCmd = do
-      -- Maybe Shoot
-      shootTarget <- shoot
-      player <- localPlayer
-      inGamePlayer <-
-        List.find
-          ((== player) . playerDescription)
-          (getInGamePlayers inGamePlayers)
-      let
-        shootLocation = playerHeadLocation inGamePlayer
-      return $ calculateAngle shootLocation $ fromRealLoc dims shootTarget
+    shootCmd = toShootCmd dims shoot localPlayer inGamePlayers
 
     playerAction =
       Action
@@ -208,6 +199,29 @@ extractGameAction dims world =
   in
     (PlayerAction{getAction = playerAction}, newWorld)
 
+
+currentPlayerLocation :: InGamePlayers -> Maybe Player -> Maybe InGamePlayer
+currentPlayerLocation allPlayers localPlayer = do
+  player <- localPlayer
+  List.find
+    ((== player) . playerDescription)
+    (getInGamePlayers allPlayers)
+
+vector :: Num a => (a, a) -> (a, a) -> (a, a)
+vector (x1, y1) (x2, y2) = (x2 - x1, y2 - y1)
+
+toShootCmd :: Size -> Maybe RealLocation -> Maybe Player -> InGamePlayers -> Maybe Angle
+toShootCmd dims shoot localPlayer inGamePlayers = do
+  -- Maybe Shoot
+  shootTarget <- shoot
+  inGamePlayer <- currentPlayerLocation inGamePlayers localPlayer
+  let
+    shootLocation = playerHeadLocation inGamePlayer
+  return $ calculateAngle shootLocation $ fromRealLoc dims shootTarget
+
 calculateAngle :: Location -> Location -> Angle
-calculateAngle (Location (x1, y1)) (Location (x2, y2)) =
-  Angle (atan2 (y2 - y1) (x2 - x1))
+calculateAngle (Location a) (Location b) =
+  let
+    (dx, dy) = vector a b
+  in
+    Angle (atan2 dy dx)

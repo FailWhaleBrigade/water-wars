@@ -9,7 +9,7 @@ package *
 source-repository-package
   type: git
   location: https://github.com/dmjio/miso
-  branch: master
+  branch: 863bafa6bca730b5d45cfffcd6badcaa5f5f1a02
 
 source-repository-package
   type: git
