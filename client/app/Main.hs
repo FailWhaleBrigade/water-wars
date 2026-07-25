@@ -35,6 +35,9 @@ import qualified DOMRect as DomRect
 import WaterWars.Core.Game.State (GameState(..))
 import WaterWars.Core.Game.State (InGamePlayer(..))
 import Data.Coerce
+import Miso.CSS (background)
+import WaterWars.Client.Resources.Image
+import WaterWars.Client.Render.Config (blockSize)
 
 ----------------------------------------------------------------------------
 
@@ -47,7 +50,7 @@ data Model
   , _animationState :: AnimationState
   , _resources :: Maybe Resources
   , _websocket :: WebSocket
-  , _targetLocation :: Maybe RealLocation
+  , _targetLocation :: Maybe DLocation
   , _connected :: Bool
   }
   deriving (Eq)
@@ -75,7 +78,7 @@ resources = lens _resources $ \r x -> r{_resources = x}
 gameView :: Lens Model (Maybe GameView)
 gameView = lens _gameView $ \r x -> r{_gameView = x}
 
-targetLocation :: Lens Model (Maybe RealLocation)
+targetLocation :: Lens Model (Maybe DLocation)
 targetLocation = lens _targetLocation $ \r x -> r{_targetLocation = x}
 
 
@@ -104,8 +107,10 @@ data Action
   | Noop
   | Shoot PointerEvent
   | DoAim PointerEvent
-  | SetAim RealLocation
+  | SetAim DLocation
 
+newtype DLocation = DLocation (Double, Double)
+  deriving (Eq)
 data GameAction
   = JumpAction
   | LeftAction
@@ -270,8 +275,11 @@ updateModel = \case
           Just domRect -> do
             case relativeClientCoords domRect (client ptrEv) of
               Nothing -> pure Noop
-              Just loc -> do
-                pure $ SetAim $ RealLocation loc
+              Just (x, y) -> do
+                pure $ SetAim $ DLocation
+                  ( (x - DomRect.width domRect / 2) / blockSize
+                  , (- y  + DomRect.height domRect / 2) / blockSize
+                  )
   SetAim loc -> do
     targetLocation .= Just loc
 
@@ -389,9 +397,7 @@ baseUrl = ""
 
 initCanvas :: (Double, Double) -> DOMRef -> Canvas ()
 initCanvas (w, h) _ = do
-  translate (1200, 1200)
-  -- scale (1, -1)
-  save ()
+  globalCompositeOperation SourceOver
 
 canvasDraw ::
   (Double, Double) ->
@@ -399,31 +405,32 @@ canvasDraw ::
   Maybe Resources ->
   AnimationState ->
   World ->
-  Maybe RealLocation ->
+  Maybe DLocation ->
   () ->
   Canvas ()
-canvasDraw (w, h) (millis', secs') mResources animState world_ target_ () = do
-  globalCompositeOperation SourceOver
+canvasDraw (w, h) (millis', secs') mResources animState world_ cursorPos () = do
+
   clearRect (0, 0, w, h)
+  save ()
+  translate (w/2, h/2)
+  scale (blockSize, -blockSize)
 
   case mResources of
     Nothing -> pure ()
     Just res -> do
-      render (w, h) res animState world_
+      render res animState world_
 
-  save ()
-  case target_ of
-    Nothing -> pure ()
-    Just (RealLocation (x, y)) -> do
-      fillStyle $ Canvas.color $ CSS.rgb 255 0 0
-      fillRect (x-5, y-5, 10, 10)
-      case currentPlayerLocation (inGamePlayers $ gameStateUpdate $  lastGameUpdate world_) (localPlayer $ worldInfo world_) of
-        Nothing -> pure ()
-        Just pl -> do
-          let RealLocation (px, py) = l2rl (playerLocation pl)
-          moveTo (px, py)
-          lineTo (x - 5, y - 5)
+  drawCursor world_ cursorPos
   restore ()
+
+
+drawCursor :: World -> Maybe DLocation -> Canvas ()
+drawCursor _world_ cursorPos = do
+  case cursorPos of
+    Nothing -> pure ()
+    Just (DLocation (x, y)) -> do
+      fillStyle $ Canvas.color $ CSS.rgb 255 0 0
+      fillRect (x, y, 0.1, 0.1)
 
 websocketView :: Model -> View Model Action
 websocketView m =
