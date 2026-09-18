@@ -319,6 +319,7 @@ updateModel = \case
   Ready -> do
     areWeReady .= True
     sendJSON (Protocol.ClientReadyMessage Protocol.ClientReady)
+    io_ $ focus canvasId
 
 sendJSON :: Protocol.ClientMessage -> Effect parent Model Action
 sendJSON msg = do
@@ -411,7 +412,9 @@ viewModel model =
             (model ^. targetLocation)
         )
     , H.div_
-        [ CSS.style_ [CSS.border "1px solid black"]
+        [ CSS.style_
+            [ CSS.border "1px solid black"
+            ]
         ]
         [websocketView model]
     ]
@@ -477,6 +480,10 @@ websocketView :: Model -> View Model Action
 websocketView m =
   H.div_
     [ className "websocket-box"
+    , CSS.style_
+        [ CSS.width "200px"
+        , CCS.margin "1vh"
+        ]
     ]
     [ H.div_
         [class_ "websocket-header"]
@@ -532,11 +539,7 @@ renderLogMessage :: [ServerLogMessage] -> View Model Action
 renderLogMessage msgs =
   H.div_
     [ CSS.style_
-        [ CSS.maxHeight "60%"
-        , CSS.minHeight "10%"
-        , CSS.width "200px"
-        , CSS.backgroundColor CSS.aqua
-        , CSS.wordBreak "break-all"
+        [ CSS.wordBreak "break-all"
         , CCS.overflowY "scroll"
         , CSS.flexDirection "column-reverse"
         , CCS.display "flex"
