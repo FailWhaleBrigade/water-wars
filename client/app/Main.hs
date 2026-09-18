@@ -1,5 +1,6 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE EmptyCase #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -10,9 +11,12 @@ module Main (main) where
 ----------------------------------------------------------------------------
 
 import Control.Concurrent (threadDelay)
-import Control.Monad (forever, replicateM_, void)
+import Control.Monad (forever, void)
+import DOMRect (DomRect)
+import qualified DOMRect as DomRect
 import qualified Data.Maybe as Maybe
 import Miso
+import qualified Miso.CSS as CCS
 import qualified Miso.CSS as CSS
 import Miso.Canvas
 import qualified Miso.Canvas as Canvas
@@ -24,20 +28,14 @@ import Miso.JSON (Result (..), fromJSON)
 import Miso.Lens
 import Miso.WebSocket (WebSocket)
 import qualified Miso.WebSocket as WS
+import WaterWars.Client.Render.Config (blockSize)
 import WaterWars.Client.Render.Display (render)
 import WaterWars.Client.Render.State
 import WaterWars.Client.Render.Utils
 import WaterWars.Client.World
+import WaterWars.Core.Game.State
 import qualified WaterWars.Network.Protocol as Protocol
 import WaterWars.Network.WasmJson ()
-import DOMRect (DomRect)
-import qualified DOMRect as DomRect
-import WaterWars.Core.Game.State (GameState(..))
-import WaterWars.Core.Game.State (InGamePlayer(..))
-import Data.Coerce
-import Miso.CSS (background)
-import WaterWars.Client.Resources.Image
-import WaterWars.Client.Render.Config (blockSize)
 
 ----------------------------------------------------------------------------
 
@@ -52,6 +50,7 @@ data Model
   , _websocket :: WebSocket
   , _targetLocation :: Maybe DLocation
   , _connected :: Bool
+  , _serverLogMessages :: [ServerLogMessage]
   }
   deriving (Eq)
 
@@ -81,6 +80,36 @@ gameView = lens _gameView $ \r x -> r{_gameView = x}
 targetLocation :: Lens Model (Maybe DLocation)
 targetLocation = lens _targetLocation $ \r x -> r{_targetLocation = x}
 
+serverLogMessages :: Lens Model [ServerLogMessage]
+serverLogMessages = lens _serverLogMessages $ \r x -> r{_serverLogMessages = x}
+
+areWeReady :: Lens Model Bool
+areWeReady = lens (readyUp . worldInfo . _world) $ \r x -> r{_world = (_world r){worldInfo = (worldInfo (_world r)){readyUp = x}}}
+
+data ServerLogMessage
+  = LogConnected Player
+  | LogGameWillStart
+  | LogGameStart
+  | LogResetGame
+  | LogStopGame
+  | LogStopGameWithWinner Player
+  | LogGameSetupError Protocol.SetupError
+  deriving (Eq)
+
+logServerMessage :: Protocol.ServerMessage -> Effect parent Model Action
+logServerMessage = \case
+  Protocol.GameSetupResponseMessage setupResp ->
+    case Protocol.getSetupResponse setupResp of
+      Left err -> serverLogMessages %= (LogGameSetupError err :)
+      Right _ -> pure ()
+  Protocol.LoginResponseMessage resp -> serverLogMessages %= (LogConnected (Protocol.successSessionId resp) :)
+  Protocol.GameMapMessage{} -> pure ()
+  Protocol.GameStateMessage{} -> pure ()
+  Protocol.GameWillStartMessage{} -> serverLogMessages %= (LogGameWillStart :)
+  Protocol.GameStartMessage{} -> serverLogMessages %= (LogGameStart :)
+  Protocol.ResetGameMessage{} -> serverLogMessages %= (LogResetGame :)
+  Protocol.StopGameWithWinner w -> serverLogMessages %= (LogStopGameWithWinner w :)
+  Protocol.StopGame -> serverLogMessages %= (LogStopGame :)
 
 ----------------------------------------------------------------------------
 
@@ -108,6 +137,7 @@ data Action
   | Shoot PointerEvent
   | DoAim PointerEvent
   | SetAim DLocation
+  | Ready
 
 newtype DLocation = DLocation (Double, Double)
   deriving (Eq)
@@ -176,6 +206,7 @@ emptyModel =
     , _connected = False
     , _gameView = Nothing
     , _targetLocation = Nothing
+    , _serverLogMessages = []
     }
 
 ----------------------------------------------------------------------------
@@ -213,7 +244,8 @@ updateModel = \case
   OnOpen socket -> do
     websocket .= socket
     connected .= True
-    WS.sendJSON socket (Protocol.LoginMessage (Protocol.Login Nothing))
+    sendJSON (Protocol.LoginMessage (Protocol.Login Nothing))
+    io_ $ focus canvasId
   OnClosed closed -> do
     connected .= False
   OnMessage message -> do
@@ -221,6 +253,7 @@ updateModel = \case
     w <- use world
     let
       (newWorld, animState, _mEvents) = updateWorld message anim w
+    logServerMessage message
     world .= newWorld
     animationState .= animState
   OnError errorMessage ->
@@ -231,11 +264,10 @@ updateModel = \case
     isConnected <- use connected
     if isConnected
       then do
-        socket <- use websocket
         w <- use world
         let
           (playerAction, newWorld) = extractGameAction (canvasWidth, canvasHeight) w
-        WS.sendJSON socket (Protocol.PlayerActionMessage playerAction)
+        sendJSON (Protocol.PlayerActionMessage playerAction)
         world .= newWorld
       else do
         pure ()
@@ -253,7 +285,7 @@ updateModel = \case
       Nothing -> do
         pure ()
       Just game -> io $ do
-        domRectOf (_canvasGameView game) >>= \ case
+        domRectOf (_canvasGameView game) >>= \case
           Nothing -> do
             FFI.consoleError ("water-wars: Parse error on DomRect.")
             pure Noop
@@ -268,7 +300,7 @@ updateModel = \case
       Nothing -> do
         pure ()
       Just game -> io $ do
-        domRectOf (_canvasGameView game) >>= \ case
+        domRectOf (_canvasGameView game) >>= \case
           Nothing -> do
             FFI.consoleError ("water-wars: Parse error on DomRect.")
             pure Noop
@@ -276,14 +308,24 @@ updateModel = \case
             case relativeClientCoords domRect (client ptrEv) of
               Nothing -> pure Noop
               Just (x, y) -> do
-                pure $ SetAim $ DLocation
-                  ( (x - DomRect.width domRect / 2) / blockSize
-                  , (- y  + DomRect.height domRect / 2) / blockSize
-                  )
+                pure $
+                  SetAim $
+                    DLocation
+                      ( (x - DomRect.width domRect / 2) / blockSize
+                      , (-y + DomRect.height domRect / 2) / blockSize
+                      )
   SetAim loc -> do
     targetLocation .= Just loc
+  Ready -> do
+    areWeReady .= True
+    sendJSON (Protocol.ClientReadyMessage Protocol.ClientReady)
 
-domRectOf :: ToObject object => object -> IO (Maybe DomRect)
+sendJSON :: Protocol.ClientMessage -> Effect parent Model Action
+sendJSON msg = do
+  socket <- use websocket
+  WS.sendJSON socket msg
+
+domRectOf :: (ToObject object) => object -> IO (Maybe DomRect)
 domRectOf el = do
   boundingRect <- el # "getBoundingClientRect" $ ()
   domRectM <- DomRect.getBoundingRectProps boundingRect
@@ -349,14 +391,14 @@ viewModel model =
     [ P.className "main"
     , width_ "100%"
     , CSS.style_ [CSS.display "flex", CSS.margin "0", CSS.justifyContent "center"]
+    , H.onKeyDown (keyboardEvent DoAction)
+    , H.onKeyUp (keyboardEvent StopAction)
     ]
     [ Canvas.canvas
         [ width_ (ms canvasWidth)
         , height_ (ms canvasHeight)
         , P.id_ canvasId
-        , CSS.style_ [CSS.flexGrow "0", CSS.justifySelf "center"]
-        , H.onKeyDown (keyboardEvent DoAction)
-        , H.onKeyUp (keyboardEvent StopAction)
+        , CSS.style_ [CSS.flexGrow "0", CSS.justifySelf "center", CSS.border "1px solid black"]
         , P.tabindex_ "1"
         ]
         (initCanvas (canvasWidth, canvasHeight))
@@ -369,7 +411,8 @@ viewModel model =
             (model ^. targetLocation)
         )
     , H.div_
-        []
+        [ CSS.style_ [CSS.border "1px solid black"]
+        ]
         [websocketView model]
     ]
 
@@ -409,10 +452,9 @@ canvasDraw ::
   () ->
   Canvas ()
 canvasDraw (w, h) (millis', secs') mResources animState world_ cursorPos () = do
-
   clearRect (0, 0, w, h)
   save ()
-  translate (w/2, h/2)
+  translate (w / 2, h / 2)
   scale (blockSize, -blockSize)
 
   case mResources of
@@ -422,7 +464,6 @@ canvasDraw (w, h) (millis', secs') mResources animState world_ cursorPos () = do
 
   drawCursor world_ cursorPos
   restore ()
-
 
 drawCursor :: World -> Maybe DLocation -> Canvas ()
 drawCursor _world_ cursorPos = do
@@ -435,7 +476,8 @@ drawCursor _world_ cursorPos = do
 websocketView :: Model -> View Model Action
 websocketView m =
   H.div_
-    [className "websocket-box"]
+    [ className "websocket-box"
+    ]
     [ H.div_
         [class_ "websocket-header"]
         [ H.div_
@@ -455,7 +497,8 @@ websocketView m =
             ]
         ]
     , H.div_
-        [class_ "websocket-controls"]
+        [ class_ "websocket-controls"
+        ]
         [ optionalAttrs
             H.button_
             [ class_ "btn btn-success connect-btn"
@@ -472,5 +515,45 @@ websocketView m =
             (not (m ^. connected))
             [disabled_]
             ["Disconnect"]
+        , optionalAttrs
+            H.button_
+            [ class_ "btn btn-success ready-btn"
+            , H.onClick Ready
+            ]
+            (not (m ^. connected) || (m ^. areWeReady))
+            -- ! (connected => areWeReady)
+            [disabled_]
+            ["Ready"]
+        ]
+    , renderLogMessage (m ^. serverLogMessages)
+    ]
+
+renderLogMessage :: [ServerLogMessage] -> View Model Action
+renderLogMessage msgs =
+  H.div_
+    [ CSS.style_
+        [ CSS.maxHeight "60%"
+        , CSS.minHeight "10%"
+        , CSS.width "200px"
+        , CSS.backgroundColor CSS.aqua
+        , CSS.wordBreak "break-all"
+        , CCS.overflowY "scroll"
+        , CSS.flexDirection "column-reverse"
+        , CCS.display "flex"
         ]
     ]
+    (map go msgs)
+ where
+  go :: ServerLogMessage -> View Model Action
+  go msg =
+    H.p_
+      []
+      [ case msg of
+          LogConnected p -> text $ "You connected as Player: " <> (ms (playerId p))
+          LogGameWillStart -> text "Game will start soon..."
+          LogGameStart -> text "Game started!"
+          LogResetGame -> text "Game reset"
+          LogStopGame -> text "Game stopped"
+          LogStopGameWithWinner w -> text $ ms (playerId w) <> " won the game"
+          LogGameSetupError err -> text $ "Setup error: " <> ms (show err)
+      ]

@@ -39,17 +39,7 @@ import qualified Data.Maybe as Maybe
 --     writeTVar tvar newState
 --     return world
 
--- advanceAnimations :: Float -> World -> World
--- advanceAnimations _ World {..} = World
---     { AnimationState = AnimationState
---         { mantaAnimation = updateBackgroundAnimation (mantaAnimation AnimationState)
---         , playerAnimations = Map.fromList $ fmap
---             (updatePlayerInformation World {..})
---             (Foldable.toList $ getAllPlayers lastGameUpdate)
---         , connectingAnimation = updateAnimation (connectingAnimation AnimationState)
---         }
---     , ..
---     }
+
 
 -- updateIO :: Float -> WorldSTM -> IO WorldSTM
 -- updateIO diff world@(WorldSTM tvar) = atomically $ do

@@ -125,7 +125,7 @@ updateWorld serverMsg animationState world@World{..} = case serverMsg of
     -- between deleting all animation and the next gloss update which generates new animation as needed
     ( world
         { -- AnimationState     = AnimationState { playerAnimations = PlayerAnimationMap Map.empty }
-          worldInfo = worldInfo{winnerPlayer = Nothing}
+          worldInfo = worldInfo{winnerPlayer = Nothing, readyUp = False}
         , lastGameUpdate =
             ServerUpdate
               { gameStateUpdate =
