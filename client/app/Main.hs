@@ -480,9 +480,9 @@ websocketView :: Model -> View Model Action
 websocketView m =
   H.div_
     [ className "websocket-box"
+    , class_ "m-1"
     , CSS.style_
         [ CSS.width "200px"
-        , CCS.margin "1vh"
         ]
     ]
     [ H.div_
@@ -505,10 +505,11 @@ websocketView m =
         ]
     , H.div_
         [ class_ "websocket-controls"
+        , class_ "is-flex is-flex-direction-column is-justify-content-space-between"
         ]
         [ optionalAttrs
             H.button_
-            [ class_ "btn btn-success connect-btn"
+            [ class_ "button is-info"
             , H.onClick Connect
             ]
             (m ^. connected)
@@ -516,7 +517,7 @@ websocketView m =
             ["Connect"]
         , optionalAttrs
             H.button_
-            [ class_ "btn btn-danger disconnect-btn"
+            [ class_ "button is-danger"
             , H.onClick Disconnect
             ]
             (not (m ^. connected))
@@ -524,11 +525,10 @@ websocketView m =
             ["Disconnect"]
         , optionalAttrs
             H.button_
-            [ class_ "btn btn-success ready-btn"
+            [ class_ "button is-primary"
             , H.onClick Ready
             ]
             (not (m ^. connected) || (m ^. areWeReady))
-            -- ! (connected => areWeReady)
             [disabled_]
             ["Ready"]
         ]
@@ -541,9 +541,8 @@ renderLogMessage msgs =
     [ CSS.style_
         [ CSS.wordBreak "break-all"
         , CCS.overflowY "scroll"
-        , CSS.flexDirection "column-reverse"
-        , CCS.display "flex"
         ]
+    , class_ "block is-flex is-flex-direction-column-reverse"
     ]
     (map go msgs)
  where
