@@ -46,7 +46,6 @@ library
 
   ghc-options:
     -Wall
-    -eventlog
 
   build-depends:
     array,
@@ -113,5 +112,10 @@ executable water-wars-server
     water-wars,
     water-wars-server,
     websockets,
+
+  -- instrumentation
+  build-depends:
+    ghc-stack-profiler,
+    eventlog-socket  >=0.1.2 && <0.2
 
   default-language: Haskell2010

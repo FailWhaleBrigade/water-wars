@@ -39,14 +39,16 @@ import Network.Wai
 import Data.Function
 import Network.HTTP.Types.Status (notFound404)
 import qualified Network.WebSockets as WS
-
+import qualified GHC.Eventlog.Socket
+import qualified GHC.Stack.Profiler as Profiler
 
 serverStateWithGameMap :: GameMap -> GameLoopState
 serverStateWithGameMap gameMap =
     GameLoopState {gameMap = gameMap, gameState = defaultGameState}
 
 main :: IO ()
-main = do
+main = Profiler.withProfilerFromEnv $ \_ -> do
+    GHC.Eventlog.Socket.startFromEnv
     args <- execParser opts
     startServer args
   where
