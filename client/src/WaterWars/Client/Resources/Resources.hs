@@ -45,45 +45,45 @@ instance ToJSVal DecorationMap where
 lookupDecorationMap :: Decoration -> DecorationMap -> GameImage
 lookupDecorationMap val dm = getDecorationMap dm Vector.! fromEnum val
 
-setup :: (MonadIO m) => MisoString -> m Resources
-setup baseUrl = do
-  bgTex <- loadPng (baseUrl <> toMisoString "textures/background/background.png")
-  prjTex <- loadPng (baseUrl <> toMisoString "textures/decoration/bubble.png")
-  playerTex <- loadPng (baseUrl <> toMisoString "textures/mermaid/idle/mermaid1.png")
+loadAssets :: (MonadIO m) => m Resources
+loadAssets = do
+  bgTex <- loadPng (toMisoString "textures/background/background.png")
+  prjTex <- loadPng (toMisoString "textures/decoration/bubble.png")
+  playerTex <- loadPng (toMisoString "textures/mermaid/idle/mermaid1.png")
   playerRunningTexs <-
     bulkLoad
-      (getMermaidPaths (baseUrl <> toMisoString "textures/mermaid/running/mermaid") 1 15)
+      (getMermaidPaths (toMisoString "textures/mermaid/running/mermaid") 1 15)
   playerDeathTexs <-
     bulkLoad
-      (getMermaidPaths (baseUrl <> toMisoString "textures/mermaid/death/mermaid_death") 1 9)
+      (getMermaidPaths (toMisoString "textures/mermaid/death/mermaid_death") 1 9)
   mantaTexs <-
     bulkLoad
-      [ baseUrl <> toMisoString "textures/manta_animation/manta1.png"
-      , baseUrl <> toMisoString "textures/manta_animation/manta2.png"
-      , baseUrl <> toMisoString "textures/manta_animation/manta3.png"
-      , baseUrl <> toMisoString "textures/manta_animation/manta4.png"
+      [ toMisoString "textures/manta_animation/manta1.png"
+      , toMisoString "textures/manta_animation/manta2.png"
+      , toMisoString "textures/manta_animation/manta3.png"
+      , toMisoString "textures/manta_animation/manta4.png"
       ]
   countdownTexs <-
     bulkLoad
-      [ baseUrl <> toMisoString "textures/writing/3.png"
-      , baseUrl <> toMisoString "textures/writing/2.png"
-      , baseUrl <> toMisoString "textures/writing/1.png"
-      , baseUrl <> toMisoString "textures/writing/GO.png"
+      [ toMisoString "textures/writing/3.png"
+      , toMisoString "textures/writing/2.png"
+      , toMisoString "textures/writing/1.png"
+      , toMisoString "textures/writing/GO.png"
       ]
 
   connectingTex <-
     bulkLoad
-      [ baseUrl <> toMisoString "textures/writing/connecting0.png"
-      , baseUrl <> toMisoString "textures/writing/connecting1.png"
-      , baseUrl <> toMisoString "textures/writing/connecting2.png"
-      , baseUrl <> toMisoString "textures/writing/connecting3.png"
+      [ toMisoString "textures/writing/connecting0.png"
+      , toMisoString "textures/writing/connecting1.png"
+      , toMisoString "textures/writing/connecting2.png"
+      , toMisoString "textures/writing/connecting3.png"
       ]
   decorationTexsList <-
     bulkLoad
-      [ baseUrl <> toMisoString "textures/decoration/algea.png"
-      , baseUrl <> toMisoString "textures/decoration/coral.png"
-      , baseUrl <> toMisoString "textures/decoration/snail.png"
-      , baseUrl <> toMisoString "textures/decoration/umbrella.png"
+      [ toMisoString "textures/decoration/algea.png"
+      , toMisoString "textures/decoration/coral.png"
+      , toMisoString "textures/decoration/snail.png"
+      , toMisoString "textures/decoration/umbrella.png"
       ]
   -- let
   --   decorationTypeList = [Algea, Coral, Snail, Umbrella]
@@ -91,10 +91,10 @@ setup baseUrl = do
     decorationM =
       Vector.fromList decorationTexsList
 
-  winTex <- loadPng $ baseUrl <> toMisoString "textures/writing/win.png"
-  lostTex <- loadPng $ baseUrl <> toMisoString "textures/writing/lost.png"
+  winTex <- loadPng $ toMisoString "textures/writing/win.png"
+  lostTex <- loadPng $ toMisoString "textures/writing/lost.png"
 
-  blockMap <- loadBlockMap baseUrl
+  blockMap <- loadBlockMap
   return $
     Resources
       { backgroundTexture = bgTex

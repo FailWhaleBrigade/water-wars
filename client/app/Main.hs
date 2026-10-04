@@ -43,6 +43,7 @@ import WaterWars.Network.WasmJson ()
 data Model
   = Model
   { _time :: (Double, Double)
+  , _websocketLocation :: MisoString
   , _world :: World
   , _gameView :: Maybe GameView
   , _animationState :: AnimationState
@@ -79,6 +80,9 @@ gameView = lens _gameView $ \r x -> r{_gameView = x}
 
 targetLocation :: Lens Model (Maybe DLocation)
 targetLocation = lens _targetLocation $ \r x -> r{_targetLocation = x}
+
+websocketLocation :: Lens Model MisoString
+websocketLocation = lens _websocketLocation $ \r x -> r{_websocketLocation = x}
 
 serverLogMessages :: Lens Model [ServerLogMessage]
 serverLogMessages = lens _serverLogMessages $ \r x -> r{_serverLogMessages = x}
@@ -160,7 +164,11 @@ main :: IO ()
 #ifdef INTERACTIVE
 main = reload (startApp defaultEvents app)
 #else
-main = startApp (defaultEvents <> keyboardEvents <> mouseEvents) app
+main = do
+  loc <- jsg "window" ! "location"
+  host <- loc ! "host"
+  hostMs <- fromJSValUnchecked host
+  startApp (defaultEvents <> keyboardEvents <> mouseEvents) (app (emptyModel $ "ws://" <> hostMs))
 #endif
 ----------------------------------------------------------------------------
 
@@ -173,9 +181,9 @@ foreign export javascript "hs_start" main :: IO ()
 ----------------------------------------------------------------------------
 
 -- | `component` takes as arguments the initial model, update function, view function
-app :: App Model Action
-app =
-  (component emptyModel updateModel viewModel)
+app :: Model -> App Model Action
+app initModel =
+  (component initModel updateModel viewModel)
     { mount = Just Startup
     , subs =
         [ timerSub
@@ -195,10 +203,11 @@ timerSub sink = void $ forever $ do
 ----------------------------------------------------------------------------
 
 -- | Empty application state
-emptyModel :: Model
-emptyModel =
+emptyModel :: MisoString -> Model
+emptyModel wsUrl =
   Model
-    { _time = (0, 0)
+    { _websocketLocation = wsUrl
+    , _time = (0, 0)
     , _world = emptyWorld
     , _animationState = newAnimationState
     , _resources = Nothing
@@ -221,7 +230,7 @@ updateModel = \case
     issue GetTime
   Startup -> do
     io $ do
-      r <- setup baseUrl
+      r <- loadAssets
       val <- getElementById canvasId
       -- set up event listeners
       focus canvasId
@@ -232,6 +241,7 @@ updateModel = \case
     gameView .= Just gView
     issue GetTime
   Connect -> do
+    websocketUrl <- use websocketLocation
     WS.connectJSON
       websocketUrl
       OnOpen
@@ -438,11 +448,6 @@ keycodeToGameAction (KeyCode val) = case val of
   _ -> Nothing
 
 ----------------------------------------------------------------------------
-baseUrl :: MisoString
-baseUrl = ""
-
-websocketUrl :: MisoString
-websocketUrl = "wss://127.0.0.1:8080"
 
 initCanvas :: (Double, Double) -> DOMRef -> Canvas ()
 initCanvas (w, h) _ = do

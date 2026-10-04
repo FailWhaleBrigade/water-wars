@@ -30,9 +30,9 @@ instance ToJSVal BlockMap where
 lookupBlockMap :: BlockContent -> BlockMap -> GameImage
 lookupBlockMap val bm = getBlockMap bm Vector.! fromEnum val
 
-loadBlockMap :: (MonadIO m) => MisoString -> m BlockMap
-loadBlockMap baseUrl = do
-  loadedTextures <- bulkLoad $ fmap ((baseUrl <>) . toMisoString) blocks
+loadBlockMap :: (MonadIO m) => m BlockMap
+loadBlockMap = do
+  loadedTextures <- bulkLoad $ fmap toMisoString blocks
   return . BlockMap . Vector.fromList $ Foldable.toList loadedTextures
 
 blocks :: Seq FilePath
