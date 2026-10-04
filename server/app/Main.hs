@@ -35,9 +35,8 @@ import WaterWars.Server.Events
 import WaterWars.Server.GameLoop
 import Network.Wai.Handler.Warp
 import qualified Network.Wai.Handler.WebSockets as WS
-import Network.Wai
 import Data.Function
-import Network.HTTP.Types.Status (notFound404)
+import Network.Wai.Application.Static
 import qualified Network.WebSockets as WS
 import qualified GHC.Eventlog.Socket
 import qualified GHC.Stack.Profiler as Profiler
@@ -88,7 +87,7 @@ websocketServer Arguments {..} messageQueue = do
             -- & setHost (fromString $ Text.unpack hostname)
             & setPort port)
         (WS.websocketsOr defaultConnectionOptions (handleConnection messageQueue)
-            (\ _request handler -> handler $ responseLBS notFound404 mempty ""))
+            (staticApp (defaultWebAppSettings "public")))
 
 handleConnection :: TQueue EventMessage -> PendingConnection -> IO ()
 handleConnection messageQueue websocketConn = do

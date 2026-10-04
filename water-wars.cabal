@@ -1,4 +1,4 @@
-cabal-version: 3.4
+cabal-version: 3.12
 name: water-wars
 version: 0.0.0
 synopsis: The core of WaterWars
@@ -8,11 +8,10 @@ author: Fendor, VeryMilkyJoe, Power-Fungus
 maintainer: Fendor, VeryMilkyJoe, Power-Fungus
 license: MIT
 build-type: Simple
-extra-source-files:
+extra-doc-files:
   CHANGELOG.md
   LICENSE.md
   README.md
-  stack.yaml
 
 source-repository head
   type: git

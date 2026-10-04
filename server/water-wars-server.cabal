@@ -48,8 +48,8 @@ library
     -Wall
 
   build-depends:
-    array,
     aeson,
+    array,
     async,
     base,
     bytestring,
@@ -94,28 +94,28 @@ executable water-wars-server
     base,
     containers,
     effectful-core,
+    http-types,
     log-effectful,
     mtl,
     optparse-applicative,
     say,
-    servant-server,
     stm,
     text,
     time,
     transformers,
     transformers-base,
     uuid,
+    wai,
+    wai-app-static,
     wai-websockets,
     warp,
-    http-types,
-    wai,
     water-wars,
     water-wars-server,
     websockets,
 
   -- instrumentation
   build-depends:
-    ghc-stack-profiler,
-    eventlog-socket  >=0.1.2 && <0.2
+    eventlog-socket >=0.1.2 && <0.2,
+    ghc-stack-profiler ^>= 0.5.0.0,
 
   default-language: Haskell2010

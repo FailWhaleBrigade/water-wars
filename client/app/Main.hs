@@ -233,7 +233,7 @@ updateModel = \case
     issue GetTime
   Connect -> do
     WS.connectJSON
-      "ws://127.0.0.1:8080"
+      websocketUrl
       OnOpen
       OnClosed
       ( \payload -> case fromJSON payload of
@@ -440,6 +440,9 @@ keycodeToGameAction (KeyCode val) = case val of
 ----------------------------------------------------------------------------
 baseUrl :: MisoString
 baseUrl = ""
+
+websocketUrl :: MisoString
+websocketUrl = "wss://127.0.0.1:8080"
 
 initCanvas :: (Double, Double) -> DOMRef -> Canvas ()
 initCanvas (w, h) _ = do
