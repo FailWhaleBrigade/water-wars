@@ -40,6 +40,7 @@ import Network.Wai.Application.Static
 import qualified Network.WebSockets as WS
 import qualified GHC.Eventlog.Socket
 import qualified GHC.Stack.Profiler as Profiler
+import WaiAppStatic.Types (unsafeToPiece)
 
 serverStateWithGameMap :: GameMap -> GameLoopState
 serverStateWithGameMap gameMap =
@@ -87,7 +88,7 @@ websocketServer Arguments {..} messageQueue = do
             -- & setHost (fromString $ Text.unpack hostname)
             & setPort port)
         (WS.websocketsOr defaultConnectionOptions (handleConnection messageQueue)
-            (staticApp (defaultWebAppSettings "public")))
+            (staticApp ((defaultWebAppSettings "public") { ssIndices  = [unsafeToPiece "index.html"], ssAddTrailingSlash = True })))
 
 handleConnection :: TQueue EventMessage -> PendingConnection -> IO ()
 handleConnection messageQueue websocketConn = do

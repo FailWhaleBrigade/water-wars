@@ -4,6 +4,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeApplications #-}
 
 ----------------------------------------------------------------------------
 module Main (main) where
@@ -167,8 +168,19 @@ main = reload (startApp defaultEvents app)
 main = do
   loc <- jsg "window" ! "location"
   host <- loc ! "host"
+  protocol <- loc ! "protocol"
   hostMs <- fromJSValUnchecked host
-  startApp (defaultEvents <> keyboardEvents <> mouseEvents) (app (emptyModel $ "ws://" <> hostMs))
+  protocolMs <- fromJSValUnchecked @MisoString protocol
+
+  let
+    websocketUrl :: MisoString
+    websocketUrl =
+      case protocolMs of
+        "http:" -> "ws://" <> hostMs
+        "https:" -> "wss://" <> hostMs
+        _ -> error $ "Protocol is neither 'http:' nor 'https:':" <> fromMisoString protocolMs
+
+  startApp (defaultEvents <> keyboardEvents <> mouseEvents) (app (emptyModel websocketUrl))
 #endif
 ----------------------------------------------------------------------------
 
