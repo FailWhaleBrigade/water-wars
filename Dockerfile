@@ -41,3 +41,5 @@ COPY public/ /water-wars/public
 COPY resources/ /water-wars/resources
 
 WORKDIR /water-wars
+
+ENTRYPOINT [ "/water-wars/water-wars-server", "-p", "8000" ]
