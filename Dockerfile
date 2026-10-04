@@ -38,3 +38,4 @@ FROM debian:trixie
 
 COPY --from=build-server /water-wars/bin/ /water-wars/bin
 COPY public/ /water-wars/public
+COPY resources/ /water-wars/resources
