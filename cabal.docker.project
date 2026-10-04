@@ -1,0 +1,7 @@
+import: ./cabal.project
+
+package *
+  ghc-options: -finfo-table-map -fdistinct-constructor-tables
+
+allow-newer:
+  ghc-trace-events:base

@@ -1,4 +1,4 @@
-FROM debian:forky
+FROM debian:trixie AS build-server
 
 RUN apt update && apt upgrade -y && apt install -y \
     curl \
@@ -21,15 +21,20 @@ ENV PATH=/root/.ghcup/bin:$PATH
 
 RUN ghcup install --set ghc 9.14.1
 
+COPY CHANGELOG.md LICENSE.md README.md /water-wars/
 COPY client/ /water-wars/client
 COPY library/ /water-wars/library
-COPY client/ /water-wars/server
-COPY resources/ water-wars/resources
-COPY static/ water-wars/static
-COPY cabal.project cabal.wasm.project Makefile water-wars.cabal /water-wars/
+COPY server/ /water-wars/server
+COPY test-suite/ /water-wars/test-suite
+COPY resources/ /water-wars/resources
+COPY static/ /water-wars/static
+COPY cabal.project cabal.wasm.project Makefile water-wars.cabal cabal.docker.project /water-wars/
 
 WORKDIR /water-wars
 
-RUN cabal install -j --semaphore exe:water-wars-server --installdir /water-wars/bin --install-method=copy
+RUN cabal install --project-file cabal.docker.project -j --semaphore exe:water-wars-server --installdir /water-wars/bin --install-method=copy
 
+FROM debian:trixie
+
+COPY --from=build-server /water-wars/bin/ /water-wars/bin
 COPY public/ /water-wars/public
