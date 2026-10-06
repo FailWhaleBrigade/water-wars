@@ -18,8 +18,8 @@ RUN BOOTSTRAP_HASKELL_NONINTERACTIVE=1 \
 
 ENV PATH=/root/.ghcup/bin:$PATH
 
-
 RUN ghcup install --set ghc 9.14.1
+RUN ghcup install ghc 9.10.3
 
 COPY CHANGELOG.md LICENSE.md README.md /water-wars/
 COPY client/ /water-wars/client
@@ -34,12 +34,27 @@ WORKDIR /water-wars
 
 RUN cabal install --project-file cabal.docker.project -j --semaphore exe:water-wars-server --installdir /water-wars/bin --install-method=copy
 
+### Install eventlog-live
+
+# Fetch the download URL for the latest Linux x86_64 asset from GitHub API
+# https://protobuf.dev/installation/
+RUN apt install -y jq protobuf-compiler
+# Ensure compiler version is 33.0+
+RUN protoc --version
+
+
+RUN cabal install -z -w ghc-9.10.3 -j --semaphore eventlog-live \
+        --constraint='blockio +serialblockio'                   \
+        --constraint='grpc-spec -snappy'                        \
+        --installdir /water-wars/bin --install-method=copy
+
 FROM debian:trixie
 
 COPY --from=build-server /water-wars/bin/ /water-wars/bin
 COPY public/ /water-wars/public
 COPY resources/ /water-wars/resources
+COPY docker/run_server.sh /water-wars/bin
 
 WORKDIR /water-wars
 
-ENTRYPOINT [ "/water-wars/water-wars-server", "-p", "8000" ]
+ENTRYPOINT [ "/water-wars/bin/run_server.sh" ]
