@@ -11,7 +11,7 @@ EVENTLOG_PIPE="/tmp/eventlog.pipe"
 rm -f $EVENTLOG_PIPE
 mkfifo "${EVENTLOG_PIPE}"
 
-/water-wars/bin/water-wars-server -p 8000 +RTS -l -ol"${EVENTLOG_PIPE}" -hT --eventlog-flush-interval=1 -RTS &
+/water-wars/bin/water-wars-server -p 8000 +RTS -l -ol"${EVENTLOG_PIPE}" -hi --eventlog-flush-interval=1 -RTS &
 PID=$!
 
 # Define a cleanup function
