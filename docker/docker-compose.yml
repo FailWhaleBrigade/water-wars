@@ -2,8 +2,8 @@ services:
   grafana:
     container_name: grafana
     image: grafana/grafana:latest
-    # ports:
-    #   - "3000:3000"
+    ports:
+      - "10098:3000"
     healthcheck:
       test: "curl -f http://localhost:3000/api/health"
       interval: 1m
@@ -82,13 +82,14 @@ services:
     #   - "3200:3200" # Tempo
 
   water-wars:
+    container_name: water-wars
     build:
       dockerfile: "./docker/Dockerfile"
       context: ".."
 
     environment:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otelcol:4317
-      - GHC_STACK_PROFILER=on
+      # - GHC_STACK_PROFILER=on
 
     depends_on:
       - otelcol
