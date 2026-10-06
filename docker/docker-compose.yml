@@ -35,8 +35,6 @@ services:
         condition: "service_started"
       prometheus:
         condition: "service_started"
-      tempo:
-        condition: "service_started"
       pyroscope:
         condition: "service_started"
     command:
@@ -68,24 +66,9 @@ services:
     # ports:
     #   - 4040:4040 # Pyroscope
 
-  tempo:
-    # container_name: tempo
-    build:
-      context: ".."
-      dockerfile: "./docker/Dockerfile.tempo"
-    command: ["-config.file=/etc/tempo.yaml"]
-    volumes:
-      - "./config/tempo.yaml:/etc/tempo.yaml"
-    # ports:
-    #   - "24317:24317" # OTLP gRPC receiver
-    #   - "24318:24318" # OTLP HTTP receiver
-    #   - "3200:3200" # Tempo
-
   water-wars:
     container_name: water-wars
-    build:
-      dockerfile: "./docker/Dockerfile"
-      context: ".."
+    image: registry.datalab.tuwien.ac.at/spilz-tests/water-wars
 
     environment:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otelcol:4317
