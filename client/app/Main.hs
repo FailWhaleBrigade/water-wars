@@ -56,6 +56,65 @@ data Model
   }
   deriving (Eq)
 
+-- | Sum type for App events
+data Action
+  = -- Time ticks
+    GetTime
+  | SetTime (Double, Double)
+  | Startup
+  | FinishedResourceLoading Resources GameView
+  | -- WebSockets
+    OnOpen WebSocket
+  | OnMessage Protocol.ServerMessage
+  | OnClosed WS.Closed
+  | OnError MisoString
+  | Connect
+  | Disconnect
+  | -- WebSocket send operations
+    SendUpdate
+  | -- Client interaction
+    DoAction GameAction
+  | DoShootAction RealLocation
+  | StopAction GameAction
+  | Noop
+  | Shoot PointerEvent
+  | DoAim PointerEvent
+  | SetAim DLocation
+  | Ready
+
+----------------------------------------------------------------------------
+
+-- | Entry point for a miso application
+main :: IO ()
+#ifdef INTERACTIVE
+main = reload (startApp defaultEvents app)
+#else
+main = do
+  loc <- jsg "window" ! "location"
+  host <- loc ! "host"
+  protocol <- loc ! "protocol"
+  hostMs <- fromJSValUnchecked host
+  protocolMs <- fromJSValUnchecked @MisoString protocol
+
+  let
+    websocketUrl :: MisoString
+    websocketUrl =
+      case protocolMs of
+        "http:" -> "ws://" <> hostMs
+        "https:" -> "wss://" <> hostMs
+        _ -> error $ "Protocol is neither 'http:' nor 'https:':" <> fromMisoString protocolMs
+
+  startApp (defaultEvents <> keyboardEvents <> mouseEvents) (app (emptyModel websocketUrl))
+#endif
+----------------------------------------------------------------------------
+
+-- | WASM export, required when compiling w/ the WASM backend.
+#ifdef WASM
+#ifndef INTERACTIVE
+foreign export javascript "hs_start" main :: IO ()
+#endif
+#endif
+
 ----------------------------------------------------------------------------
 
 time :: Lens Model (Double, Double)
@@ -118,32 +177,6 @@ logServerMessage = \case
 
 ----------------------------------------------------------------------------
 
--- | Sum type for App events
-data Action
-  = -- Time ticks
-    GetTime
-  | SetTime (Double, Double)
-  | Startup
-  | FinishedResourceLoading Resources GameView
-  | -- WebSockets
-    OnOpen WebSocket
-  | OnMessage Protocol.ServerMessage
-  | OnClosed WS.Closed
-  | OnError MisoString
-  | Connect
-  | Disconnect
-  | -- WebSocket send operations
-    SendUpdate
-  | -- Client interaction
-    DoAction GameAction
-  | DoShootAction RealLocation
-  | StopAction GameAction
-  | Noop
-  | Shoot PointerEvent
-  | DoAim PointerEvent
-  | SetAim DLocation
-  | Ready
-
 newtype DLocation = DLocation (Double, Double)
   deriving (Eq)
 data GameAction
@@ -158,38 +191,7 @@ data GameView = GameView
   }
   deriving (Eq)
 
-----------------------------------------------------------------------------
 
--- | Entry point for a miso application
-main :: IO ()
-#ifdef INTERACTIVE
-main = reload (startApp defaultEvents app)
-#else
-main = do
-  loc <- jsg "window" ! "location"
-  host <- loc ! "host"
-  protocol <- loc ! "protocol"
-  hostMs <- fromJSValUnchecked host
-  protocolMs <- fromJSValUnchecked @MisoString protocol
-
-  let
-    websocketUrl :: MisoString
-    websocketUrl =
-      case protocolMs of
-        "http:" -> "ws://" <> hostMs
-        "https:" -> "wss://" <> hostMs
-        _ -> error $ "Protocol is neither 'http:' nor 'https:':" <> fromMisoString protocolMs
-
-  startApp (defaultEvents <> keyboardEvents <> mouseEvents) (app (emptyModel websocketUrl))
-#endif
-----------------------------------------------------------------------------
-
--- | WASM export, required when compiling w/ the WASM backend.
-#ifdef WASM
-#ifndef INTERACTIVE
-foreign export javascript "hs_start" main :: IO ()
-#endif
-#endif
 ----------------------------------------------------------------------------
 
 -- | `component` takes as arguments the initial model, update function, view function
